@@ -1,0 +1,17 @@
+P2 pin assignments - v.0.01, 20211226
+
+0..7 HDMI
+8..12 VGA
+14,15 audio out
+13,16 digital joystick
+17..21 analog joystick
+22,23 audio in
+24,25 midi board pots
+26-28 midi board switches
+29-30 midi in,out
+31 activity led
+32,33 raspberry serial (kbd, mouse, etc)
+34..37 raspberry i2s
+38,39 sio
+40..57 expansion
+

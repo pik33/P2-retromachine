@@ -1,0 +1,3220 @@
+' 
+' hdmi_base       = 0            'must be a multiple of 8
+con
+	hdmi_base = 0
+' '_clkfreq        = 354_689_500   '200x Atari 8-bit PAL,  50x Amiga PAL
+' _clkfreq       = 357_954_500   '200x Atari 8-bit NTSC, 50x Amiga NTSC
+	_clkfreq = 357954500
+' rxpin           = 32
+	rxpin = 32
+' txpin           = 33
+	txpin = 33
+' baudrate        = 1920000
+	baudrate = 1920000
+dat
+	nop
+	cogid	pa
+	coginit	pa,##$404
+	orgh	$10
+	long	0	'reserved
+	long	0 ' clock frequency: will default to 357958951
+	long	0 ' clock mode: will default to $1c36cfb
+	orgh	$400
+ _ret_	mov	result1, #0
+	org	0
+entry
+	cmp	ptra, #0 wz
+ if_ne	jmp	#spininit
+	mov	ptra, objptr
+	add	ptra, ##12928
+	rdlong	pa, #20 wz
+ if_ne	jmp	#skip_clock_set_
+	hubset	#0
+	hubset	##29584632
+	waitx	##200000
+	mov	pa, ##29584635
+	hubset	pa
+	wrlong	pa, #24
+	wrlong	##357958951, #20
+	jmp	#skip_clock_set_
+	orgf	128
+skip_clock_set_
+	call	#_start
+cogexit
+	waitx	##160000
+	cogid	arg01
+	cogstop	arg01
+spininit
+	rdlong	objptr, ptra
+	add	ptra, #4
+	rdlong	result1, ptra
+	add	ptra, #4
+	rdlong	arg01, ptra
+	add	ptra, #4
+	rdlong	arg02, ptra
+	add	ptra, #4
+	rdlong	arg03, ptra
+	add	ptra, #4
+	rdlong	arg04, ptra
+	sub	ptra, #16
+	call	result1
+	jmp	#cogexit
+FCACHE_LOAD_
+    pop	fcache_tmpb_
+    add	fcache_tmpb_, pa
+    push	fcache_tmpb_
+    sub	fcache_tmpb_, pa
+    shr	pa, #2
+    altd	pa
+    mov	 0-0, ret_instr_
+    sub	pa, #1
+    setq	pa
+    rdlong	$0, fcache_tmpb_
+    jmp	#\$0 ' jmp to cache
+ret_instr_
+    ret
+fcache_tmpb_
+    long 0
+builtin_bytefill_
+        shr	arg03, #1 wc
+ if_c   wrbyte	arg02, arg01
+ if_c   add	arg01, #1
+        movbyts	arg02, #0
+builtin_wordfill_
+        shr	arg03, #1 wc
+ if_c   wrword	arg02, arg01
+ if_c   add	arg01, #2
+        setword	arg02, arg02, #1
+builtin_longfill_
+        wrfast	#0,arg01
+        cmp	arg03, #0 wz
+ if_nz  rep	#1, arg03
+ if_nz  wflong	arg02
+        ret
+COUNT_
+    long 0
+RETADDR_
+    long 0
+fp
+    long 0
+pushregs_
+    pop  pa
+    pop  RETADDR_
+    tjz  COUNT_, #pushregs_done_
+    sub  COUNT_, #1
+    setq COUNT_
+    wrlong local01, ptra
+    add  COUNT_, #1
+pushregs_done_
+    shl  COUNT_, #2
+    add  ptra, COUNT_
+    shr  COUNT_, #2
+    setq #2 ' push 3 registers starting at COUNT_
+    wrlong COUNT_, ptra
+    add    ptra, #12
+    mov    fp, ptra
+    jmp  pa
+ popregs_
+    pop    pa
+    sub    ptra, #12
+    setq   #2
+    rdlong COUNT_, ptra
+    tjz    COUNT_, #popregs__ret
+    shl    COUNT_, #2
+    sub    ptra, COUNT_
+    shr    COUNT_, #2
+    sub    COUNT_, #1
+    setq   COUNT_
+    rdlong local01, ptra
+popregs__ret
+    push   RETADDR_
+    jmp    pa
+
+unsdivide_
+       setq    #0
+       qdiv    muldiva_, muldivb_
+       getqx   muldivb_
+ _ret_ getqy   muldiva_
+
+divide_
+       abs     muldiva_,muldiva_     wc       'abs(x)
+       muxc    itmp2_,#%11                    'store sign of x
+       abs     muldivb_,muldivb_     wcz      'abs(y)
+ if_c  xor     itmp2_,#%10                    'store sign of y
+ if_z  ret
+       call    #unsdivide_
+       test    itmp2_,#1        wc       'restore sign, remainder
+       negc    muldiva_,muldiva_ 
+       test    itmp2_,#%10      wc       'restore sign, division result
+ _ret_ negc    muldivb_,muldivb_
+
+entryptr__
+	long	@entry
+itmp1_
+	long	0
+itmp2_
+	long	0
+objptr
+	long	@objmem
+ptr__Hn007_20210302_dat__
+	long	@_Hn007_20210302_dat_
+ptr___system__dat__
+	long	@__system__dat_
+ptr__serialcog_
+	long	@_serialcog
+result1
+	long	0
+COG_BSS_START
+	fit	480
+	orgh
+hubentry
+
+' 
+' pub start(mode)   |iii,caps
+_start
+	mov	COUNT_, #29
+	call	#pushregs_
+' 
+' mode :=0
+	mov	local01, #0
+' caps:=0
+	mov	local02, #0
+' pinl(31)
+	drvl	#31
+' waitms(100)
+	mov	arg01, #100
+	call	#__system___waitms
+' iii:=0
+' vgacog:=v.start(mode)
+	mov	arg01, #0
+	add	objptr, ##600
+	mov	local03, objptr
+' 
+' ' mode=0 - start at PAL timings, 624 lines
+' ' mode=256 - start at NTSC timings, 524 lines
+' 
+' '**********************************************************************************
+' '
+' '           Starts the driver
+' '
+' '**********************************************************************************
+' 
+' ' initialize pointers
+' 
+' border_ptr:=@bordercolor
+	sub	objptr, #32
+	wrlong	local03, objptr
+' font_ptr:=@st_font
+	sub	objptr, #4
+	wrlong	ptr__Hn007_20210302_dat__, objptr
+	add	objptr, #164
+	mov	local04, objptr
+' buf_ptr:=@buf
+	sub	objptr, #168
+	wrlong	local04, objptr
+	add	objptr, ##12196
+	mov	local05, objptr
+' vblank_ptr:=@vblank
+	sub	objptr, ##12184
+	wrlong	local05, objptr
+	add	objptr, ##12156
+	mov	local06, objptr
+' cursor_ptr:=@cursor_x
+	sub	objptr, ##12152
+	wrlong	local06, objptr
+	add	objptr, ##12196
+	mov	local07, objptr
+' mode_ptr:=@timings
+	sub	objptr, ##12192
+	wrlong	local07, objptr
+	add	ptr__Hn007_20210302_dat__, ##4096
+' palette_ptr:=@ataripalette
+	add	objptr, #4
+	wrlong	ptr__Hn007_20210302_dat__, objptr
+	add	objptr, ##12228
+	mov	local08, objptr
+' command_ptr:=@cmd1
+	sub	objptr, ##12224
+	wrlong	local08, objptr
+	add	objptr, ##12232
+	mov	local09, objptr
+' fontnum_ptr:=@fontnum
+	sub	objptr, ##12228
+	wrlong	local09, objptr
+' 
+' fontnum:=2048  ' ST type font
+	add	objptr, ##12228
+	wrlong	##2048, objptr
+' 
+' ' initialize a cursor
+' 
+' cursor_x:=0
+	sub	objptr, #92
+	wrbyte	#0, objptr
+' cursor_y:=0
+	add	objptr, #1
+	wrbyte	#0, objptr
+' cursor_sh:=14
+	add	objptr, #1
+	wrbyte	#14, objptr
+' 
+' ' set 16 VGA DOS like colors
+' 
+' colors[0] := c_black
+	add	objptr, #10
+	wrbyte	#0, objptr
+' colors[1] := c_blue
+	add	objptr, #1
+	wrbyte	#117, objptr
+' colors[2] := c_green
+	add	objptr, #1
+	wrbyte	#199, objptr
+' colors[3] := c_cyan
+	add	objptr, #1
+	wrbyte	#151, objptr
+' colors[4] := c_red
+	add	objptr, #1
+	wrbyte	#39, objptr
+' colors[5] := c_magenta
+	add	objptr, #1
+	wrbyte	#71, objptr
+' colors[6] := c_brown
+	add	objptr, #1
+	wrbyte	#246, objptr
+' colors[7] := c_lightgray
+	add	objptr, #1
+	wrbyte	#10, objptr
+' colors[8] := c_darkgray
+	add	objptr, #1
+	wrbyte	#5, objptr
+' colors[9] := c_lightblue
+	add	objptr, #1
+	wrbyte	#123, objptr
+' colors[$A]:= c_lightgreen
+	add	objptr, #1
+	wrbyte	#203, objptr
+' colors[$B]:= c_lightcyan
+	add	objptr, #1
+	wrbyte	#155, objptr
+' colors[$C]:= c_lightred
+	add	objptr, #1
+	wrbyte	#43, objptr
+' colors[$D]:= c_lightmagenta
+	add	objptr, #1
+	wrbyte	#75, objptr
+' colors[$E]:= c_yellow
+	add	objptr, #1
+	wrbyte	#234, objptr
+' colors[$F]:= c_white
+	add	objptr, #1
+	wrbyte	#15, objptr
+	sub	objptr, ##12195
+' 
+' ' set timings
+' ' We can have 1140,1026 or 912 pixes per line
+' 
+' setmode(mode)
+	sub	ptr__Hn007_20210302_dat__, ##4096
+	call	#_Hn007_20210302_setmode
+' 
+' 
+' 
+'   {{
+'     }}
+' 
+' cmd1:=257 ' set idle
+	add	objptr, ##12252
+	wrlong	#257, objptr
+	sub	objptr, ##12252
+' cog:=coginit(16,@hdmi, @buf_ptr)
+	add	ptr__Hn007_20210302_dat__, ##5120
+	mov	arg02, ptr__Hn007_20210302_dat__
+	sub	ptr__Hn007_20210302_dat__, ##5120
+	mov	arg03, objptr
+	mov	arg01, #16
+	setq	arg03
+	coginit	arg01, arg02 wc
+ if_b	neg	arg01, #1
+	mov	result1, arg01
+	mov	local10, result1
+	add	objptr, #36
+	wrlong	local10, objptr
+	sub	objptr, #36
+' waitms(20)
+	mov	arg01, #20
+	call	#__system___waitms
+' cls(c_green,c_black)
+	mov	arg01, #199
+	mov	arg02, #0
+	call	#_Hn007_20210302_cls
+' setwritecolors(c_green,c_black)
+' 
+' ''---------- Set colors for write and writeln
+' 
+' write_color:=ff
+	add	objptr, ##12172
+	wrlong	#199, objptr
+' write_background:=bb
+	add	objptr, #4
+	wrlong	#0, objptr
+' 
+' return cog
+	sub	objptr, ##12140
+	rdlong	result1, objptr
+	sub	objptr, ##596
+	wrlong	result1, objptr
+' v.cls(154,147)
+	mov	arg01, #154
+	mov	arg02, #147
+	add	objptr, ##560
+	call	#_Hn007_20210302_cls
+' v.setbordercolors(0,0,0)
+	mov	arg01, #0
+' 
+' ''---------- Set border color for all screen - rgb
+' 
+' color:=r<<16+g<<8+b
+	add	objptr, #40
+	mov	local11, objptr
+	sub	objptr, #40
+	loc	pa,	#(@LR__0003-@LR__0001)
+	call	#FCACHE_LOAD_
+LR__0001
+	rep	@LR__0004, #32
+LR__0002
+'   bordercolor[i]:=color
+	wrlong	arg01, local11
+	add	local11, #4
+LR__0003
+LR__0004
+	sub	objptr, ##560
+' serial_start(rxpin, txpin, baudrate)
+	mov	arg01, #32
+	mov	arg02, #33
+	mov	arg03, ##1920000
+	call	#_serial_start
+' midi_start(9,8)
+	mov	arg01, #9
+	mov	arg02, #8
+	call	#_midi_start
+' pinwrite(14,0)
+	mov	arg02, #0
+	test	arg02, #1 wc
+	drvc	#14
+' pinwrite(15,0)
+	test	arg02, #1 wc
+	drvc	#15
+' 
+' cogspin(16,serialcog(),@serialstack)
+	mov	local12, objptr
+	add	objptr, #288
+	mov	local13, objptr
+	wrlong	local12, local13
+	add	local13, #4
+	wrlong	ptr__serialcog_, local13
+	mov	local14, entryptr__
+	mov	local15, objptr
+	mov	arg01, #16
+	mov	arg03, local15
+	setq	arg03
+	coginit	arg01, local14 wc
+ if_b	neg	arg01, #1
+	mov	result1, arg01
+	mov	local16, result1
+' v.setcursorshape(0)
+' 
+' ''---------- Define a cursor shape (0-full..15-line)
+' 
+' cursor_sh:=shape
+	add	objptr, ##12442
+	wrbyte	#0, objptr
+' v.setwritecolors(154,147)
+	mov	arg02, #147
+' 
+' ''---------- Set colors for write and writeln
+' 
+' write_color:=ff
+	add	objptr, #2
+	wrlong	#154, objptr
+' write_background:=bb
+	add	objptr, #4
+	wrlong	#147, objptr
+	sub	objptr, ##12176
+' v.writeln(string(" "))
+	mov	arg01, ##@LR__0136
+	call	#_Hn007_20210302_writeln
+' v.writeln(string("  P2 Retromachine v. 0.00"))
+	mov	arg01, ##@LR__0137
+	call	#_Hn007_20210302_writeln
+' v.writeln(string(" "))
+	mov	arg01, ##@LR__0138
+	call	#_Hn007_20210302_writeln
+' v.writeln(string("  Ready"))
+	mov	arg01, ##@LR__0139
+	call	#_Hn007_20210302_writeln
+' v.writeln(string(" "))
+	mov	arg01, ##@LR__0140
+	call	#_Hn007_20210302_writeln
+' v.write(string("  "))
+	mov	arg01, ##@LR__0141
+	call	#_Hn007_20210302_write
+	sub	objptr, ##560
+' 
+' iii:=fileopen(string("C:\kernel.img"))
+	mov	arg01, ##@LR__0142
+' 
+' q:=strsize(filename)
+	mov	local17, arg01
+	mov	local18, #0
+	loc	pa,	#(@LR__0006-@LR__0005)
+	call	#FCACHE_LOAD_
+LR__0005
+	rdbyte	local19, arg01 wz
+ if_ne	add	local18, #1
+ if_ne	add	arg01, #1
+ if_ne	jmp	#LR__0005
+LR__0006
+	mov	result1, local18
+	mov	local20, result1
+' tx($40)
+	mov	arg01, #64
+	call	#_tx
+' repeat i from 0 to q-1
+	mov	local21, #0
+	mov	local22, local20
+	sub	local22, #1
+	cmps	local22, #0 wcz
+ if_a	mov	local23, #1
+ if_be	neg	local23, #1
+	add	local22, local23
+LR__0007
+	mov	local24, local17
+	add	local24, local21
+'   tx(byte[filename+i])
+	rdbyte	arg01, local24
+	call	#_tx
+	add	local21, local23
+	cmp	local21, local22 wz
+ if_ne	jmp	#LR__0007
+' tx(255)
+	mov	arg01, #255
+	call	#_tx
+' return q
+	mov	result1, local20
+	mov	local25, result1
+	mov	local26, local25
+' 
+' repeat
+LR__0008
+'  {{ rr:=mrx()
+'   }}
+' 
+' 
+'   rr:=serialblockingread()
+' 
+' repeat
+LR__0009
+'   r:=serialread()
+	call	#_serialread
+	mov	local27, result1
+	cmp	local27, ##-1 wz
+ if_e	jmp	#LR__0009
+' until r<>-1
+' return r
+	mov	result1, local27
+	add	objptr, ##544
+	wrlong	result1, objptr
+' 
+' {{
+' }}   
+' 
+'  
+'   if rr==$31    'mousex
+	mov	local12, result1
+	sub	objptr, ##544
+	cmp	local12, #49 wz
+ if_ne	jmp	#LR__0014
+'     mousex:=serialblockingread()
+' 
+' repeat
+LR__0010
+'   r:=serialread()
+	call	#_serialread
+	mov	local27, result1
+	cmp	local27, ##-1 wz
+ if_e	jmp	#LR__0010
+' until r<>-1
+' return r
+	mov	result1, local27
+	mov	local12, result1
+	add	objptr, ##552
+	wrword	local12, objptr
+	sub	objptr, ##552
+'     mousex+=serialblockingread()<<8
+' 
+' repeat
+LR__0011
+'   r:=serialread()
+	call	#_serialread
+	mov	local27, result1
+	cmp	local27, ##-1 wz
+ if_e	jmp	#LR__0011
+' until r<>-1
+' return r
+	mov	result1, local27
+	mov	local28, result1
+	shl	local28, #8
+	add	objptr, ##552
+	rdword	local14, objptr
+	mov	local25, local14
+	add	local25, local28
+	wrword	local25, objptr
+	sub	objptr, ##552
+'     rr:=serialblockingread()
+' 
+' repeat
+LR__0012
+'   r:=serialread()
+	call	#_serialread
+	mov	local27, result1
+	cmp	local27, ##-1 wz
+ if_e	jmp	#LR__0012
+' until r<>-1
+' return r
+	mov	result1, local27
+	add	objptr, ##544
+	wrlong	result1, objptr
+'     if rr==255
+	mov	local12, result1
+	sub	objptr, ##544
+	cmp	local12, #255 wz
+ if_ne	jmp	#LR__0013
+'      v.write(string("  Mouse moved, x= "))
+	mov	arg01, ##@LR__0143
+	add	objptr, ##560
+	call	#_Hn007_20210302_write
+'      v.write(v.inttostr(mousex))
+	sub	objptr, #8
+	rdword	arg01, objptr
+	add	objptr, #8
+	call	#_Hn007_20210302_inttostr
+	mov	arg01, result1
+	call	#_Hn007_20210302_write
+'      v.write(string(", y= "))
+	mov	arg01, ##@LR__0144
+	call	#_Hn007_20210302_write
+'      v.writeln(v.inttostr(mousey))
+	sub	objptr, #6
+	rdword	arg01, objptr
+	add	objptr, #6
+	call	#_Hn007_20210302_inttostr
+	mov	local25, result1
+	mov	arg01, local25
+	call	#_Hn007_20210302_writeln
+	sub	objptr, ##560
+LR__0013
+LR__0014
+' 
+'   if rr==$32    'mousey
+	add	objptr, ##544
+	rdlong	local12, objptr
+	sub	objptr, ##544
+	cmp	local12, #50 wz
+ if_ne	jmp	#LR__0019
+'     mousey:=serialblockingread()
+' 
+' repeat
+LR__0015
+'   r:=serialread()
+	call	#_serialread
+	mov	local27, result1
+	cmp	local27, ##-1 wz
+ if_e	jmp	#LR__0015
+' until r<>-1
+' return r
+	mov	result1, local27
+	mov	local12, result1
+	add	objptr, ##554
+	wrword	local12, objptr
+	sub	objptr, ##554
+'     mousey+=serialblockingread()<<8
+' 
+' repeat
+LR__0016
+'   r:=serialread()
+	call	#_serialread
+	mov	local27, result1
+	cmp	local27, ##-1 wz
+ if_e	jmp	#LR__0016
+' until r<>-1
+' return r
+	mov	result1, local27
+	mov	local29, result1
+	shl	local29, #8
+	add	objptr, ##554
+	rdword	local14, objptr
+	mov	local25, local14
+	add	local25, local29
+	wrword	local25, objptr
+	sub	objptr, ##554
+'     rr:=serialblockingread()
+' 
+' repeat
+LR__0017
+'   r:=serialread()
+	call	#_serialread
+	mov	local27, result1
+	cmp	local27, ##-1 wz
+ if_e	jmp	#LR__0017
+' until r<>-1
+' return r
+	mov	result1, local27
+	add	objptr, ##544
+	wrlong	result1, objptr
+'     if rr==255
+	mov	local12, result1
+	sub	objptr, ##544
+	cmp	local12, #255 wz
+ if_ne	jmp	#LR__0018
+'      v.write(string("  Mouse moved, x= "))
+	mov	arg01, ##@LR__0145
+	add	objptr, ##560
+	call	#_Hn007_20210302_write
+'      v.write(v.inttostr(mousex))
+	sub	objptr, #8
+	rdword	arg01, objptr
+	add	objptr, #8
+	call	#_Hn007_20210302_inttostr
+	mov	arg01, result1
+	call	#_Hn007_20210302_write
+'      v.write(string(", y= "))
+	mov	arg01, ##@LR__0146
+	call	#_Hn007_20210302_write
+'      v.writeln(v.inttostr(mousey))
+	sub	objptr, #6
+	rdword	arg01, objptr
+	add	objptr, #6
+	call	#_Hn007_20210302_inttostr
+	mov	local25, result1
+	mov	arg01, local25
+	call	#_Hn007_20210302_writeln
+	sub	objptr, ##560
+LR__0018
+LR__0019
+' 
+'   if rr==$33   'mousewheel
+	add	objptr, ##544
+	rdlong	local12, objptr
+	sub	objptr, ##544
+	cmp	local12, #51 wz
+ if_ne	jmp	#LR__0024
+'     mousewheel:=serialblockingread()
+' 
+' repeat
+LR__0020
+'   r:=serialread()
+	call	#_serialread
+	mov	local27, result1
+	cmp	local27, ##-1 wz
+ if_e	jmp	#LR__0020
+' until r<>-1
+' return r
+	mov	result1, local27
+	mov	local12, result1
+	add	objptr, ##550
+	wrbyte	local12, objptr
+	sub	objptr, ##550
+'     dummy:=serialblockingread()
+' 
+' repeat
+LR__0021
+'   r:=serialread()
+	call	#_serialread
+	mov	local27, result1
+	cmp	local27, ##-1 wz
+ if_e	jmp	#LR__0021
+' until r<>-1
+' return r
+	mov	result1, local27
+	mov	local12, result1
+	add	objptr, ##556
+	wrbyte	local12, objptr
+	sub	objptr, ##556
+'     rr:=serialblockingread()
+' 
+' repeat
+LR__0022
+'   r:=serialread()
+	call	#_serialread
+	mov	local27, result1
+	cmp	local27, ##-1 wz
+ if_e	jmp	#LR__0022
+' until r<>-1
+' return r
+	mov	result1, local27
+	add	objptr, ##544
+	wrlong	result1, objptr
+'     if rr==255
+	mov	local12, result1
+	sub	objptr, ##544
+	cmp	local12, #255 wz
+ if_ne	jmp	#LR__0023
+'      v.write(string("  Mouse wheel: "))
+	mov	arg01, ##@LR__0147
+	add	objptr, ##560
+	call	#_Hn007_20210302_write
+'      v.writeln(v.inttostr(mousewheel))
+	sub	objptr, #10
+	rdbyte	arg01, objptr
+	add	objptr, #10
+	call	#_Hn007_20210302_inttostr
+	mov	local25, result1
+	mov	arg01, local25
+	call	#_Hn007_20210302_writeln
+	sub	objptr, ##560
+LR__0023
+LR__0024
+' 
+'   if rr==$34   'mousekey
+	add	objptr, ##544
+	rdlong	local12, objptr
+	sub	objptr, ##544
+	cmp	local12, #52 wz
+ if_ne	jmp	#LR__0029
+'     mousekey:=serialblockingread()
+' 
+' repeat
+LR__0025
+'   r:=serialread()
+	call	#_serialread
+	mov	local27, result1
+	cmp	local27, ##-1 wz
+ if_e	jmp	#LR__0025
+' until r<>-1
+' return r
+	mov	result1, local27
+	mov	local12, result1
+	add	objptr, ##551
+	wrbyte	local12, objptr
+	sub	objptr, ##551
+'     dummy:=serialblockingread()
+' 
+' repeat
+LR__0026
+'   r:=serialread()
+	call	#_serialread
+	mov	local27, result1
+	cmp	local27, ##-1 wz
+ if_e	jmp	#LR__0026
+' until r<>-1
+' return r
+	mov	result1, local27
+	mov	local12, result1
+	add	objptr, ##556
+	wrbyte	local12, objptr
+	sub	objptr, ##556
+'     rr:=serialblockingread()
+' 
+' repeat
+LR__0027
+'   r:=serialread()
+	call	#_serialread
+	mov	local27, result1
+	cmp	local27, ##-1 wz
+ if_e	jmp	#LR__0027
+' until r<>-1
+' return r
+	mov	result1, local27
+	add	objptr, ##544
+	wrlong	result1, objptr
+'     if rr==255
+	mov	local12, result1
+	sub	objptr, ##544
+	cmp	local12, #255 wz
+ if_ne	jmp	#LR__0028
+'      v.write(string("  Mouse key pressed: "))
+	mov	arg01, ##@LR__0148
+	add	objptr, ##560
+	call	#_Hn007_20210302_write
+'      v.writeln(v.inttostr(mousekey))
+	sub	objptr, #9
+	rdbyte	arg01, objptr
+	add	objptr, #9
+	call	#_Hn007_20210302_inttostr
+	mov	local25, result1
+	mov	arg01, local25
+	call	#_Hn007_20210302_writeln
+	sub	objptr, ##560
+LR__0028
+LR__0029
+' 
+'   if rr==$35   'mouseclick
+	add	objptr, ##544
+	rdlong	local12, objptr
+	sub	objptr, ##544
+	cmp	local12, #53 wz
+ if_ne	jmp	#LR__0034
+'     dummy:=serialblockingread()
+' 
+' repeat
+LR__0030
+'   r:=serialread()
+	call	#_serialread
+	mov	local27, result1
+	cmp	local27, ##-1 wz
+ if_e	jmp	#LR__0030
+' until r<>-1
+' return r
+	mov	result1, local27
+	mov	local12, result1
+	add	objptr, ##556
+	wrbyte	local12, objptr
+	sub	objptr, ##556
+'     dummy:=serialblockingread()
+' 
+' repeat
+LR__0031
+'   r:=serialread()
+	call	#_serialread
+	mov	local27, result1
+	cmp	local27, ##-1 wz
+ if_e	jmp	#LR__0031
+' until r<>-1
+' return r
+	mov	result1, local27
+	mov	local12, result1
+	add	objptr, ##556
+	wrbyte	local12, objptr
+	sub	objptr, ##556
+'     rr:=serialblockingread()
+' 
+' repeat
+LR__0032
+'   r:=serialread()
+	call	#_serialread
+	mov	local27, result1
+	cmp	local27, ##-1 wz
+ if_e	jmp	#LR__0032
+' until r<>-1
+' return r
+	mov	result1, local27
+	add	objptr, ##544
+	wrlong	result1, objptr
+'     if rr==255
+	mov	local12, result1
+	sub	objptr, ##544
+	cmp	local12, #255 wz
+ if_ne	jmp	#LR__0033
+'      v.writeln(string("  Mouse clicked"))
+	mov	arg01, ##@LR__0149
+	add	objptr, ##560
+	call	#_Hn007_20210302_writeln
+	sub	objptr, ##560
+LR__0033
+LR__0034
+' 
+'   if rr==$36   'mouseclick
+	add	objptr, ##544
+	rdlong	local12, objptr
+	sub	objptr, ##544
+	cmp	local12, #54 wz
+ if_ne	jmp	#LR__0039
+'     dummy:=serialblockingread()
+' 
+' repeat
+LR__0035
+'   r:=serialread()
+	call	#_serialread
+	mov	local27, result1
+	cmp	local27, ##-1 wz
+ if_e	jmp	#LR__0035
+' until r<>-1
+' return r
+	mov	result1, local27
+	mov	local12, result1
+	add	objptr, ##556
+	wrbyte	local12, objptr
+	sub	objptr, ##556
+'     dummy:=serialblockingread()
+' 
+' repeat
+LR__0036
+'   r:=serialread()
+	call	#_serialread
+	mov	local27, result1
+	cmp	local27, ##-1 wz
+ if_e	jmp	#LR__0036
+' until r<>-1
+' return r
+	mov	result1, local27
+	mov	local12, result1
+	add	objptr, ##556
+	wrbyte	local12, objptr
+	sub	objptr, ##556
+'     rr:=serialblockingread()
+' 
+' repeat
+LR__0037
+'   r:=serialread()
+	call	#_serialread
+	mov	local27, result1
+	cmp	local27, ##-1 wz
+ if_e	jmp	#LR__0037
+' until r<>-1
+' return r
+	mov	result1, local27
+	add	objptr, ##544
+	wrlong	result1, objptr
+'     if rr==255
+	mov	local12, result1
+	sub	objptr, ##544
+	cmp	local12, #255 wz
+ if_ne	jmp	#LR__0038
+'      v.writeln(string("  Mouse double clicked"))
+	mov	arg01, ##@LR__0150
+	add	objptr, ##560
+	call	#_Hn007_20210302_writeln
+	sub	objptr, ##560
+LR__0038
+LR__0039
+' 
+'   if rr==$37   'key released
+	add	objptr, ##544
+	rdlong	local12, objptr
+	sub	objptr, ##544
+	cmp	local12, #55 wz
+ if_ne	jmp	#LR__0044
+'     scancode:=serialblockingread()
+' 
+' repeat
+LR__0040
+'   r:=serialread()
+	call	#_serialread
+	mov	local27, result1
+	cmp	local27, ##-1 wz
+ if_e	jmp	#LR__0040
+' until r<>-1
+' return r
+	mov	result1, local27
+	mov	local12, result1
+	add	objptr, ##549
+	wrbyte	local12, objptr
+	sub	objptr, ##549
+'     dummy:=serialblockingread()
+' 
+' repeat
+LR__0041
+'   r:=serialread()
+	call	#_serialread
+	mov	local27, result1
+	cmp	local27, ##-1 wz
+ if_e	jmp	#LR__0041
+' until r<>-1
+' return r
+	mov	result1, local27
+	mov	local12, result1
+	add	objptr, ##556
+	wrbyte	local12, objptr
+	sub	objptr, ##556
+'     rr:=serialblockingread()
+' 
+' repeat
+LR__0042
+'   r:=serialread()
+	call	#_serialread
+	mov	local27, result1
+	cmp	local27, ##-1 wz
+ if_e	jmp	#LR__0042
+' until r<>-1
+' return r
+	mov	result1, local27
+	add	objptr, ##544
+	wrlong	result1, objptr
+'     if rr==255
+	mov	local12, result1
+	sub	objptr, ##544
+	cmp	local12, #255 wz
+ if_ne	jmp	#LR__0043
+'      v.write(string("  Key scancode "))
+	mov	arg01, ##@LR__0151
+	add	objptr, ##560
+	call	#_Hn007_20210302_write
+'      v.write(v.inttostr(scancode))
+	sub	objptr, #11
+	rdbyte	arg01, objptr
+	add	objptr, #11
+	call	#_Hn007_20210302_inttostr
+	mov	local25, result1
+	mov	arg01, local25
+	call	#_Hn007_20210302_write
+'      v.writeln(string(" released"))
+	mov	arg01, ##@LR__0152
+	call	#_Hn007_20210302_writeln
+	sub	objptr, ##560
+LR__0043
+LR__0044
+' 
+'   if rr==$38   'key pressed
+	add	objptr, ##544
+	rdlong	local12, objptr
+	sub	objptr, ##544
+	cmp	local12, #56 wz
+ if_ne	jmp	#LR__0049
+'     scancode:=serialblockingread()
+' 
+' repeat
+LR__0045
+'   r:=serialread()
+	call	#_serialread
+	mov	local27, result1
+	cmp	local27, ##-1 wz
+ if_e	jmp	#LR__0045
+' until r<>-1
+' return r
+	mov	result1, local27
+	mov	local12, result1
+	add	objptr, ##549
+	wrbyte	local12, objptr
+	sub	objptr, ##549
+'     charcode:=serialblockingread()
+' 
+' repeat
+LR__0046
+'   r:=serialread()
+	call	#_serialread
+	mov	local27, result1
+	cmp	local27, ##-1 wz
+ if_e	jmp	#LR__0046
+' until r<>-1
+' return r
+	mov	result1, local27
+	mov	local12, result1
+	add	objptr, ##548
+	wrbyte	local12, objptr
+	sub	objptr, ##548
+'     rr:=serialblockingread()
+' 
+' repeat
+LR__0047
+'   r:=serialread()
+	call	#_serialread
+	mov	local27, result1
+	cmp	local27, ##-1 wz
+ if_e	jmp	#LR__0047
+' until r<>-1
+' return r
+	mov	result1, local27
+	add	objptr, ##544
+	wrlong	result1, objptr
+'     if rr==255
+	mov	local12, result1
+	sub	objptr, ##544
+	cmp	local12, #255 wz
+ if_ne	jmp	#LR__0048
+'      v.write(string("  Key scancode "))
+	mov	arg01, ##@LR__0153
+	add	objptr, ##560
+	call	#_Hn007_20210302_write
+'      v.write(v.inttostr(scancode))
+	sub	objptr, #11
+	rdbyte	arg01, objptr
+	add	objptr, #11
+	call	#_Hn007_20210302_inttostr
+	mov	arg01, result1
+	call	#_Hn007_20210302_write
+'      v.write(string(", charcode "))
+	mov	arg01, ##@LR__0154
+	call	#_Hn007_20210302_write
+'      v.write(v.inttostr(charcode))
+	sub	objptr, #12
+	rdbyte	arg01, objptr
+	add	objptr, #12
+	call	#_Hn007_20210302_inttostr
+	mov	local25, result1
+	mov	arg01, local25
+	call	#_Hn007_20210302_write
+'      v.writeln(string(" pressed"))
+	mov	arg01, ##@LR__0155
+	call	#_Hn007_20210302_writeln
+	sub	objptr, ##560
+LR__0048
+LR__0049
+' 
+'   if rr==$39   'modifier pressed
+	add	objptr, ##544
+	rdlong	local13, objptr
+	sub	objptr, ##544
+	cmp	local13, #57 wz
+ if_ne	jmp	#LR__0008
+'     scancode:=serialblockingread()
+' 
+' repeat
+LR__0050
+'   r:=serialread()
+	call	#_serialread
+	mov	local27, result1
+	cmp	local27, ##-1 wz
+ if_e	jmp	#LR__0050
+' until r<>-1
+' return r
+	mov	result1, local27
+	mov	local12, result1
+	add	objptr, ##549
+	wrbyte	local12, objptr
+	sub	objptr, ##549
+'     dummy:=serialblockingread()
+' 
+' repeat
+LR__0051
+'   r:=serialread()
+	call	#_serialread
+	mov	local27, result1
+	cmp	local27, ##-1 wz
+ if_e	jmp	#LR__0051
+' until r<>-1
+' return r
+	mov	result1, local27
+	mov	local12, result1
+	add	objptr, ##556
+	wrbyte	local12, objptr
+	sub	objptr, ##556
+'     rr:=serialblockingread()
+' 
+' repeat
+LR__0052
+'   r:=serialread()
+	call	#_serialread
+	mov	local27, result1
+	cmp	local27, ##-1 wz
+ if_e	jmp	#LR__0052
+' until r<>-1
+' return r
+	mov	result1, local27
+	add	objptr, ##544
+	wrlong	result1, objptr
+'     if rr==255
+	mov	local13, result1
+	sub	objptr, ##544
+	cmp	local13, #255 wz
+ if_ne	jmp	#LR__0008
+'       if scancode>0
+	add	objptr, ##549
+	rdbyte	local12, objptr
+	sub	objptr, ##549
+	cmps	local12, #0 wcz
+ if_be	jmp	#LR__0053
+'         v.write(string("  Key modifier "))
+	mov	arg01, ##@LR__0156
+	add	objptr, ##560
+	call	#_Hn007_20210302_write
+'         v.write(v.inttostr(scancode))
+	sub	objptr, #11
+	rdbyte	arg01, objptr
+	add	objptr, #11
+	call	#_Hn007_20210302_inttostr
+	mov	local25, result1
+	mov	arg01, local25
+	call	#_Hn007_20210302_write
+'         v.writeln(string(" pressed"))
+	mov	local13, ##@LR__0157
+	mov	arg01, local13
+	call	#_Hn007_20210302_writeln
+	sub	objptr, ##560
+'       else
+	jmp	#LR__0008
+LR__0053
+'         v.writeln(string("  Modifiers released"))
+	mov	local13, ##@LR__0158
+	mov	arg01, local13
+	add	objptr, ##560
+	call	#_Hn007_20210302_writeln
+	sub	objptr, ##560
+	jmp	#LR__0008
+	mov	ptra, fp
+	call	#popregs_
+_start_ret
+	ret
+
+' 
+' 
+' pub serialcog()|q
+_serialcog
+	mov	COUNT_, #8
+	call	#pushregs_
+' 
+' serialfront:=0
+	mov	local01, #0
+	add	objptr, #284
+	wrlong	#0, objptr
+' serialtail:=0
+	sub	objptr, #4
+	wrlong	#0, objptr
+	sub	objptr, #280
+' 
+' repeat
+LR__0054
+'   if serialfront<>((serialtail-1) //32)
+	add	objptr, #280
+	rdlong	local01, objptr
+	sub	local01, #1
+	abs	local02, local01 wc
+	and	local02, #31
+ if_b	neg	local02, local02
+	add	objptr, #4
+	rdlong	local03, objptr
+	sub	objptr, #284
+	cmp	local03, local02 wz
+ if_e	jmp	#LR__0054
+'     q:=rxcheck()
+' 
+' '' Check for serial input
+' '' -- returns -1 if nothing available
+' 
+'   rxbyte := -1
+	neg	local04, #1
+'   check := pinr(rxp)
+	add	objptr, #8
+	rdlong	arg01, objptr
+	sub	objptr, #8
+	call	#__system___pinread
+	mov	local05, result1 wz
+'   if (check)
+ if_e	jmp	#LR__0055
+'     rxbyte := rdpin(rxp) >> 24
+	add	objptr, #8
+	rdlong	arg01, objptr
+	sub	objptr, #8
+	mov	local04, #0
+	rdpin	local04, arg01
+	shr	local04, #24
+LR__0055
+	mov	result1, local04
+	mov	local06, result1
+'     if q>=0
+	cmps	local06, #0 wcz
+ if_b	jmp	#LR__0054
+	add	objptr, #284
+	rdlong	local07, objptr
+	shl	local07, #2
+	sub	objptr, #260
+	add	local07, objptr
+'      serialbuf[serialfront]:=q
+	wrlong	local06, local07
+'      serialfront+=1
+	add	objptr, #260
+	rdlong	local08, objptr
+	add	local08, #1
+	wrlong	local08, objptr
+'      serialfront:=serialfront // 32
+	abs	local01, local08 wc
+	and	local01, #31
+ if_b	neg	local01, local01
+	wrlong	local01, objptr
+	sub	objptr, #284
+	jmp	#LR__0054
+	mov	ptra, fp
+	call	#popregs_
+_serialcog_ret
+	ret
+
+' 
+' pub serialread():r
+_serialread
+' 
+' if serialfront<>serialtail
+	add	objptr, #284
+	rdlong	_var01, objptr
+	sub	objptr, #4
+	rdlong	_var02, objptr
+	sub	objptr, #280
+	cmp	_var01, _var02 wz
+ if_e	jmp	#LR__0056
+	add	objptr, #280
+	rdlong	_var03, objptr
+	shl	_var03, #2
+	sub	objptr, #256
+	add	_var03, objptr
+'   r:=serialbuf[serialtail]
+	rdlong	_var04, _var03
+	add	objptr, #256
+	rdlong	_var05, objptr
+	add	_var05, #1
+	abs	_var01, _var05 wc
+	and	_var01, #31
+ if_b	neg	_var01, _var01
+'   serialtail:=(serialtail+1)//32
+	wrlong	_var01, objptr
+	sub	objptr, #280
+' else
+	jmp	#LR__0057
+LR__0056
+'   r:=-1
+	neg	_var04, #1
+LR__0057
+' return r
+	mov	result1, _var04
+_serialread_ret
+	ret
+
+' 
+' 
+' 
+' ''---------------------- Serial functions from jm_serial.spin2
+' 
+' pub serial_start(rxpin2, txpin2, baud) | bitmode
+_serial_start
+	mov	COUNT_, #5
+	call	#pushregs_
+	mov	local01, arg01
+	mov	local02, arg02
+' 
+' '' Start simple serial coms on rxpin and txpin at baud
+' 
+' '  longmove(@rxp, @rxpin2, 2)                                     ' save pins
+' 
+'   rxp:=rxpin2
+	add	objptr, #8
+	wrlong	local01, objptr
+'   txp:=txpin2
+	add	objptr, #4
+	wrlong	local02, objptr
+	sub	objptr, #12
+' 
+'   bitmode := muldiv64(clkfreq, $1_0000, baud) & $FFFFFC00       ' set bit timing
+	rdlong	arg01, #20
+	decod	arg02, #16
+	qmul	arg01, arg02
+	getqy	local03
+	getqx	local04
+	setq	local03
+	qdiv	local04, arg03
+	getqx	result1
+	mov	local05, result1
+	and	local05, ##-1024
+'   bitmode |= 7                                                  ' set bits (8)
+	or	local05, #7
+' 
+'   org
+	loc	pa,	#(@LR__0059-@LR__0058)
+	call	#FCACHE_LOAD_
+LR__0058
+	org	0
+	fltl	local01
+	wrpin	#62, local01
+	wxpin	local05, local01
+	drvl	local01
+	fltl	local02
+	wrpin	#124, local02
+	wxpin	local05, local02
+	drvl	local02
+LR__0059
+	orgh
+	mov	ptra, fp
+	call	#popregs_
+_serial_start_ret
+	ret
+
+' 
+' pub midi_start(mrxpin2, mtxpin2) | bitmode
+_midi_start
+	mov	COUNT_, #5
+	call	#pushregs_
+	mov	local01, arg01
+	mov	local02, arg02
+' 
+' '' Start simple serial coms on rxpin and txpin at baud
+' 
+' '  longmove(@rxp, @rxpin2, 2)                                     ' save pins
+' 
+'   mrxp:=mrxpin2
+	add	objptr, #16
+	wrlong	local01, objptr
+'   mtxp:=mtxpin2
+	add	objptr, #4
+	wrlong	local02, objptr
+	sub	objptr, #20
+' 
+'   bitmode := muldiv64(clkfreq, $1_0000, 31250) & $FFFFFC00       ' set bit timing
+	rdlong	arg01, #20
+	decod	arg02, #16
+	qmul	arg01, arg02
+	getqy	local03
+	getqx	local04
+	setq	local03
+	qdiv	local04, ##31250
+	getqx	result1
+	mov	local05, result1
+	and	local05, ##-1024
+'   bitmode |= 7                                                  ' set bits (8)
+	or	local05, #7
+' 
+'   org
+	loc	pa,	#(@LR__0061-@LR__0060)
+	call	#FCACHE_LOAD_
+LR__0060
+	org	0
+	fltl	local01
+	wrpin	#62, local01
+	wxpin	local05, local01
+	drvl	local01
+	fltl	local02
+	wrpin	#124, local02
+	wxpin	local05, local02
+	drvl	local02
+LR__0061
+	orgh
+	mov	ptra, fp
+	call	#popregs_
+_midi_start_ret
+	ret
+
+'   until (rxbyte >= 0)
+' 
+' 
+' pub tx(b)
+_tx
+	mov	COUNT_, #1
+	call	#pushregs_
+' 
+' '' Emit byte
+' 
+'   wypin(txp, b)
+	add	objptr, #12
+	rdlong	local01, objptr
+	sub	objptr, #12
+	mov	arg02, arg01
+	wypin	arg02, local01
+'   txflush()
+' 
+' '' Wait until last byte has finished
+' 
+'   repeat
+LR__0062
+'     check := pinr(txp)
+	add	objptr, #12
+	rdlong	arg01, objptr
+	sub	objptr, #12
+	call	#__system___pinread
+	cmp	result1, #0 wz
+ if_e	jmp	#LR__0062
+	mov	ptra, fp
+	call	#popregs_
+_tx_ret
+	ret
+
+' 
+' 
+' '*************************************************************************
+' '                                                                        *
+' '  Text functions                                                        *
+' '                                                                        *
+' '*************************************************************************
+' 
+' pub outtextxy(x,y,text) | iii
+_Hn007_20210302_outtextxy
+	mov	COUNT_, #11
+	call	#pushregs_
+	mov	local01, arg01
+' 
+' ''--------- Output a string at position x,y - set the colors first
+' 
+' repeat iii from 0 to strsize(text)-1
+	mov	local02, #0
+	mov	arg01, arg03
+	mov	local03, #0
+	loc	pa,	#(@LR__0064-@LR__0063)
+	call	#FCACHE_LOAD_
+LR__0063
+	rdbyte	local04, arg01 wz
+ if_ne	add	local03, #1
+ if_ne	add	arg01, #1
+ if_ne	jmp	#LR__0063
+LR__0064
+	mov	result1, local03
+	mov	local05, result1
+	sub	local05, #1
+	cmps	local05, #0 wcz
+ if_a	mov	local06, #1
+ if_be	neg	local06, #1
+	add	local05, local06
+	qmul	arg02, #100
+	getqx	local07
+	add	local07, local01
+	loc	pa,	#(@LR__0066-@LR__0065)
+	call	#FCACHE_LOAD_
+LR__0065
+	mov	local08, local07
+	add	local08, local02
+	shl	local08, #2
+	add	objptr, #168
+	add	local08, objptr
+	rdlong	local09, local08
+	andn	local09, #255
+	mov	local10, arg03
+	add	local10, local02
+	rdbyte	local11, local10
+	or	local09, local11
+'   buf[100*y+x+iii]:=(buf[100*y+x+iii] & $FFFFFF00)  | byte[text+iii]
+	wrlong	local09, local08
+	add	local02, local06
+	cmp	local02, local05 wz
+	sub	objptr, #168
+ if_ne	jmp	#LR__0065
+LR__0066
+	mov	ptra, fp
+	call	#popregs_
+_Hn007_20210302_outtextxy_ret
+	ret
+
+' 
+' 
+' 
+' pub write(text) | iii,c,ncx,ncy
+_Hn007_20210302_write
+	mov	COUNT_, #14
+	call	#pushregs_
+	mov	local01, arg01
+	add	objptr, ##12172
+	rdlong	local02, objptr
+	shl	local02, #24
+	add	objptr, #4
+	rdlong	local03, objptr
+	shl	local03, #16
+	add	local02, local03
+' 
+' ''--------- Output a string at the cursor position x,y, move the cursor
+' 
+' c:=write_color<<24+write_background<<16
+' 'debug(uhex_long(write_color))
+' ncy:=cursor_y
+	sub	objptr, #7
+	rdbyte	local04, objptr
+' ncx:=cursor_x+strsize(text)
+	sub	objptr, #1
+	rdbyte	local05, objptr
+	sub	objptr, ##12168
+	mov	arg01, local01
+	mov	local06, #0
+	loc	pa,	#(@LR__0068-@LR__0067)
+	call	#FCACHE_LOAD_
+LR__0067
+	rdbyte	local07, arg01 wz
+ if_ne	add	local06, #1
+ if_ne	add	arg01, #1
+ if_ne	jmp	#LR__0067
+LR__0068
+	mov	result1, local06
+	add	local05, local06
+	mov	local08, local05
+	loc	pa,	#(@LR__0070-@LR__0069)
+	call	#FCACHE_LOAD_
+' repeat while ncx>99
+LR__0069
+	cmps	local08, #99 wcz
+'   ncx-=100
+ if_a	sub	local08, #100
+'   ncy+=1
+ if_a	add	local04, #1
+ if_a	jmp	#LR__0069
+LR__0070
+' repeat while ncy>29
+LR__0071
+	cmps	local04, #29 wcz
+ if_be	jmp	#LR__0072
+'   ncy-=1
+	sub	local04, #1
+'   scrollup()
+	call	#_Hn007_20210302_scrollup
+'   cursor_y-=1
+	add	objptr, ##12169
+	rdbyte	local05, objptr
+	sub	local05, #1
+	wrbyte	local05, objptr
+	sub	objptr, ##12169
+	jmp	#LR__0071
+LR__0072
+' 
+' repeat iii from 0 to strsize(text)-1
+	mov	local09, #0
+	mov	arg01, local01
+	mov	local06, #0
+	loc	pa,	#(@LR__0074-@LR__0073)
+	call	#FCACHE_LOAD_
+LR__0073
+	rdbyte	local07, arg01 wz
+ if_ne	add	local06, #1
+ if_ne	add	arg01, #1
+ if_ne	jmp	#LR__0073
+LR__0074
+	mov	result1, local06
+	mov	local10, result1
+	sub	local10, #1
+	cmps	local10, #0 wcz
+ if_a	mov	local11, #1
+ if_be	neg	local11, #1
+	add	local10, local11
+	loc	pa,	#(@LR__0076-@LR__0075)
+	call	#FCACHE_LOAD_
+LR__0075
+	add	objptr, ##12169
+	rdbyte	local12, objptr
+	qmul	local12, #100
+	getqx	local13
+	sub	objptr, #1
+	rdbyte	local12, objptr
+	add	local13, local12
+	add	local13, local09
+	shl	local13, #2
+	sub	objptr, ##12000
+	add	local13, objptr
+	rdlong	local14, local13
+	and	local14, ##65535
+	or	local14, local02
+' 
+'   buf[100*cursor_y+cursor_x+iii]:=buf[100*cursor_y+cursor_x+iii] &$FFFF | c
+	wrlong	local14, local13
+	add	local09, local11
+	cmp	local09, local10 wz
+	sub	objptr, #168
+ if_ne	jmp	#LR__0075
+LR__0076
+' 
+' outtextxy(cursor_x,cursor_y,text)
+	add	objptr, ##12168
+	rdbyte	arg01, objptr
+	add	objptr, #1
+	rdbyte	arg02, objptr
+	sub	objptr, ##12169
+	mov	arg03, local01
+	call	#_Hn007_20210302_outtextxy
+' 
+' cursor_x:=ncx
+	add	objptr, ##12168
+	wrbyte	local08, objptr
+' cursor_y:=ncy
+	add	objptr, #1
+	wrbyte	local04, objptr
+	sub	objptr, ##12169
+	mov	ptra, fp
+	call	#popregs_
+_Hn007_20210302_write_ret
+	ret
+
+' 
+' pub writeln(text)
+_Hn007_20210302_writeln
+	mov	COUNT_, #1
+	call	#pushregs_
+' 
+' '--------- Output a string at the cursor position x,y, move the cursor to the next line
+' 
+' write(text)
+	call	#_Hn007_20210302_write
+' cursor_x:=0
+	add	objptr, ##12168
+	wrbyte	#0, objptr
+' cursor_y+=1
+	add	objptr, #1
+	rdbyte	local01, objptr
+	add	local01, #1
+	wrbyte	local01, objptr
+' if (cursor_y>29)
+	rdbyte	local01, objptr
+	sub	objptr, ##12169
+	cmps	local01, #29 wcz
+ if_be	jmp	#LR__0077
+'   scrollup()
+	call	#_Hn007_20210302_scrollup
+'   cursor_y:=29
+	add	objptr, ##12169
+	wrbyte	#29, objptr
+	sub	objptr, ##12169
+LR__0077
+	mov	ptra, fp
+	call	#popregs_
+_Hn007_20210302_writeln_ret
+	ret
+
+' 
+' pub cls(fc,bc)   :c
+_Hn007_20210302_cls
+	mov	COUNT_, #4
+	call	#pushregs_
+	mov	local01, arg01
+	mov	local02, arg02
+	mov	local03, local01
+	shl	local03, #24
+	mov	local04, local02
+	shl	local04, #16
+	add	local03, local04
+	add	local03, #32
+' 
+' ''---------- Clear the screen, set its foreground/background color
+' 
+' c:=fc<<24+bc<<16+$20
+	add	objptr, #168
+	mov	arg01, objptr
+	sub	objptr, #168
+' longfill(@buf,c,3000)
+	mov	arg02, local03
+	mov	arg03, ##3000
+	call	#\builtin_longfill_
+'  setwritecolors(fc,bc)
+' 
+' ''---------- Set colors for write and writeln
+' 
+' write_color:=ff
+	add	objptr, ##12172
+	wrlong	local01, objptr
+' write_background:=bb
+	add	objptr, #4
+	wrlong	local02, objptr
+	sub	objptr, ##12176
+	mov	result1, local03
+	mov	ptra, fp
+	call	#popregs_
+_Hn007_20210302_cls_ret
+	ret
+
+' 
+' pub scrollup() | i
+_Hn007_20210302_scrollup
+	mov	COUNT_, #2
+	call	#pushregs_
+	add	objptr, #168
+	mov	arg01, objptr
+	sub	objptr, #168
+	mov	arg02, arg01
+	add	arg02, #400
+' 
+' ''-----------  Scroll the screen one line up
+' 
+' longmove(@buf,@buf+400,2900)
+	mov	arg03, ##2900
+	call	#__system__longmove
+	add	objptr, ##11768
+	mov	local01, objptr
+	sub	objptr, ##11768
+	loc	pa,	#(@LR__0080-@LR__0078)
+	call	#FCACHE_LOAD_
+LR__0078
+	rep	@LR__0081, #100
+LR__0079
+	rdlong	local02, local01
+	and	local02, ##-65536
+	or	local02, #32
+'   buf[i]:=(buf[i] & $FFFF0000) | 32
+	wrlong	local02, local01
+	add	local01, #4
+LR__0080
+LR__0081
+	mov	ptra, fp
+	call	#popregs_
+_Hn007_20210302_scrollup_ret
+	ret
+
+' 
+' 
+' pub inttostr(i):result |q,pos,k,j
+_Hn007_20210302_inttostr
+	mov	COUNT_, #7
+	call	#pushregs_
+	mov	local01, arg01
+' 
+' ''---------- Convert a integer to dec string, return a pointer
+' 
+' j:=i
+	mov	local02, local01 wz
+' pos:=10
+	mov	local03, #10
+' k:=0
+	mov	local04, #0
+' 
+' if (j==0)
+ if_ne	jmp	#LR__0082
+'   n_string[0]:=48
+	add	objptr, ##12200
+	wrbyte	#48, objptr
+'   n_string[1]:=0
+	add	objptr, #1
+	wrbyte	#0, objptr
+	sub	objptr, ##12201
+' 
+' else
+	jmp	#LR__0089
+LR__0082
+'   if (j<0)
+	cmps	local02, #0 wcz
+'     j:=0-j
+ if_b	neg	local02, local02
+'     k:=45
+ if_b	mov	local04, #45
+' 
+'   n_string[11]:=0
+	add	objptr, ##12211
+	wrbyte	#0, objptr
+	sub	objptr, ##12211
+	loc	pa,	#(@LR__0084-@LR__0083)
+	call	#FCACHE_LOAD_
+'   repeat while (pos>-1)
+LR__0083
+	cmps	local03, ##-1 wcz
+ if_be	jmp	#LR__0085
+	mov	muldiva_, local02
+	mov	muldivb_, #10
+	call	#divide_
+	mov	local05, muldiva_
+'     q:=j//10
+'     q:=48+q
+	add	local05, #48
+	mov	local06, local03
+	add	objptr, ##12200
+	add	local06, objptr
+'     n_string[pos]:=q
+	wrbyte	local05, local06
+'     j:=j/10
+	mov	local02, muldivb_
+'     pos-=1
+	sub	local03, #1
+	sub	objptr, ##12200
+	jmp	#LR__0083
+LR__0084
+LR__0085
+'   repeat while n_string[0]==48
+LR__0086
+	add	objptr, ##12200
+	rdbyte	local07, objptr
+	sub	objptr, ##12200
+	cmp	local07, #48 wz
+ if_ne	jmp	#LR__0087
+	add	objptr, ##12200
+	mov	arg01, objptr
+	sub	objptr, ##12200
+	mov	arg02, arg01
+	add	arg02, #1
+'     bytemove(@n_string,@n_string+1,12)
+	mov	arg03, #12
+	call	#__system____builtin_memmove
+	jmp	#LR__0086
+LR__0087
+' 
+'   if k==45
+	cmp	local04, #45 wz
+ if_ne	jmp	#LR__0088
+	add	objptr, ##12200
+	mov	arg02, objptr
+	sub	objptr, ##12200
+	mov	arg01, arg02
+	add	arg01, #1
+'      bytemove(@n_string+1,@n_string,12)
+	mov	arg03, #12
+	call	#__system____builtin_memmove
+'      n_string[0]:=k
+	add	objptr, ##12200
+	wrbyte	local04, objptr
+	sub	objptr, ##12200
+LR__0088
+LR__0089
+	add	objptr, ##12200
+	mov	result1, objptr
+	sub	objptr, ##12200
+' 
+' q:=@n_string
+' return q
+	mov	ptra, fp
+	call	#popregs_
+_Hn007_20210302_inttostr_ret
+	ret
+
+' 
+' 
+' pub setmode(mode)
+_Hn007_20210302_setmode
+' 
+' if (mode==0)
+	cmp	arg01, #0 wz
+ if_ne	jmp	#LR__0092
+' 
+'   timings[0]:= $70810000 + hdmi_base<<17 + 16          'before sync
+	add	objptr, ##12212
+	wrlong	##1887502352, objptr
+'   timings[1]:= $70810000 + hdmi_base<<17 + 80          'sync
+	add	objptr, #4
+	wrlong	##1887502416, objptr
+'   timings[2]:= $70810000 + hdmi_base<<17 + 20          'before visible
+	add	objptr, #4
+	wrlong	##1887502356, objptr
+'   timings[3]:= $70810000 + hdmi_base<<17 + 1024        'visible 1024
+	add	objptr, #4
+	wrlong	##1887503360, objptr
+'   timings[4]:= $70810000 + hdmi_base<<17 + 112         'immediate 112
+	add	objptr, #4
+	wrlong	##1887502448, objptr
+'   timings[5]:= $20880000 + hdmi_base<<17 + 8           'imm+lut, 1 char
+	add	objptr, #4
+	wrlong	##545783816, objptr
+'   timings[6]:= 48
+	add	objptr, #4
+	wrlong	#48, objptr
+'   timings[7]:= 16
+	add	objptr, #4
+	wrlong	#16, objptr
+'   timings[8]:= 16
+	add	objptr, #4
+	wrlong	#16, objptr
+'   timings[9]:= 16
+	add	objptr, #4
+	wrlong	#16, objptr
+	sub	objptr, ##12248
+' 
+'   clkfreq:=354693878
+	wrlong	##354693878, #20
+'   org
+	loc	pa,	#(@LR__0091-@LR__0090)
+	call	#FCACHE_LOAD_
+LR__0090
+	org	0
+	hubset	##29584635
+LR__0091
+	orgh
+LR__0092
+' 
+' 
+' if (mode==1)   ' 1026 px per line
+	cmp	arg01, #1 wz
+ if_ne	jmp	#LR__0095
+' 
+'   timings[0]:= $70810000 + hdmi_base<<17 + 30          'before sync
+	add	objptr, ##12212
+	wrlong	##1887502366, objptr
+'   timings[1]:= $70810000 + hdmi_base<<17 + 80          'sync
+	add	objptr, #4
+	wrlong	##1887502416, objptr
+'   timings[2]:= $70810000 + hdmi_base<<17 + 20          'before visible
+	add	objptr, #4
+	wrlong	##1887502356, objptr
+'   timings[3]:= $70810000 + hdmi_base<<17 + 896         'visible 896
+	add	objptr, #4
+	wrlong	##1887503232, objptr
+'   timings[4]:= $70810000 + hdmi_base<<17 + 48          'immediate 48
+	add	objptr, #4
+	wrlong	##1887502384, objptr
+'   timings[5]:= $20880000 + hdmi_base<<17 + 8           'imm+lut, 1 char
+	add	objptr, #4
+	wrlong	##545783816, objptr
+'   timings[6]:= 24
+	add	objptr, #4
+	wrlong	#24, objptr
+'   timings[7]:= 32
+	add	objptr, #4
+	wrlong	#32, objptr
+'   timings[8]:= 32
+	add	objptr, #4
+	wrlong	#32, objptr
+'   timings[9]:= 32
+	add	objptr, #4
+	wrlong	#32, objptr
+	sub	objptr, ##12248
+' 
+'   clkfreq:=319215686
+	wrlong	##319215686, #20
+'   org
+	loc	pa,	#(@LR__0094-@LR__0093)
+	call	#FCACHE_LOAD_
+LR__0093
+	org	0
+	hubset	##30092795
+LR__0094
+	orgh
+LR__0095
+' 
+' 
+' if (mode==2) ' 912 pixes per line     ' 283_751_600 80x PAL  - real settings: 64 908 283750000 - 0.9999944
+	cmp	arg01, #2 wz
+ if_ne	jmp	#LR__0098
+' 
+'   timings[0]:= $70810000 + hdmi_base<<17 + 16           'before sync
+	add	objptr, ##12212
+	wrlong	##1887502352, objptr
+'   timings[1]:= $70810000 + hdmi_base<<17 + 64           'sync
+	add	objptr, #4
+	wrlong	##1887502400, objptr
+'   timings[2]:= $70810000 + hdmi_base<<17 + 16           'before visible
+	add	objptr, #4
+	wrlong	##1887502352, objptr
+'   timings[3]:= $70810000 + hdmi_base<<17 + 816          'visible 1024
+	add	objptr, #4
+	wrlong	##1887503152, objptr
+'   timings[4]:= $70810000 + hdmi_base<<17 + 8            'immediate 112
+	add	objptr, #4
+	wrlong	##1887502344, objptr
+'   timings[5]:= $20880000 + hdmi_base<<17 + 8            'imm+lut, 1 char
+	add	objptr, #4
+	wrlong	##545783816, objptr
+'   timings[6]:= 8
+	add	objptr, #4
+	wrlong	#8, objptr
+'   timings[7]:= 32
+	add	objptr, #4
+	wrlong	#32, objptr
+'   timings[8]:= 64
+	add	objptr, #4
+	wrlong	#64, objptr
+' 
+'   timings[9]:= 32
+	add	objptr, #4
+	wrlong	#32, objptr
+	sub	objptr, ##12248
+' 
+'   clkfreq:=283750000
+	wrlong	##283750000, #20
+'   org
+	loc	pa,	#(@LR__0097-@LR__0096)
+	call	#FCACHE_LOAD_
+LR__0096
+	org	0
+	hubset	##33524731
+LR__0097
+	orgh
+LR__0098
+' 
+' if (mode==256)
+	cmp	arg01, #256 wz
+ if_ne	jmp	#LR__0101
+' 
+'   timings[0]:= $70810000 + hdmi_base<<17 + 80          'before sync
+	add	objptr, ##12212
+	wrlong	##1887502416, objptr
+'   timings[1]:= $70810000 + hdmi_base<<17 + 160         'sync
+	add	objptr, #4
+	wrlong	##1887502496, objptr
+'   timings[2]:= $70810000 + hdmi_base<<17 + 84          'before visible
+	add	objptr, #4
+	wrlong	##1887502420, objptr
+'   timings[3]:= $70810000 + hdmi_base<<17 + 816         'visible 816
+	add	objptr, #4
+	wrlong	##1887503152, objptr
+'   timings[4]:= $70810000 + hdmi_base<<17 + 8           'immediate 8
+	add	objptr, #4
+	wrlong	##1887502344, objptr
+'   timings[5]:= $20880000 + hdmi_base<<17 + 8           'imm+lut, 1 char
+	add	objptr, #4
+	wrlong	##545783816, objptr
+'   timings[6]:= 8
+	add	objptr, #4
+	wrlong	#8, objptr
+'   timings[7]:= 8
+	add	objptr, #4
+	wrlong	#8, objptr
+'   timings[8]:= 12
+	add	objptr, #4
+	wrlong	#12, objptr
+'   timings[9]:= 8
+	add	objptr, #4
+	wrlong	#8, objptr
+	sub	objptr, ##12248
+' 
+'   clkfreq:=357959184
+	wrlong	##357959184, #20
+'   org
+	loc	pa,	#(@LR__0100-@LR__0099)
+	call	#FCACHE_LOAD_
+LR__0099
+	org	0
+	hubset	##29582587
+LR__0100
+	orgh
+LR__0101
+' 
+' if (mode==257)  '1026 px
+	cmp	arg01, #257 wz
+ if_ne	jmp	#LR__0104
+' 
+'   timings[0]:= $70810000 + hdmi_base<<17 + 80          'before sync
+	add	objptr, ##12212
+	wrlong	##1887502416, objptr
+'   timings[1]:= $70810000 + hdmi_base<<17 + 50          'sync
+	add	objptr, #4
+	wrlong	##1887502386, objptr
+'   timings[2]:= $70810000 + hdmi_base<<17 + 80          'before visible
+	add	objptr, #4
+	wrlong	##1887502416, objptr
+'   timings[3]:= $70810000 + hdmi_base<<17 + 816         'visible 816
+	add	objptr, #4
+	wrlong	##1887503152, objptr
+'   timings[4]:= $70810000 + hdmi_base<<17 + 8           'immediate 8
+	add	objptr, #4
+	wrlong	##1887502344, objptr
+'   timings[5]:= $20880000 + hdmi_base<<17 + 8           'imm+lut, 1 char
+	add	objptr, #4
+	wrlong	##545783816, objptr
+'   timings[6]:= 8
+	add	objptr, #4
+	wrlong	#8, objptr
+'   timings[7]:= 8
+	add	objptr, #4
+	wrlong	#8, objptr
+'   timings[8]:= 12
+	add	objptr, #4
+	wrlong	#12, objptr
+'   timings[9]:= 8
+	add	objptr, #4
+	wrlong	#8, objptr
+	sub	objptr, ##12248
+' 
+'   clkfreq:=322162162
+	wrlong	##322162162, #20
+'   org
+	loc	pa,	#(@LR__0103-@LR__0102)
+	call	#FCACHE_LOAD_
+LR__0102
+	org	0
+	hubset	##26366971
+LR__0103
+	orgh
+LR__0104
+' 
+' if (mode==258)  '912 px
+	cmp	arg01, #258 wz
+ if_ne	jmp	#LR__0107
+' 
+'   timings[0]:= $70810000 + hdmi_base<<17 + 24          'before sync
+	add	objptr, ##12212
+	wrlong	##1887502360, objptr
+'   timings[1]:= $70810000 + hdmi_base<<17 + 48         'sync
+	add	objptr, #4
+	wrlong	##1887502384, objptr
+'   timings[2]:= $70810000 + hdmi_base<<17 + 24          'before visible
+	add	objptr, #4
+	wrlong	##1887502360, objptr
+'   timings[3]:= $70810000 + hdmi_base<<17 + 816         'visible 816
+	add	objptr, #4
+	wrlong	##1887503152, objptr
+'   timings[4]:= $70810000 + hdmi_base<<17 + 8           'immediate 8
+	add	objptr, #4
+	wrlong	##1887502344, objptr
+'   timings[5]:= $20880000 + hdmi_base<<17 + 8           'imm+lut, 1 char
+	add	objptr, #4
+	wrlong	##545783816, objptr
+'   timings[6]:= 8
+	add	objptr, #4
+	wrlong	#8, objptr
+'   timings[7]:= 8
+	add	objptr, #4
+	wrlong	#8, objptr
+'   timings[8]:= 12
+	add	objptr, #4
+	wrlong	#12, objptr
+'   timings[9]:= 8
+	add	objptr, #4
+	wrlong	#8, objptr
+	sub	objptr, ##12248
+' 
+'   clkfreq:=286363636
+	wrlong	##286363636, #20
+'   org
+	loc	pa,	#(@LR__0106-@LR__0105)
+	call	#FCACHE_LOAD_
+LR__0105
+	org	0
+	hubset	##22362875
+LR__0106
+	orgh
+LR__0107
+_Hn007_20210302_setmode_ret
+	ret
+hubexit
+	jmp	#cogexit
+
+__system____builtin_memmove
+	mov	_var01, arg01
+	cmps	arg01, arg02 wcz
+ if_ae	jmp	#LR__0115
+	loc	pa,	#(@LR__0109-@LR__0108)
+	call	#FCACHE_LOAD_
+LR__0108
+	cmps	arg03, #3 wcz
+ if_be	jmp	#LR__0110
+	rdlong	_var02, arg02
+	wrlong	_var02, arg01
+	add	arg01, #4
+	add	arg02, #4
+	sub	arg03, #4
+	jmp	#LR__0108
+LR__0109
+LR__0110
+	mov	_var03, arg03 wz
+ if_e	jmp	#LR__0121
+	loc	pa,	#(@LR__0113-@LR__0111)
+	call	#FCACHE_LOAD_
+LR__0111
+	rep	@LR__0114, _var03
+LR__0112
+	rdbyte	_var02, arg02
+	wrbyte	_var02, arg01
+	add	arg01, #1
+	add	arg02, #1
+LR__0113
+LR__0114
+	jmp	#LR__0121
+LR__0115
+	add	arg01, arg03
+	add	arg02, arg03
+	mov	_var04, arg03 wz
+ if_e	jmp	#LR__0120
+	loc	pa,	#(@LR__0118-@LR__0116)
+	call	#FCACHE_LOAD_
+LR__0116
+	rep	@LR__0119, _var04
+LR__0117
+	sub	arg01, #1
+	sub	arg02, #1
+	rdbyte	_var02, arg02
+	wrbyte	_var02, arg01
+LR__0118
+LR__0119
+LR__0120
+LR__0121
+	mov	result1, _var01
+__system____builtin_memmove_ret
+	ret
+
+__system__longmove
+	mov	_var01, arg01
+	cmps	arg01, arg02 wcz
+ if_ae	jmp	#LR__0126
+	mov	_var02, arg03 wz
+ if_e	jmp	#LR__0132
+	loc	pa,	#(@LR__0124-@LR__0122)
+	call	#FCACHE_LOAD_
+LR__0122
+	rep	@LR__0125, _var02
+LR__0123
+	rdlong	_var03, arg02
+	wrlong	_var03, arg01
+	add	arg01, #4
+	add	arg02, #4
+LR__0124
+LR__0125
+	jmp	#LR__0132
+LR__0126
+	mov	_var04, arg03
+	shl	_var04, #2
+	add	arg01, _var04
+	add	arg02, _var04
+	mov	_var05, arg03 wz
+ if_e	jmp	#LR__0131
+	loc	pa,	#(@LR__0129-@LR__0127)
+	call	#FCACHE_LOAD_
+LR__0127
+	rep	@LR__0130, _var05
+LR__0128
+	sub	arg01, #4
+	sub	arg02, #4
+	rdlong	_var03, arg02
+	wrlong	_var03, arg01
+LR__0129
+LR__0130
+LR__0131
+LR__0132
+	mov	result1, _var01
+__system__longmove_ret
+	ret
+
+__system___pinread
+	test	arg01, #32 wz
+ if_ne	mov	_var01, inb
+ if_e	mov	_var01, ina
+	mov	result1, _var01
+	shr	result1, arg01
+	shr	arg01, #6
+	zerox	result1, arg01
+__system___pinread_ret
+	ret
+
+__system___waitms
+	mov	COUNT_, #3
+	call	#pushregs_
+	mov	local01, arg01
+	rdlong	local02, #20
+	loc	pa,	#(@LR__0134-@LR__0133)
+	call	#FCACHE_LOAD_
+LR__0133
+	cmps	local01, ##1000 wcz
+ if_a	waitx	local02
+ if_a	sub	local01, ##1000
+ if_a	jmp	#LR__0133
+LR__0134
+	add	ptr___system__dat__, #12
+	rdlong	local03, ptr___system__dat__ wz
+	sub	ptr___system__dat__, #12
+ if_ne	jmp	#LR__0135
+	mov	muldiva_, local02
+	mov	muldivb_, ##1000
+	call	#unsdivide_
+	mov	local03, muldivb_
+	add	ptr___system__dat__, #12
+	wrlong	muldivb_, ptr___system__dat__
+	sub	ptr___system__dat__, #12
+LR__0135
+	cmps	local01, #0 wcz
+ if_a	qmul	local01, local03
+ if_a	getqx	arg01
+ if_a	waitx	arg01
+	mov	ptra, fp
+	call	#popregs_
+__system___waitms_ret
+	ret
+
+LR__0136
+	byte	" "
+	byte	0
+LR__0137
+	byte	"  P2 Retromachine v. 0.00"
+	byte	0
+LR__0138
+	byte	" "
+	byte	0
+LR__0139
+	byte	"  Ready"
+	byte	0
+LR__0140
+	byte	" "
+	byte	0
+LR__0141
+	byte	"  "
+	byte	0
+LR__0142
+	byte	"C:\kernel.img"
+	byte	0
+LR__0143
+	byte	"  Mouse moved, x= "
+	byte	0
+LR__0144
+	byte	", y= "
+	byte	0
+LR__0145
+	byte	"  Mouse moved, x= "
+	byte	0
+LR__0146
+	byte	", y= "
+	byte	0
+LR__0147
+	byte	"  Mouse wheel: "
+	byte	0
+LR__0148
+	byte	"  Mouse key pressed: "
+	byte	0
+LR__0149
+	byte	"  Mouse clicked"
+	byte	0
+LR__0150
+	byte	"  Mouse double clicked"
+	byte	0
+LR__0151
+	byte	"  Key scancode "
+	byte	0
+LR__0152
+	byte	" released"
+	byte	0
+LR__0153
+	byte	"  Key scancode "
+	byte	0
+LR__0154
+	byte	", charcode "
+	byte	0
+LR__0155
+	byte	" pressed"
+	byte	0
+LR__0156
+	byte	"  Key modifier "
+	byte	0
+LR__0157
+	byte	" pressed"
+	byte	0
+LR__0158
+	byte	"  Modifiers released"
+	byte	0
+	alignl
+_Hn007_20210302_dat_
+'-' 
+'-' st_font                 file "st4font.def"
+	byte	$00[55]
+	byte	$ff, $ff, $00, $00, $00, $00, $00, $00, $00, $18, $18, $18, $18, $18, $18, $18
+	byte	$18[9]
+	byte	$00[7]
+	byte	$ff, $ff, $18, $18, $18, $18, $18, $18, $18, $18, $18, $18, $18, $18, $18, $18
+	byte	$ff, $ff, $00, $00, $00, $00, $00, $00, $00, $18, $18, $18, $18, $18, $18, $18
+	byte	$1f, $1f, $18, $18, $18, $18, $18, $18, $18, $18, $18, $18, $18, $18, $18, $18
+	byte	$f8, $f8, $18, $18, $18, $18, $18, $18, $18, $00, $00, $00, $00, $00, $00, $00
+	byte	$1f, $1f, $18, $18, $18, $18, $18, $18, $18, $00, $00, $00, $00, $00, $00, $00
+	byte	$f8, $f8, $18, $18, $18, $18, $18, $18, $18, $18, $18, $18, $18, $18, $18, $18
+	byte	$1f, $1f, $00, $00, $00, $00, $00, $00, $00, $18, $18, $18, $18, $18, $18, $18
+	byte	$f8, $f8, $00, $00, $00, $00, $00, $00, $00, $18, $18, $18, $18, $18, $18, $18
+	byte	$ff, $ff, $18, $18, $18, $18, $18, $18, $18, $00, $00, $18, $3c, $7e, $66, $66
+	byte	$66, $7e, $7e, $66, $66, $66, $66, $30, $18, $00, $00, $7e, $7e, $06, $06, $3e
+	byte	$3e, $06, $06, $06, $06, $7e, $7e, $18, $0c, $30, $18, $3c, $7e, $66, $66, $06
+	byte	$06, $06, $06, $66, $66, $7e, $3c, $00, $00, $30, $18, $66, $66, $66, $6e, $6e
+	byte	$7e, $7e, $76, $76, $66, $66, $66, $00, $00, $30, $18, $7c, $7e, $06, $06, $0e
+	byte	$1c, $38, $70, $60, $60, $7e, $3e, $00, $00, $30, $18, $7e, $7e, $30, $30, $18
+	byte	$18, $0c, $0c, $06, $06, $7e, $7e, $00, $00, $18, $18, $00, $7e, $7e, $30, $30
+	byte	$18, $18, $0c, $0c, $06, $7e, $7e, $00, $00, $30, $18, $3c, $7e, $66, $66, $66
+	byte	$66[5]
+	byte	$7e, $3c, $00, $00, $00, $00, $06, $06, $06, $06, $16, $1e, $0e, $06, $06, $06
+	byte	$7e, $7e, $00, $00, $00, $00, $00, $00, $00, $3c, $7c, $60, $7c, $7e, $66, $66
+	byte	$7e, $7c, $30, $18, $00, $00, $00, $00, $00, $3c, $7e, $66, $66, $7e, $06, $06
+	byte	$7e, $7c, $18, $0c, $00, $00, $30, $18, $00, $3c, $3e, $06, $06, $06, $06, $06
+	byte	$7e, $7c, $00, $00, $00, $00, $30, $18, $00, $3e, $7e, $66, $66, $66, $66, $66
+	byte	$66, $66, $00, $00, $00, $00, $30, $18, $00, $7c, $7e, $06, $0e, $3c, $70, $60
+	byte	$7e, $3e, $00, $00, $00, $00, $30, $18, $00, $7e, $7e, $30, $18, $18, $0c, $0c
+	byte	$7e, $7e, $00, $00, $00, $00, $18, $18, $00, $7e, $7e, $30, $18, $18, $0c, $0c
+	byte	$7e, $7e, $00, $00, $00, $00, $30, $18, $00, $3c, $7e, $66, $66, $66, $66, $66
+	byte	$7e, $3c, $00, $00, $00, $00, $1c, $1c, $18, $18, $38, $3c, $1c, $18, $18, $18
+	byte	$3c, $3c, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
+	byte	$00[6]
+	byte	$18[8]
+	byte	$00, $00, $18, $18, $00, $00, $00, $00, $66, $66, $66, $66, $00, $00, $00, $00
+	byte	$00[9]
+	byte	$66, $66, $ff, $ff, $66, $66, $ff, $ff, $66, $66, $00, $00, $00, $00, $18, $18
+	byte	$7c, $7e, $06, $06, $3e, $7c, $60, $60, $7e, $3e, $18, $18, $00, $00, $00, $66
+	byte	$66, $30, $30, $18, $18, $0c, $0c, $66, $66, $00, $00, $00, $00, $00, $3c, $7e
+	byte	$66, $66, $3c, $1c, $1c, $fc, $fe, $66, $66, $fe, $fc, $00, $00, $00, $00, $18
+	byte	$18, $18, $18, $18, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $30
+	byte	$18, $1c, $0c, $0c, $0c, $0c, $0c, $0c, $1c, $18, $30, $00, $00, $00, $00, $0c
+	byte	$18, $38, $30, $30, $30, $30, $30, $30, $38, $18, $0c, $00, $00, $00, $00, $00
+	byte	$66, $66, $3c, $3c, $ff, $ff, $3c, $3c, $66, $66, $00, $00, $00, $00, $00, $00
+	byte	$00, $18, $18, $18, $7e, $7e, $18, $18, $18, $00, $00, $00, $00, $00, $00, $00
+	byte	$00[6]
+	byte	$18[5]
+	byte	$0c, $04, $00, $00, $00, $00, $00, $00, $7e, $7e, $00, $00, $00, $00, $00, $00
+	byte	$00[13]
+	byte	$18, $18, $18, $00, $00, $00, $00, $60, $60, $60, $30, $30, $18, $18, $0c, $0c
+	byte	$06, $06, $06, $00, $00, $00, $00, $3c, $7e, $66, $66, $66, $76, $6e, $66, $66
+	byte	$66, $7e, $3c, $00, $00, $00, $00, $18, $18, $1c, $1c, $18, $18, $18, $18, $18
+	byte	$18, $7e, $7e, $00, $00, $00, $00, $3c, $7e, $66, $66, $30, $30, $18, $18, $0c
+	byte	$0c, $7e, $7e, $00, $00, $00, $00, $7e, $7e, $30, $30, $18, $18, $30, $30, $66
+	byte	$66, $7e, $3c, $00, $00, $00, $00, $30, $30, $38, $38, $3c, $3c, $36, $36, $7e
+	byte	$7e, $30, $30, $00, $00, $00, $00, $7e, $7e, $06, $06, $3e, $7e, $60, $60, $60
+	byte	$66, $7e, $3c, $00, $00, $00, $00, $38, $3c, $0e, $06, $06, $3e, $7e, $66, $66
+	byte	$66, $7e, $3c, $00, $00, $00, $00, $7e, $7e, $60, $60, $30, $30, $18, $18, $0c
+	byte	$0c, $0c, $0c, $00, $00, $00, $00, $3c, $7e, $66, $66, $3c, $3c, $66, $66, $66
+	byte	$66, $7e, $3c, $00, $00, $00, $00, $3c, $7e, $66, $66, $7e, $7c, $60, $60, $60
+	byte	$70, $3c, $1c, $00, $00, $00, $00, $00, $00, $00, $18, $18, $18, $00, $00, $00
+	byte	$18, $18, $18, $00, $00, $00, $00, $00, $00, $00, $18, $18, $18, $00, $00, $18
+	byte	$18, $18, $18, $0c, $04, $00, $00, $00, $70, $38, $1c, $0e, $07, $0e, $1c, $38
+	byte	$70, $00, $00, $00, $00, $00, $00, $00, $00, $00, $7e, $7e, $00, $00, $7e, $7e
+	byte	$00[8]
+	byte	$0e, $1c, $38, $70, $e0, $70, $38, $1c, $0e, $00, $00, $00, $00, $00, $00, $3c
+	byte	$7e, $66, $66, $30, $30, $18, $18, $18, $00, $18, $18, $00, $00, $00, $00, $3c
+	byte	$7e, $66, $66, $66, $66, $36, $06, $66, $66, $7e, $3c, $00, $00, $00, $00, $18
+	byte	$3c, $7e, $66, $66, $66, $7e, $7e, $66, $66, $66, $66, $00, $00, $00, $00, $3e
+	byte	$7e, $66, $66, $7e, $3e, $66, $66, $66, $66, $7e, $3e, $00, $00, $00, $00, $3c
+	byte	$7e, $66, $66, $06, $06, $06, $06, $66, $66, $7e, $3c, $00, $00, $00, $00, $3e
+	byte	$7e, $66, $66, $66, $66, $66, $66, $66, $66, $7e, $3e, $00, $00, $00, $00, $7e
+	byte	$7e, $06, $06, $3e, $3e, $06, $06, $06, $06, $7e, $7e, $00, $00, $00, $00, $7e
+	byte	$7e, $06, $06, $3e, $3e, $06, $06, $06, $06, $06, $06, $00, $00, $00, $00, $7c
+	byte	$7e, $06, $06, $76, $76, $66, $66, $66, $66, $7e, $3c, $00, $00, $00, $00, $66
+	byte	$66, $66, $66, $7e, $7e, $66, $66, $66, $66, $66, $66, $00, $00, $00, $00, $7e
+	byte	$7e, $18, $18, $18, $18, $18, $18, $18, $18, $7e, $7e, $00, $00, $00, $00, $60
+	byte	$60[7]
+	byte	$66, $66, $7e, $3c, $00, $00, $00, $00, $66, $66, $36, $36, $1e, $1e, $36, $36
+	byte	$66, $66, $c6, $c6, $00, $00, $00, $00, $06, $06, $06, $06, $06, $06, $06, $06
+	byte	$06, $06, $7e, $7e, $00, $00, $00, $00, $c6, $c6, $ee, $ee, $fe, $d6, $d6, $c6
+	byte	$c6, $c6, $c6, $c6, $00, $00, $00, $00, $66, $66, $66, $6e, $6e, $7e, $7e, $76
+	byte	$76, $66, $66, $66, $00, $00, $00, $00, $3c, $7e, $66, $66, $66, $66, $66, $66
+	byte	$66, $66, $7e, $3c, $00, $00, $00, $00, $3e, $7e, $66, $66, $66, $66, $7e, $3e
+	byte	$06, $06, $06, $06, $00, $00, $00, $00, $3c, $7e, $66, $66, $66, $66, $66, $66
+	byte	$66, $56, $3e, $6c, $00, $00, $00, $00, $3e, $7e, $66, $66, $66, $7e, $3e, $36
+	byte	$66, $66, $c6, $c6, $00, $00, $00, $00, $7c, $7e, $06, $06, $0e, $1c, $38, $70
+	byte	$60, $60, $7e, $3e, $00, $00, $00, $00, $7e, $7e, $18, $18, $18, $18, $18, $18
+	byte	$18, $18, $18, $18, $00, $00, $00, $00, $66, $66, $66, $66, $66, $66, $66, $66
+	byte	$66, $66, $7e, $3c, $00, $00, $00, $00, $66, $66, $66, $66, $66, $66, $66, $66
+	byte	$3c, $3c, $18, $18, $00, $00, $00, $00, $c6, $c6, $c6, $c6, $c6, $d6, $d6, $fe
+	byte	$fe, $ee, $c6, $82, $00, $00, $00, $00, $66, $66, $66, $3c, $3c, $18, $18, $3c
+	byte	$3c, $66, $66, $66, $00, $00, $00, $00, $66, $66, $66, $66, $66, $3c, $3c, $18
+	byte	$18, $18, $18, $18, $00, $00, $00, $00, $7e, $7e, $30, $30, $18, $18, $0c, $0c
+	byte	$06, $06, $7e, $7e, $00, $00, $00, $00, $3c, $3c, $0c, $0c, $0c, $0c, $0c, $0c
+	byte	$0c, $0c, $3c, $3c, $00, $00, $00, $00, $06, $06, $0c, $0c, $18, $18, $30, $30
+	byte	$60, $60, $c0, $c0, $00, $00, $00, $00, $3c, $3c, $30, $30, $30, $30, $30, $30
+	byte	$30, $30, $3c, $3c, $00, $00, $00, $00, $18, $18, $3c, $3c, $66, $66, $00, $00
+	byte	$00[18]
+	byte	$fe, $fe, $00, $00, $00, $00, $0c, $0c, $18, $18, $00, $00, $00, $00, $00, $00
+	byte	$00[9]
+	byte	$3c, $7c, $60, $7c, $7e, $66, $66, $7e, $7c, $00, $00, $00, $00, $06, $06, $06
+	byte	$3e, $7e, $66, $66, $66, $66, $66, $7e, $3e, $00, $00, $00, $00, $00, $00, $00
+	byte	$3c, $3e, $06, $06, $06, $06, $06, $7e, $7c, $00, $00, $00, $00, $60, $60, $60
+	byte	$7c, $7e, $66, $66, $66, $66, $66, $7e, $7c, $00, $00, $00, $00, $00, $00, $00
+	byte	$3c, $7e, $66, $66, $7e, $06, $06, $7e, $7c, $00, $00, $00, $00, $70, $78, $18
+	byte	$18, $7e, $7e, $18, $18, $18, $18, $18, $18, $00, $00, $00, $00, $00, $00, $00
+	byte	$7c, $7e, $66, $66, $66, $66, $7e, $7c, $60, $7e, $3e, $00, $00, $06, $06, $06
+	byte	$3e, $7e, $66, $66, $66, $66, $66, $66, $66, $00, $00, $00, $00, $18, $18, $00
+	byte	$1c, $1c, $18, $18, $18, $18, $18, $3c, $3c, $00, $00, $00, $00, $30, $30, $00
+	byte	$30[9]
+	byte	$3e, $1e, $00, $00, $06, $06, $06, $36, $36, $1e, $1e, $1e, $36, $36, $66, $66
+	byte	$00, $00, $00, $00, $1c, $1c, $18, $18, $18, $18, $18, $18, $18, $18, $3c, $3c
+	byte	$00[7]
+	byte	$6c, $fe, $fe, $d6, $d6, $c6, $c6, $c6, $c6, $00, $00, $00, $00, $00, $00, $00
+	byte	$3e, $7e, $66, $66, $66, $66, $66, $66, $66, $00, $00, $00, $00, $00, $00, $00
+	byte	$3c, $7e, $66, $66, $66, $66, $66, $7e, $3c, $00, $00, $00, $00, $00, $00, $00
+	byte	$3e, $7e, $66, $66, $66, $66, $66, $7e, $3e, $06, $06, $00, $00, $00, $00, $00
+	byte	$7c, $7e, $66, $66, $66, $66, $66, $7e, $7c, $60, $60, $00, $00, $00, $00, $00
+	byte	$3e, $7e, $66, $06, $06, $06, $06, $06, $06, $00, $00, $00, $00, $00, $00, $00
+	byte	$7c, $7e, $06, $0e, $3c, $70, $60, $7e, $3e, $00, $00, $00, $00, $00, $18, $18
+	byte	$7e, $7e, $18, $18, $18, $18, $18, $78, $70, $00, $00, $00, $00, $00, $00, $00
+	byte	$66[7]
+	byte	$7e, $7c, $00, $00, $00, $00, $00, $00, $00, $66, $66, $66, $66, $66, $3c, $3c
+	byte	$18, $18, $00, $00, $00, $00, $00, $00, $00, $c6, $c6, $d6, $d6, $fe, $fe, $ee
+	byte	$c6, $82, $00, $00, $00, $00, $00, $00, $00, $66, $66, $3c, $3c, $18, $3c, $3c
+	byte	$66, $66, $00, $00, $00, $00, $00, $00, $00, $66, $66, $66, $66, $66, $66, $7e
+	byte	$7c, $60, $7e, $3e, $00, $00, $00, $00, $00, $7e, $7e, $30, $18, $18, $0c, $0c
+	byte	$7e, $7e, $00, $00, $00, $00, $30, $18, $18, $18, $18, $0c, $0c, $18, $18, $18
+	byte	$18, $30, $00, $00, $00, $00, $18, $18, $18, $18, $18, $18, $18, $18, $18, $18
+	byte	$18, $18, $00, $00, $00, $00, $0c, $18, $18, $18, $18, $30, $30, $18, $18, $18
+	byte	$18, $0c, $00, $00, $00, $00, $6c, $7e, $36, $00, $00, $00, $00, $00, $00, $00
+	byte	$00[9]
+	byte	$18, $18, $18, $18, $18, $18, $00, $00, $00, $00, $00
+'-' vga_font                                file "st4font.def"
+	byte	$00[55]
+	byte	$ff, $ff, $00, $00, $00, $00, $00, $00, $00, $18, $18, $18, $18, $18, $18, $18
+	byte	$18[9]
+	byte	$00[7]
+	byte	$ff, $ff, $18, $18, $18, $18, $18, $18, $18, $18, $18, $18, $18, $18, $18, $18
+	byte	$ff, $ff, $00, $00, $00, $00, $00, $00, $00, $18, $18, $18, $18, $18, $18, $18
+	byte	$1f, $1f, $18, $18, $18, $18, $18, $18, $18, $18, $18, $18, $18, $18, $18, $18
+	byte	$f8, $f8, $18, $18, $18, $18, $18, $18, $18, $00, $00, $00, $00, $00, $00, $00
+	byte	$1f, $1f, $18, $18, $18, $18, $18, $18, $18, $00, $00, $00, $00, $00, $00, $00
+	byte	$f8, $f8, $18, $18, $18, $18, $18, $18, $18, $18, $18, $18, $18, $18, $18, $18
+	byte	$1f, $1f, $00, $00, $00, $00, $00, $00, $00, $18, $18, $18, $18, $18, $18, $18
+	byte	$f8, $f8, $00, $00, $00, $00, $00, $00, $00, $18, $18, $18, $18, $18, $18, $18
+	byte	$ff, $ff, $18, $18, $18, $18, $18, $18, $18, $00, $00, $18, $3c, $7e, $66, $66
+	byte	$66, $7e, $7e, $66, $66, $66, $66, $30, $18, $00, $00, $7e, $7e, $06, $06, $3e
+	byte	$3e, $06, $06, $06, $06, $7e, $7e, $18, $0c, $30, $18, $3c, $7e, $66, $66, $06
+	byte	$06, $06, $06, $66, $66, $7e, $3c, $00, $00, $30, $18, $66, $66, $66, $6e, $6e
+	byte	$7e, $7e, $76, $76, $66, $66, $66, $00, $00, $30, $18, $7c, $7e, $06, $06, $0e
+	byte	$1c, $38, $70, $60, $60, $7e, $3e, $00, $00, $30, $18, $7e, $7e, $30, $30, $18
+	byte	$18, $0c, $0c, $06, $06, $7e, $7e, $00, $00, $18, $18, $00, $7e, $7e, $30, $30
+	byte	$18, $18, $0c, $0c, $06, $7e, $7e, $00, $00, $30, $18, $3c, $7e, $66, $66, $66
+	byte	$66[5]
+	byte	$7e, $3c, $00, $00, $00, $00, $06, $06, $06, $06, $16, $1e, $0e, $06, $06, $06
+	byte	$7e, $7e, $00, $00, $00, $00, $00, $00, $00, $3c, $7c, $60, $7c, $7e, $66, $66
+	byte	$7e, $7c, $30, $18, $00, $00, $00, $00, $00, $3c, $7e, $66, $66, $7e, $06, $06
+	byte	$7e, $7c, $18, $0c, $00, $00, $30, $18, $00, $3c, $3e, $06, $06, $06, $06, $06
+	byte	$7e, $7c, $00, $00, $00, $00, $30, $18, $00, $3e, $7e, $66, $66, $66, $66, $66
+	byte	$66, $66, $00, $00, $00, $00, $30, $18, $00, $7c, $7e, $06, $0e, $3c, $70, $60
+	byte	$7e, $3e, $00, $00, $00, $00, $30, $18, $00, $7e, $7e, $30, $18, $18, $0c, $0c
+	byte	$7e, $7e, $00, $00, $00, $00, $18, $18, $00, $7e, $7e, $30, $18, $18, $0c, $0c
+	byte	$7e, $7e, $00, $00, $00, $00, $30, $18, $00, $3c, $7e, $66, $66, $66, $66, $66
+	byte	$7e, $3c, $00, $00, $00, $00, $1c, $1c, $18, $18, $38, $3c, $1c, $18, $18, $18
+	byte	$3c, $3c, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
+	byte	$00[6]
+	byte	$18[8]
+	byte	$00, $00, $18, $18, $00, $00, $00, $00, $66, $66, $66, $66, $00, $00, $00, $00
+	byte	$00[9]
+	byte	$66, $66, $ff, $ff, $66, $66, $ff, $ff, $66, $66, $00, $00, $00, $00, $18, $18
+	byte	$7c, $7e, $06, $06, $3e, $7c, $60, $60, $7e, $3e, $18, $18, $00, $00, $00, $66
+	byte	$66, $30, $30, $18, $18, $0c, $0c, $66, $66, $00, $00, $00, $00, $00, $3c, $7e
+	byte	$66, $66, $3c, $1c, $1c, $fc, $fe, $66, $66, $fe, $fc, $00, $00, $00, $00, $18
+	byte	$18, $18, $18, $18, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $30
+	byte	$18, $1c, $0c, $0c, $0c, $0c, $0c, $0c, $1c, $18, $30, $00, $00, $00, $00, $0c
+	byte	$18, $38, $30, $30, $30, $30, $30, $30, $38, $18, $0c, $00, $00, $00, $00, $00
+	byte	$66, $66, $3c, $3c, $ff, $ff, $3c, $3c, $66, $66, $00, $00, $00, $00, $00, $00
+	byte	$00, $18, $18, $18, $7e, $7e, $18, $18, $18, $00, $00, $00, $00, $00, $00, $00
+	byte	$00[6]
+	byte	$18[5]
+	byte	$0c, $04, $00, $00, $00, $00, $00, $00, $7e, $7e, $00, $00, $00, $00, $00, $00
+	byte	$00[13]
+	byte	$18, $18, $18, $00, $00, $00, $00, $60, $60, $60, $30, $30, $18, $18, $0c, $0c
+	byte	$06, $06, $06, $00, $00, $00, $00, $3c, $7e, $66, $66, $66, $76, $6e, $66, $66
+	byte	$66, $7e, $3c, $00, $00, $00, $00, $18, $18, $1c, $1c, $18, $18, $18, $18, $18
+	byte	$18, $7e, $7e, $00, $00, $00, $00, $3c, $7e, $66, $66, $30, $30, $18, $18, $0c
+	byte	$0c, $7e, $7e, $00, $00, $00, $00, $7e, $7e, $30, $30, $18, $18, $30, $30, $66
+	byte	$66, $7e, $3c, $00, $00, $00, $00, $30, $30, $38, $38, $3c, $3c, $36, $36, $7e
+	byte	$7e, $30, $30, $00, $00, $00, $00, $7e, $7e, $06, $06, $3e, $7e, $60, $60, $60
+	byte	$66, $7e, $3c, $00, $00, $00, $00, $38, $3c, $0e, $06, $06, $3e, $7e, $66, $66
+	byte	$66, $7e, $3c, $00, $00, $00, $00, $7e, $7e, $60, $60, $30, $30, $18, $18, $0c
+	byte	$0c, $0c, $0c, $00, $00, $00, $00, $3c, $7e, $66, $66, $3c, $3c, $66, $66, $66
+	byte	$66, $7e, $3c, $00, $00, $00, $00, $3c, $7e, $66, $66, $7e, $7c, $60, $60, $60
+	byte	$70, $3c, $1c, $00, $00, $00, $00, $00, $00, $00, $18, $18, $18, $00, $00, $00
+	byte	$18, $18, $18, $00, $00, $00, $00, $00, $00, $00, $18, $18, $18, $00, $00, $18
+	byte	$18, $18, $18, $0c, $04, $00, $00, $00, $70, $38, $1c, $0e, $07, $0e, $1c, $38
+	byte	$70, $00, $00, $00, $00, $00, $00, $00, $00, $00, $7e, $7e, $00, $00, $7e, $7e
+	byte	$00[8]
+	byte	$0e, $1c, $38, $70, $e0, $70, $38, $1c, $0e, $00, $00, $00, $00, $00, $00, $3c
+	byte	$7e, $66, $66, $30, $30, $18, $18, $18, $00, $18, $18, $00, $00, $00, $00, $3c
+	byte	$7e, $66, $66, $66, $66, $36, $06, $66, $66, $7e, $3c, $00, $00, $00, $00, $18
+	byte	$3c, $7e, $66, $66, $66, $7e, $7e, $66, $66, $66, $66, $00, $00, $00, $00, $3e
+	byte	$7e, $66, $66, $7e, $3e, $66, $66, $66, $66, $7e, $3e, $00, $00, $00, $00, $3c
+	byte	$7e, $66, $66, $06, $06, $06, $06, $66, $66, $7e, $3c, $00, $00, $00, $00, $3e
+	byte	$7e, $66, $66, $66, $66, $66, $66, $66, $66, $7e, $3e, $00, $00, $00, $00, $7e
+	byte	$7e, $06, $06, $3e, $3e, $06, $06, $06, $06, $7e, $7e, $00, $00, $00, $00, $7e
+	byte	$7e, $06, $06, $3e, $3e, $06, $06, $06, $06, $06, $06, $00, $00, $00, $00, $7c
+	byte	$7e, $06, $06, $76, $76, $66, $66, $66, $66, $7e, $3c, $00, $00, $00, $00, $66
+	byte	$66, $66, $66, $7e, $7e, $66, $66, $66, $66, $66, $66, $00, $00, $00, $00, $7e
+	byte	$7e, $18, $18, $18, $18, $18, $18, $18, $18, $7e, $7e, $00, $00, $00, $00, $60
+	byte	$60[7]
+	byte	$66, $66, $7e, $3c, $00, $00, $00, $00, $66, $66, $36, $36, $1e, $1e, $36, $36
+	byte	$66, $66, $c6, $c6, $00, $00, $00, $00, $06, $06, $06, $06, $06, $06, $06, $06
+	byte	$06, $06, $7e, $7e, $00, $00, $00, $00, $c6, $c6, $ee, $ee, $fe, $d6, $d6, $c6
+	byte	$c6, $c6, $c6, $c6, $00, $00, $00, $00, $66, $66, $66, $6e, $6e, $7e, $7e, $76
+	byte	$76, $66, $66, $66, $00, $00, $00, $00, $3c, $7e, $66, $66, $66, $66, $66, $66
+	byte	$66, $66, $7e, $3c, $00, $00, $00, $00, $3e, $7e, $66, $66, $66, $66, $7e, $3e
+	byte	$06, $06, $06, $06, $00, $00, $00, $00, $3c, $7e, $66, $66, $66, $66, $66, $66
+	byte	$66, $56, $3e, $6c, $00, $00, $00, $00, $3e, $7e, $66, $66, $66, $7e, $3e, $36
+	byte	$66, $66, $c6, $c6, $00, $00, $00, $00, $7c, $7e, $06, $06, $0e, $1c, $38, $70
+	byte	$60, $60, $7e, $3e, $00, $00, $00, $00, $7e, $7e, $18, $18, $18, $18, $18, $18
+	byte	$18, $18, $18, $18, $00, $00, $00, $00, $66, $66, $66, $66, $66, $66, $66, $66
+	byte	$66, $66, $7e, $3c, $00, $00, $00, $00, $66, $66, $66, $66, $66, $66, $66, $66
+	byte	$3c, $3c, $18, $18, $00, $00, $00, $00, $c6, $c6, $c6, $c6, $c6, $d6, $d6, $fe
+	byte	$fe, $ee, $c6, $82, $00, $00, $00, $00, $66, $66, $66, $3c, $3c, $18, $18, $3c
+	byte	$3c, $66, $66, $66, $00, $00, $00, $00, $66, $66, $66, $66, $66, $3c, $3c, $18
+	byte	$18, $18, $18, $18, $00, $00, $00, $00, $7e, $7e, $30, $30, $18, $18, $0c, $0c
+	byte	$06, $06, $7e, $7e, $00, $00, $00, $00, $3c, $3c, $0c, $0c, $0c, $0c, $0c, $0c
+	byte	$0c, $0c, $3c, $3c, $00, $00, $00, $00, $06, $06, $0c, $0c, $18, $18, $30, $30
+	byte	$60, $60, $c0, $c0, $00, $00, $00, $00, $3c, $3c, $30, $30, $30, $30, $30, $30
+	byte	$30, $30, $3c, $3c, $00, $00, $00, $00, $18, $18, $3c, $3c, $66, $66, $00, $00
+	byte	$00[18]
+	byte	$fe, $fe, $00, $00, $00, $00, $0c, $0c, $18, $18, $00, $00, $00, $00, $00, $00
+	byte	$00[9]
+	byte	$3c, $7c, $60, $7c, $7e, $66, $66, $7e, $7c, $00, $00, $00, $00, $06, $06, $06
+	byte	$3e, $7e, $66, $66, $66, $66, $66, $7e, $3e, $00, $00, $00, $00, $00, $00, $00
+	byte	$3c, $3e, $06, $06, $06, $06, $06, $7e, $7c, $00, $00, $00, $00, $60, $60, $60
+	byte	$7c, $7e, $66, $66, $66, $66, $66, $7e, $7c, $00, $00, $00, $00, $00, $00, $00
+	byte	$3c, $7e, $66, $66, $7e, $06, $06, $7e, $7c, $00, $00, $00, $00, $70, $78, $18
+	byte	$18, $7e, $7e, $18, $18, $18, $18, $18, $18, $00, $00, $00, $00, $00, $00, $00
+	byte	$7c, $7e, $66, $66, $66, $66, $7e, $7c, $60, $7e, $3e, $00, $00, $06, $06, $06
+	byte	$3e, $7e, $66, $66, $66, $66, $66, $66, $66, $00, $00, $00, $00, $18, $18, $00
+	byte	$1c, $1c, $18, $18, $18, $18, $18, $3c, $3c, $00, $00, $00, $00, $30, $30, $00
+	byte	$30[9]
+	byte	$3e, $1e, $00, $00, $06, $06, $06, $36, $36, $1e, $1e, $1e, $36, $36, $66, $66
+	byte	$00, $00, $00, $00, $1c, $1c, $18, $18, $18, $18, $18, $18, $18, $18, $3c, $3c
+	byte	$00[7]
+	byte	$6c, $fe, $fe, $d6, $d6, $c6, $c6, $c6, $c6, $00, $00, $00, $00, $00, $00, $00
+	byte	$3e, $7e, $66, $66, $66, $66, $66, $66, $66, $00, $00, $00, $00, $00, $00, $00
+	byte	$3c, $7e, $66, $66, $66, $66, $66, $7e, $3c, $00, $00, $00, $00, $00, $00, $00
+	byte	$3e, $7e, $66, $66, $66, $66, $66, $7e, $3e, $06, $06, $00, $00, $00, $00, $00
+	byte	$7c, $7e, $66, $66, $66, $66, $66, $7e, $7c, $60, $60, $00, $00, $00, $00, $00
+	byte	$3e, $7e, $66, $06, $06, $06, $06, $06, $06, $00, $00, $00, $00, $00, $00, $00
+	byte	$7c, $7e, $06, $0e, $3c, $70, $60, $7e, $3e, $00, $00, $00, $00, $00, $18, $18
+	byte	$7e, $7e, $18, $18, $18, $18, $18, $78, $70, $00, $00, $00, $00, $00, $00, $00
+	byte	$66[7]
+	byte	$7e, $7c, $00, $00, $00, $00, $00, $00, $00, $66, $66, $66, $66, $66, $3c, $3c
+	byte	$18, $18, $00, $00, $00, $00, $00, $00, $00, $c6, $c6, $d6, $d6, $fe, $fe, $ee
+	byte	$c6, $82, $00, $00, $00, $00, $00, $00, $00, $66, $66, $3c, $3c, $18, $3c, $3c
+	byte	$66, $66, $00, $00, $00, $00, $00, $00, $00, $66, $66, $66, $66, $66, $66, $7e
+	byte	$7c, $60, $7e, $3e, $00, $00, $00, $00, $00, $7e, $7e, $30, $18, $18, $0c, $0c
+	byte	$7e, $7e, $00, $00, $00, $00, $30, $18, $18, $18, $18, $0c, $0c, $18, $18, $18
+	byte	$18, $30, $00, $00, $00, $00, $18, $18, $18, $18, $18, $18, $18, $18, $18, $18
+	byte	$18, $18, $00, $00, $00, $00, $0c, $18, $18, $18, $18, $30, $30, $18, $18, $18
+	byte	$18, $0c, $00, $00, $00, $00, $6c, $7e, $36, $00, $00, $00, $00, $00, $00, $00
+	byte	$00[9]
+	byte	$18, $18, $18, $18, $18, $18, $00, $00, $00, $00, $00
+'-' 
+'-' ataripalette            file "ataripalettep2.def"
+	byte	$00[5]
+	byte	$11, $11, $11, $00, $22, $22, $22, $00, $33, $33, $33, $00, $44, $44, $44, $00
+	byte	$55, $55, $55, $00, $66, $66, $66, $00, $77, $77, $77, $00, $88, $88, $88, $00
+	byte	$99, $99, $99, $00, $aa, $aa, $aa, $00, $bb, $bb, $bb, $00, $cc, $cc, $cc, $00
+	byte	$dd, $dd, $dd, $00, $ee, $ee, $ee, $00, $ff, $ff, $ff, $00, $00, $0a, $20, $00
+	byte	$00, $14, $40, $00, $00, $1e, $60, $00, $00, $28, $80, $00, $00, $32, $9f, $00
+	byte	$00, $3c, $bf, $00, $00, $46, $df, $00, $00, $50, $ff, $00, $1c, $63, $ff, $00
+	byte	$39, $77, $ff, $00, $55, $8a, $ff, $00, $71, $9e, $ff, $00, $8e, $b1, $ff, $00
+	byte	$aa, $c5, $ff, $00, $c6, $d8, $ff, $00, $e3, $ec, $ff, $00, $00, $00, $20, $00
+	byte	$00, $00, $40, $00, $00, $00, $60, $00, $00, $00, $80, $00, $00, $00, $9f, $00
+	byte	$00, $00, $bf, $00, $00, $00, $df, $00, $00, $00, $ff, $00, $1c, $1c, $ff, $00
+	byte	$39, $39, $ff, $00, $55, $55, $ff, $00, $71, $71, $ff, $00, $8e, $8e, $ff, $00
+	byte	$aa, $aa, $ff, $00, $c6, $c6, $ff, $00, $e3, $e3, $ff, $00, $10, $00, $20, $00
+	byte	$20, $00, $40, $00, $30, $00, $60, $00, $40, $00, $80, $00, $50, $00, $9f, $00
+	byte	$60, $00, $bf, $00, $70, $00, $df, $00, $80, $00, $ff, $00, $8e, $1c, $ff, $00
+	byte	$9c, $39, $ff, $00, $aa, $55, $ff, $00, $b8, $71, $ff, $00, $c7, $8e, $ff, $00
+	byte	$d5, $aa, $ff, $00, $e3, $c6, $ff, $00, $f1, $e3, $ff, $00, $20, $00, $20, $00
+	byte	$40, $00, $40, $00, $60, $00, $60, $00, $80, $00, $80, $00, $9f, $00, $9f, $00
+	byte	$bf, $00, $bf, $00, $df, $00, $df, $00, $ff, $00, $ff, $00, $ff, $1c, $ff, $00
+	byte	$ff, $39, $ff, $00, $ff, $55, $ff, $00, $ff, $71, $ff, $00, $ff, $8e, $ff, $00
+	byte	$ff, $aa, $ff, $00, $ff, $c6, $ff, $00, $ff, $e3, $ff, $00, $20, $00, $10, $00
+	byte	$40, $00, $20, $00, $60, $00, $30, $00, $80, $00, $40, $00, $9f, $00, $50, $00
+	byte	$bf, $00, $60, $00, $df, $00, $70, $00, $ff, $00, $80, $00, $ff, $1c, $8e, $00
+	byte	$ff, $39, $9c, $00, $ff, $55, $aa, $00, $ff, $71, $b8, $00, $ff, $8e, $c7, $00
+	byte	$ff, $aa, $d5, $00, $ff, $c6, $e3, $00, $ff, $e3, $f1, $00, $20, $00, $00, $00
+	byte	$40, $00, $00, $00, $60, $00, $00, $00, $80, $00, $00, $00, $9f, $00, $00, $00
+	byte	$bf, $00, $00, $00, $df, $00, $00, $00, $ff, $00, $00, $00, $ff, $1c, $1c, $00
+	byte	$ff, $39, $39, $00, $ff, $55, $55, $00, $ff, $71, $71, $00, $ff, $8e, $8e, $00
+	byte	$ff, $aa, $aa, $00, $ff, $c6, $c6, $00, $ff, $e3, $e3, $00, $20, $08, $00, $00
+	byte	$40, $10, $00, $00, $60, $18, $00, $00, $80, $20, $00, $00, $9f, $28, $00, $00
+	byte	$bf, $30, $00, $00, $df, $38, $00, $00, $ff, $40, $00, $00, $ff, $55, $1c, $00
+	byte	$ff, $6a, $39, $00, $ff, $80, $55, $00, $ff, $95, $71, $00, $ff, $aa, $8e, $00
+	byte	$ff, $bf, $aa, $00, $ff, $d5, $c6, $00, $ff, $ea, $e3, $00, $20, $10, $00, $00
+	byte	$40, $20, $00, $00, $60, $30, $00, $00, $80, $40, $00, $00, $9f, $50, $00, $00
+	byte	$bf, $60, $00, $00, $df, $70, $00, $00, $ff, $80, $00, $00, $ff, $8e, $1c, $00
+	byte	$ff, $9c, $39, $00, $ff, $aa, $55, $00, $ff, $b8, $71, $00, $ff, $c7, $8e, $00
+	byte	$ff, $d5, $aa, $00, $ff, $e3, $c6, $00, $ff, $f1, $e3, $00, $20, $18, $00, $00
+	byte	$40, $30, $00, $00, $60, $48, $00, $00, $80, $60, $00, $00, $9f, $78, $00, $00
+	byte	$bf, $90, $00, $00, $df, $a8, $00, $00, $ff, $c0, $00, $00, $ff, $c7, $1c, $00
+	byte	$ff, $ce, $39, $00, $ff, $d5, $55, $00, $ff, $dc, $71, $00, $ff, $e3, $8e, $00
+	byte	$ff, $ea, $aa, $00, $ff, $f1, $c6, $00, $ff, $f8, $e3, $00, $18, $20, $00, $00
+	byte	$30, $40, $00, $00, $48, $60, $00, $00, $60, $80, $00, $00, $78, $9f, $00, $00
+	byte	$90, $bf, $00, $00, $a8, $df, $00, $00, $c0, $ff, $00, $00, $c7, $ff, $1c, $00
+	byte	$ce, $ff, $39, $00, $d5, $ff, $55, $00, $dc, $ff, $71, $00, $e3, $ff, $8e, $00
+	byte	$ea, $ff, $aa, $00, $f1, $ff, $c6, $00, $f8, $ff, $e3, $00, $00, $20, $00, $00
+	byte	$00, $40, $00, $00, $00, $60, $00, $00, $00, $80, $00, $00, $00, $9f, $00, $00
+	byte	$00, $bf, $00, $00, $00, $df, $00, $00, $00, $ff, $00, $00, $1c, $ff, $1c, $00
+	byte	$39, $ff, $39, $00, $55, $ff, $55, $00, $71, $ff, $71, $00, $8e, $ff, $8e, $00
+	byte	$aa, $ff, $aa, $00, $c6, $ff, $c6, $00, $e3, $ff, $e3, $00, $00, $20, $0a, $00
+	byte	$00, $40, $14, $00, $00, $60, $1e, $00, $00, $80, $28, $00, $00, $9f, $32, $00
+	byte	$00, $bf, $3c, $00, $00, $df, $46, $00, $00, $ff, $50, $00, $1c, $ff, $63, $00
+	byte	$39, $ff, $77, $00, $55, $ff, $8a, $00, $71, $ff, $9e, $00, $8e, $ff, $b1, $00
+	byte	$aa, $ff, $c5, $00, $c6, $ff, $d8, $00, $e3, $ff, $ec, $00, $00, $20, $14, $00
+	byte	$00, $40, $28, $00, $00, $60, $3c, $00, $00, $80, $50, $00, $00, $9f, $64, $00
+	byte	$00, $bf, $78, $00, $00, $df, $8c, $00, $00, $ff, $a0, $00, $1c, $ff, $ab, $00
+	byte	$39, $ff, $b5, $00, $55, $ff, $c0, $00, $71, $ff, $ca, $00, $8e, $ff, $d5, $00
+	byte	$aa, $ff, $df, $00, $c6, $ff, $ea, $00, $e3, $ff, $f4, $00, $00, $20, $20, $00
+	byte	$00, $40, $40, $00, $00, $60, $60, $00, $00, $80, $80, $00, $00, $9f, $9f, $00
+	byte	$00, $bf, $bf, $00, $00, $df, $df, $00, $00, $ff, $ff, $00, $1c, $ff, $ff, $00
+	byte	$39, $ff, $ff, $00, $55, $ff, $ff, $00, $71, $ff, $ff, $00, $8e, $ff, $ff, $00
+	byte	$aa, $ff, $ff, $00, $c6, $ff, $ff, $00, $e3, $ff, $ff, $00, $00, $14, $20, $00
+	byte	$00, $28, $40, $00, $00, $3c, $60, $00, $00, $50, $80, $00, $00, $64, $9f, $00
+	byte	$00, $78, $bf, $00, $00, $8c, $df, $00, $00, $a0, $ff, $00, $1c, $ab, $ff, $00
+	byte	$39, $b5, $ff, $00, $55, $c0, $ff, $00, $71, $ca, $ff, $00, $8e, $d5, $ff, $00
+	byte	$aa, $df, $ff, $00, $c6, $ea, $ff, $00, $e3, $f4, $ff
+'-' 
+'-' hdmi            setcmod #$100                           'enable HDMI mode
+	byte	$3c, $00, $66, $fd
+'-'                 drvl    #7<<6 + hdmi_base               'enable HDMI pins
+	byte	$58, $80, $67, $fd
+'-'                 wrpin   ##%10110_1111_0111_10_00000_0, #7<<6 + hdmi_base      ' a '123 ohm BITDAC for pins
+	byte	$7b, $0b, $80, $ff, $c0, $01, $0f, $fc
+'-'                 setxfrq ##$0CCCCCCC+1                   'set streamer freq to 1/10th clk (25 MHz)
+	byte	$66, $66, $86, $ff, $1d, $9a, $65, $fd
+'-' 
+'-'                 setq    #8
+	byte	$28, $10, $64, $fd
+'-'                 rdlong  framebuf,  ptra++               'read pointers
+	byte	$61, $0d, $05, $fb
+'-' 
+'-'                 setq2   #255
+	byte	$29, $fe, $65, $fd
+'-'                 rdlong  $000, paletteptr                'read palette
+	byte	$8c, $00, $00, $fb
+'-' 
+'-' '' Blank lines before the frame
+'-' 
+'-' p101            setq    #9
+	byte	$28, $12, $64, $fd
+'-'                 rdlong  m_bs,modeptr                    'read timings
+	byte	$8b, $e2, $00, $fb
+'-'                 add     frames,#1
+	byte	$01, $00, $05, $f1
+'-'                                 rdlong  fontstart,fontnumptr
+	byte	$8e, $0a, $01, $fb
+'-'                                 add     fontstart,fontbuf
+	byte	$87, $0a, $01, $f1
+'-'                 rdlong  cursorx, cursorptr
+	byte	$8a, $02, $01, $fb
+'-'                 getbyte cursory, cursorx,#1
+	byte	$81, $04, $e9, $f8
+'-'                 getbyte cursorsh,cursorx,#2
+	byte	$81, $fe, $f0, $f8
+'-'                 and     cursorx,#255
+	byte	$ff, $02, $05, $f5
+'-' 
+'-'                 mov     borderptr2,borderptr
+	byte	$88, $1e, $01, $f6
+'-'                 rdlong  border,borderptr2
+	byte	$8f, $e0, $00, $fb
+'-'                 add     borderptr2,#4
+	byte	$04, $1e, $05, $f1
+'-'                 shl     border,#8
+	byte	$08, $e0, $64, $f0
+'-' 
+'-'                 rdlong  t1,commandptr
+	byte	$8d, $2a, $01, $fb
+'-'                 add     commandptr,#4
+	byte	$04, $1a, $05, $f1
+'-'                 rdlong  t2,commandptr
+	byte	$8d, $2c, $01, $fb
+'-'                 sub     commandptr,#4
+	byte	$04, $1a, $85, $f1
+'-'                 cmp     t1,#257  wcz
+	byte	$01, $2b, $1d, $f2
+'-'          if_lt  wrlut   t2,t1
+	byte	$95, $2c, $31, $cc
+'-'                 mov     t1, #257
+	byte	$01, $2b, $05, $f6
+'-'                 wrlong  t1,commandptr
+	byte	$8d, $2a, $61, $fc
+'-'                 mov     hsync0,sync_000                 'vsync off
+	byte	$6c, $24, $01, $f6
+'-'                 mov     hsync1,sync_001
+	byte	$6d, $26, $01, $f6
+'-'                 callpa  i_upporch ,#blank
+	byte	$44, $f0, $44, $fb
+'-'                 wrbyte  #0,vblankptr
+	byte	$89, $00, $48, $fc
+'-' 
+'-' '' Upper border.
+'-' 
+'-'                 testb   frames,#4 wz                    'cursor blinks at framerate/16, todo: define
+	byte	$04, $00, $0d, $f4
+'-'          if_z   mov     cursorx,#101
+	byte	$65, $02, $05, $a6
+'-' 
+'-' 
+'-'                 mov     ii, i_vborder
+	byte	$77, $20, $01, $f6
+'-' 
+'-' up_border       call    #hsync
+	byte	$08, $01, $b0, $fd
+'-'                 xcont   m_vi,border
+	byte	$70, $e8, $c0, $fc
+'-'                 djnz    ii,#up_border
+	byte	$fd, $21, $6d, $fb
+'-' 
+'-' '' 480 active lines
+'-' 
+'-'                 mov     ii,#480
+	byte	$e0, $21, $05, $f6
+'-'                 mov     linenum,#0
+	byte	$00, $f8, $04, $f6
+'-' 
+'-' line1           mov     cursorpos2,cursorx
+	byte	$81, $08, $01, $f6
+'-' 
+'-'                 getnib  fontline,linenum,#0             'fontline is 0 to 15, a line in font def
+	byte	$7c, $28, $41, $f8
+'-'                 mov     framebuf2,framebuf              'compute a line start in the framebuffer, which is (line div 16)*100
+	byte	$86, $22, $01, $f6
+'-'                 mov     linestart,linenum
+	byte	$7c, $f6, $00, $f6
+'-'                 shr     linestart,#4
+	byte	$04, $f6, $44, $f0
+'-'                 cmp     linestart,cursory wz
+	byte	$82, $f6, $08, $f2
+'-'          if_nz  mov     cursorpos2,#120
+	byte	$78, $08, $05, $56
+'-'                 mul     linestart,#400
+	byte	$90, $f7, $04, $fa
+'-'                 add     framebuf2,linestart
+	byte	$7b, $22, $01, $f1
+'-'                 call    #hsync
+	byte	$d0, $00, $b0, $fd
+'-'                 cmp     fontline,#0 wz
+	byte	$00, $28, $0d, $f2
+'-'          if_nz  jmp     #p102                          'if fontline >0, display it
+	byte	$0c, $00, $90, $5d
+'-' 
+'-'                 rdlong  border,borderptr2
+	byte	$8f, $e0, $00, $fb
+'-'                 add     borderptr2,#4
+	byte	$04, $1e, $05, $f1
+'-'                 shl     border,#8
+	byte	$08, $e0, $64, $f0
+'-' 
+'-' p102            xcont   m_border,border                 'display a left border
+	byte	$70, $ea, $c0, $fc
+'-'                 cmp     fontline,cursorsh wcz
+	byte	$7f, $28, $19, $f2
+'-'          if_c   mov     cursorpos,#101
+	byte	$65, $06, $05, $c6
+'-'         if_nc   mov     cursorpos,cursorpos2
+	byte	$84, $06, $01, $36
+'-'                 add     cursorpos,#1
+	byte	$01, $06, $05, $f1
+'-'                 mov     t2,fontstart
+	byte	$85, $2c, $01, $f6
+'-'                 add     t2,fontline
+	byte	$94, $2c, $01, $f1
+'-' 
+'-'                 rep     @p103,#100                      'display 100 chars
+	byte	$64, $28, $dc, $fc
+'-' ''---------------------------------------------------------------------------------------
+'-'                         rdlong  char,framebuf2                                                      '2
+	byte	$91, $2e, $01, $fb
+'-'                         getbyte backcolor,char,#2                                                   '4
+	byte	$97, $30, $f1, $f8
+'-'                         getbyte charcolor,char,#3                                                   '6
+	byte	$97, $32, $f9, $f8
+'-'                         getbyte char,char, #0                                                       '8
+	byte	$97, $2e, $e1, $f8
+'-'                         add     framebuf2,#4                                                        '10
+	byte	$04, $22, $05, $f1
+'-'                         shl     char,#4                                                             '12
+	byte	$04, $2e, $65, $f0
+'-'                         add     char,t2                                                             '14
+	byte	$96, $2e, $01, $f1
+'-'                         rdbyte  t1,char                                                             '16
+	byte	$97, $2a, $c1, $fa
+'-'                         sub     cursorpos,#1 wz                                                     '18
+	byte	$01, $06, $8d, $f1
+'-'                 if_z    xor     t1, #$FF                                                            '20
+	byte	$ff, $2a, $65, $a5
+'-' 
+'-' 
+'-'                         mergeb  t1
+	byte	$61, $2a, $61, $fd
+'-'                         xcont   m_lut1,t1                                                           '22
+	byte	$95, $ec, $c0, $fc
+'-' 
+'-'                         rdlut   t1,backcolor                                                        '25
+	byte	$98, $2a, $a1, $fa
+'-'                         wrlut   t1,lutaddr                                                          '28
+	byte	$7e, $2a, $31, $fc
+'-'                         add     lutaddr,#1                                                          '30
+	byte	$01, $fc, $04, $f1
+'-' 
+'-'                         rdlut   t1,charcolor                                                        '33
+	byte	$99, $2a, $a1, $fa
+'-'                         wrlut   t1,lutaddr                                                          '46
+	byte	$7e, $2a, $31, $fc
+'-'                         sub     lutaddr,#1                                                          '38
+	byte	$01, $fc, $84, $f1
+'-' 
+'-'                         xor     m_lut1,a00010000                                                    '40
+	byte	$7d, $ec, $60, $f5
+'-'                         xor     lutaddr,#32                                                         '42    .....    38 left
+	byte	$20, $fc, $64, $f5
+'-' 
+'-' '' rep end ----------------------------------------------------------------------------
+'-' 
+'-' 
+'-' p103            xcont   m_border,border                     'display a right border
+	byte	$70, $ea, $c0, $fc
+'-' 
+'-'                 add     linenum, #1
+	byte	$01, $f8, $04, $f1
+'-'                 djnz    ii,#line1
+	byte	$d2, $21, $6d, $fb
+'-' 
+'-' '' end of active screen
+'-'                 wrlong  #1,vblankptr
+	byte	$89, $02, $68, $fc
+'-'                 mov     ii,i_vborder                         'lower border
+	byte	$77, $20, $01, $f6
+'-' 
+'-' 
+'-'                 rdlong  border,borderptr2
+	byte	$8f, $e0, $00, $fb
+'-'                 add     borderptr2,#4
+	byte	$04, $1e, $05, $f1
+'-'                 shl     border,#8
+	byte	$08, $e0, $64, $f0
+'-' down_border     call    #hsync
+	byte	$28, $00, $b0, $fd
+'-'                 xcont   m_vi,border
+	byte	$70, $e8, $c0, $fc
+'-'                 djnz    ii,#down_border
+	byte	$fd, $21, $6d, $fb
+'-'                 callpa  i_downporch ,#blank                  'bottom blanks
+	byte	$04, $f4, $44, $fb
+'-' 
+'-'                 mov     hsync0,sync_222                      'vsync on
+	byte	$6e, $24, $01, $f6
+'-'                 mov     hsync1,sync_223
+	byte	$6f, $26, $01, $f6
+'-'                 callpa  i_vsync,#blank                       'vertical sync blanks
+	byte	$01, $f2, $44, $fb
+'-'                 jmp     #p101                                'loop
+	byte	$90, $fe, $9f, $fd
+'-' 
+'-' '' Subroutines
+'-' 
+'-' blank           call    #hsync                          'blank lines
+	byte	$08, $00, $b0, $fd
+'-'                 xcont   m_vi,hsync0
+	byte	$92, $e8, $c0, $fc
+'-'         _ret_   djnz    pa,#blank
+	byte	$fd, $ed, $6f, $0b
+'-' 
+'-' hsync           xcont   m_bs,hsync0                     'horizontal sync
+	byte	$92, $e2, $c0, $fc
+'-'                 xzero   m_sn,hsync1
+	byte	$93, $e4, $b0, $fc
+'-'         _ret_   xcont   m_bv,hsync0
+	byte	$92, $e6, $c0, $0c
+'-' 
+'-' '' consts and vars
+'-' 
+'-' sync_000        long    %1101010100_1101010100_1101010100_10    '
+	byte	$52, $4d, $35, $d5
+'-' sync_001        long    %1101010100_1101010100_0010101011_10    '        hsync
+	byte	$ae, $42, $35, $d5
+'-' sync_222        long    %0101010100_0101010100_0101010100_10    'vsync
+	byte	$52, $45, $15, $55
+'-' sync_223        long    %0101010100_0101010100_1010101011_10    'vsync + hsync
+	byte	$ae, $4a, $15, $55
+'-' 
+'-' border          long    %00000000_00011010_00101100_00000000
+	byte	$00, $2c, $1a, $00
+'-' 
+'-' m_bs            long    $70810000 + hdmi_base<<17 + 16          'before sync
+	byte	$10, $00, $81, $70
+'-' m_sn            long    $70810000 + hdmi_base<<17 + 80          'sync
+	byte	$50, $00, $81, $70
+'-' m_bv            long    $70810000 + hdmi_base<<17 + 20          'before visible
+	byte	$14, $00, $81, $70
+'-' m_vi            long    $70810000 + hdmi_base<<17 + 1024        'visible 1024
+	byte	$00, $04, $81, $70
+'-' m_border        long    $70810000 + hdmi_base<<17 + 112         'immediate 112
+	byte	$70, $00, $81, $70
+'-' m_lut1          long    $20880000 + hdmi_base<<17 + 8          ' imm+lut, 1 char
+	byte	$08, $00, $88, $20
+'-' i_vborder       long    48
+	byte	$30, $00, $00, $00
+'-' i_upporch       long    16
+	byte	$10, $00, $00, $00
+'-' i_vsync         long    16
+	byte	$10, $00, $00, $00
+'-' i_downporch     long    16
+	byte	$10, $00, $00, $00
+'-' 
+'-' linestart       long    0
+	byte	$00, $00, $00, $00
+'-' linenum         long    0
+	byte	$00, $00, $00, $00
+'-' a00010000       long    $00010000
+	byte	$00, $00, $01, $00
+'-' lutaddr         long    256
+	byte	$00, $01, $00, $00
+'-' 
+'-' cursorsh        long    14
+	byte	$0e, $00, $00, $00
+'-' frames          long    0
+	byte	$00, $00, $00, $00
+'-' cursorx         long    0
+	byte	$00, $00, $00, $00
+'-' cursory         long    0
+	byte	$00, $00, $00, $00
+'-' cursorpos       long    0
+	byte	$00, $00, $00, $00
+'-' cursorpos2      long    0
+	byte	$00, $00, $00, $00
+'-' fontstart           long        0
+	byte	$00, $00, $00, $00
+'-' 
+'-' framebuf        res     1
+'-' framebuf        res     1
+'-' fontbuf         res     1
+'-' fontbuf         res     1
+'-' borderptr       res     1
+'-' borderptr       res     1
+'-' vblankptr       res     1
+'-' vblankptr       res     1
+'-' cursorptr       res     1
+'-' cursorptr       res     1
+'-' modeptr         res     1
+'-' modeptr         res     1
+'-' paletteptr      res     1
+'-' paletteptr      res     1
+'-' commandptr      res     1
+'-' commandptr      res     1
+'-' fontnumptr      res     1
+'-' fontnumptr      res     1
+'-' borderptr2      res     1
+'-' borderptr2      res     1
+'-' ii              res     1
+'-' ii              res     1
+'-' framebuf2       res     1
+'-' framebuf2       res     1
+'-' hsync0          res     1
+'-' hsync0          res     1
+'-' hsync1          res     1
+'-' hsync1          res     1
+'-' fontline        res     1
+'-' fontline        res     1
+'-' t1              res     1
+'-' t1              res     1
+'-' t2              res     1
+'-' t2              res     1
+'-' char            res     1
+'-' char            res     1
+'-' backcolor       res     1
+'-' backcolor       res     1
+'-' charcolor       res     1
+'-' charcolor       res     1
+'-'                 fit     496                     '
+	alignl
+__system__dat_
+	byte	$00[8]
+	byte	$03, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
+objmem
+	long	0[1]
+	org	COG_BSS_START
+_var01
+	res	1
+_var02
+	res	1
+_var03
+	res	1
+_var04
+	res	1
+_var05
+	res	1
+arg01
+	res	1
+arg02
+	res	1
+arg03
+	res	1
+arg04
+	res	1
+local01
+	res	1
+local02
+	res	1
+local03
+	res	1
+local04
+	res	1
+local05
+	res	1
+local06
+	res	1
+local07
+	res	1
+local08
+	res	1
+local09
+	res	1
+local10
+	res	1
+local11
+	res	1
+local12
+	res	1
+local13
+	res	1
+local14
+	res	1
+local15
+	res	1
+local16
+	res	1
+local17
+	res	1
+local18
+	res	1
+local19
+	res	1
+local20
+	res	1
+local21
+	res	1
+local22
+	res	1
+local23
+	res	1
+local24
+	res	1
+local25
+	res	1
+local26
+	res	1
+local27
+	res	1
+local28
+	res	1
+local29
+	res	1
+muldiva_
+	res	1
+muldivb_
+	res	1
+	fit	480

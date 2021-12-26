@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <Compiler Value="C:\Ultibo\Core\fpc\3.1.1\bin\i386-win32\fpc.exe" Date="1210472906"/>
+  <Params Value=" -Tultibo -Parm -CpARMV6 -WpRPIZERO @C:\Ultibo\Core\fpc\3.1.1\bin\i386-win32\RPI.CFG -MObjFPC -Scghi -CX -O2 -XX -l -vewnhibq -FiD:\programowanie\20211226-P2-retromachine\Ultibo\lib\arm-ultibo -FuD:\programowanie\20211226-P2-retromachine\Ultibo\ -FUD:\programowanie\20211226-P2-retromachine\Ultibo\lib\arm-ultibo\ Project1.pas"/>
+</CONFIG>
