@@ -517,6 +517,10 @@ byte[s+13]:=b13
 byte[s+14]:=b14
 byte[s+15]:=b15
 
+pub setfontnum (num)
+
+fontnum:=num
+
 
 '*************************************************************************
 '                                                                        *
@@ -1057,8 +1061,8 @@ return cmd2a
 dat
 
 st_font                 file "st4font.def"
-vga_font                                file "st4font.def"
-'vga_font                                file "vgafont.def"
+'vga_font                                file "st4font.def"
+vga_font                                file "vgafont.def"
 
 dat
 

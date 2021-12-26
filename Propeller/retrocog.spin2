@@ -1,0 +1,38 @@
+' A retromachine cog
+' The purpose: to read/send and process data from RPi and Midi Shield
+' v. 0.00 pik33@o2.pl
+'
+con
+
+rxpin=32
+txpin=33
+midiin=29
+midiout=30
+
+var
+
+long keyevent
+long mouseevent
+long midiinevent
+
+
+'long keybuf[64]
+'long mousebuf[128]
+'long midiinbuf[64]
+' Noooo!!! These go to lut !!!!!
+
+pub dummy()
+
+' this is an object
+repeat
+  
+  
+pub start() |cog
+
+cog:=coginit(16, @retro, @keyevent)
+return cog
+
+
+dat 		org
+
+retro

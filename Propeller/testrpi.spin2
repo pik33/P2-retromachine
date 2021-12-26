@@ -27,7 +27,7 @@ long mtxp
 long serialbuf[64]
 long serialtail,serialfront
 long serialstack[64]
-long rr
+long rr,mrr
 byte charcode
 byte scancode
 byte mousewheel
@@ -44,10 +44,11 @@ pinl(31)
 waitms(100)
 iii:=0
 vgacog:=v.start(mode)
+v.setfontnum(0)
 v.cls(154,147)
 v.setbordercolors(0,0,0)
 serial_start(rxpin, txpin, baudrate)
-midi_start(9,8)
+midi_start(29,30)
 pinwrite(14,0)
 pinwrite(15,0)
 
@@ -64,14 +65,14 @@ v.write(string("  "))
 iii:=fileopen(string("C:\kernel.img"))
 
 repeat
- {{ rr:=mrx()
-  v.write(v.inttohex(rr,2))
-  v.write(string(", "))
-
-  }}
-
-
-  rr:=serialblockingread()
+ 
+  repeat 
+    rr:=serialread()
+    mrr:=mrxcheck()
+ '   debug(udec(mrr))
+  until rr>=0 || mrr>=0  
+    
+'  rr:=serialblockingread()
 
 {{
   if rr==$38
@@ -95,7 +96,10 @@ repeat
         v.crlf()
 
 }}   
-
+  if mrr>=0
+    v.write(string(" Midi: "))
+    v.writeln(v.inttohex(mrr,2))
+    
  
   if rr==$31    'mousex
     mousex:=serialblockingread()
