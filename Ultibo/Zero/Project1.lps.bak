@@ -9,7 +9,8 @@
         <Filename Value="Project1.pas"/>
         <IsPartOfProject Value="True"/>
         <IsVisibleTab Value="True"/>
-        <CursorPos X="24" Y="362"/>
+        <TopLine Value="28"/>
+        <CursorPos X="13" Y="16"/>
         <UsageCount Value="27"/>
         <Loaded Value="True"/>
       </Unit0>

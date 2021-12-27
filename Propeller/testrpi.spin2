@@ -6,7 +6,8 @@ con
 
 hdmi_base       = 0            'must be a multiple of 8
 '_clkfreq        = 354_689_500   '200x Atari 8-bit PAL,  50x Amiga PAL
-_clkfreq       = 357_954_500   '200x Atari 8-bit NTSC, 50x Amiga NTSC
+'_clkfreq       = 357_954_500   '200x Atari 8-bit NTSC, 50x Amiga NTSC
+_clkfreq		= 320_000_000    'will be set via video driver
 rxpin           = 32
 txpin           = 33
 baudrate        = 1920000
@@ -14,7 +15,7 @@ baudrate        = 1920000
 
 obj
 
-v:    "hn007-20210302"
+v:    "hng030rm"
 
 var
 
@@ -38,15 +39,16 @@ byte dummy
 
 pub start(mode)   |iii,caps
 
-mode :=0
+mode :=64+6
 caps:=0
 pinl(31)
 waitms(100)
 iii:=0
-vgacog:=v.start(mode)
-v.setfontnum(0)
+vgacog:=v.start(mode,hdmi_base)
+'v.setmode(mode+64)
+v.setfontfamily(0)
 v.cls(154,147)
-v.setbordercolors(0,0,0)
+v.setbordercolor(0,0,0)
 serial_start(rxpin, txpin, baudrate)
 midi_start(29,30)
 pinwrite(14,0)

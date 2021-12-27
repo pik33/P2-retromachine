@@ -1,0 +1,145 @@
+00000                 | 
+00000                 | #line 1 "D:/programowanie/20211226-P2-retromachine/Propeller/retrocog.p2asm"
+00000                 | ' 
+00000                 | ' rxpin=32
+00000                 | con
+00000                 | 	rxpin = 32
+00000                 | ' txpin=33
+00000                 | 	txpin = 33
+00000                 | ' midiin=29
+00000                 | 	midiin = 29
+00000                 | ' midiout=30
+00000                 | 	midiout = 30
+00000                 | dat
+00000 000 00 00 00 00 | 	nop
+00004 001 01 EC 63 FD | 	cogid	pa
+00008 002 02 00 00 FF 
+0000c 003 04 EC E7 FC | 	coginit	pa,##$404
+00010                 | 	orgh	$10
+00010     00 00 00 00 | 	long	0	'reserved
+00014     00 00 00 00 | 	long	0 ' clock frequency: will default to 20000000
+00018     00 00 00 00 | 	long	0 ' clock mode: will default to $100094b
+0001c     00 00 00 00 
+      ...             
+003f8     00 00 00 00 
+003fc     00 00 00 00 | 	orgh	$400
+00400     00 5C 05 06 |  _ret_	mov	result1, #0
+00404 000             | 	org	0
+00404 000             | entry
+00404 000 00 F0 0F F2 | 	cmp	ptra, #0 wz
+00408 001 0C 02 90 5D |  if_ne	jmp	#spininit
+0040c 002 AD F0 03 F6 | 	mov	ptra, objptr
+00410 003 0C F0 07 F1 | 	add	ptra, #12
+00414 004 14 EC 0F FB | 	rdlong	pa, #20 wz
+00418 005 E8 01 90 5D |  if_ne	jmp	#skip_clock_set_
+0041c 006 00 00 64 FD | 	hubset	#0
+00420 007 04 80 80 FF 
+00424 008 00 90 66 FD | 	hubset	##16779592
+00428 009 86 01 80 FF 
+0042c 00a 1F 80 66 FD | 	waitx	##200000
+00430 00b 04 80 00 FF 
+00434 00c 4B ED 07 F6 | 	mov	pa, ##16779595
+00438 00d 00 EC 63 FD | 	hubset	pa
+0043c 00e 18 EC 67 FC | 	wrlong	pa, #24
+00440 00f 96 98 80 FF 
+00444 010 14 00 6E FC | 	wrlong	##20000000, #20
+00448 011 B8 01 90 FD | 	jmp	#skip_clock_set_
+0044c 012 00 00 00 00 
+      ...             
+005fc 07e 00 00 00 00 
+00600 07f 00 00 00 00 | 	orgf	128
+00604 080             | skip_clock_set_
+00604 080 C0 06 A0 FD | 	call	#_dummy
+00608 081             | cogexit
+00608 081 38 01 80 FF 
+0060c 082 1F 00 66 FD | 	waitx	##160000
+00610 083 01 5E 61 FD | 	cogid	arg01
+00614 084 03 5E 61 FD | 	cogstop	arg01
+00618 085             | spininit
+00618 085 00 5B 05 FB | 	rdlong	objptr, ptra
+0061c 086 04 F0 07 F1 | 	add	ptra, #4
+00620 087 00 5D 05 FB | 	rdlong	result1, ptra
+00624 088 04 F0 07 F1 | 	add	ptra, #4
+00628 089 00 5F 05 FB | 	rdlong	arg01, ptra
+0062c 08a 04 F0 07 F1 | 	add	ptra, #4
+00630 08b 00 61 05 FB | 	rdlong	arg02, ptra
+00634 08c 04 F0 07 F1 | 	add	ptra, #4
+00638 08d 00 63 05 FB | 	rdlong	arg03, ptra
+0063c 08e 04 F0 07 F1 | 	add	ptra, #4
+00640 08f 00 65 05 FB | 	rdlong	arg04, ptra
+00644 090 10 F0 87 F1 | 	sub	ptra, #16
+00648 091 2D 5C 61 FD | 	call	result1
+0064c 092 B8 FF 9F FD | 	jmp	#cogexit
+00650 093             | FCACHE_LOAD_
+00650 093 2B 3E 61 FD |     pop	fcache_tmpb_
+00654 094 F6 3F 01 F1 |     add	fcache_tmpb_, pa
+00658 095 2A 3E 61 FD |     push	fcache_tmpb_
+0065c 096 F6 3F 81 F1 |     sub	fcache_tmpb_, pa
+00660 097 02 EC 47 F0 |     shr	pa, #2
+00664 098 00 EC 8F F9 |     altd	pa
+00668 099 9E 00 00 F6 |     mov	 0-0, ret_instr_
+0066c 09a 01 EC 87 F1 |     sub	pa, #1
+00670 09b 28 EC 63 FD |     setq	pa
+00674 09c 9F 00 00 FB |     rdlong	$0, fcache_tmpb_
+00678 09d 00 00 80 FD |     jmp	#\$0 ' jmp to cache
+0067c 09e             | ret_instr_
+0067c 09e 2D 00 64 FD |     ret
+00680 09f             | fcache_tmpb_
+00680 09f 00 00 00 00 |     long 0
+00684 0a0             | builtin_bytefill_
+00684 0a0 01 62 55 F0 |         shr	arg03, #1 wc
+00688 0a1 AF 60 41 CC |  if_c   wrbyte	arg02, arg01
+0068c 0a2 01 5E 05 C1 |  if_c   add	arg01, #1
+00690 0a3 00 60 FD F9 |         movbyts	arg02, #0
+00694 0a4             | builtin_wordfill_
+00694 0a4 01 62 55 F0 |         shr	arg03, #1 wc
+00698 0a5 AF 60 51 CC |  if_c   wrword	arg02, arg01
+0069c 0a6 02 5E 05 C1 |  if_c   add	arg01, #2
+006a0 0a7 B0 60 29 F9 |         setword	arg02, arg02, #1
+006a4 0a8             | builtin_longfill_
+006a4 0a8 AF 00 88 FC |         wrfast	#0,arg01
+006a8 0a9 00 62 0D F2 |         cmp	arg03, #0 wz
+006ac 0aa B1 02 D8 5C |  if_nz  rep	#1, arg03
+006b0 0ab 17 60 61 5D |  if_nz  wflong	arg02
+006b4 0ac 2D 00 64 FD |         ret
+006b8 0ad             | 
+006b8 0ad             | objptr
+006b8 0ad CC 06 00 00 | 	long	@objmem
+006bc 0ae             | result1
+006bc 0ae 00 00 00 00 | 	long	0
+006c0 0af             | COG_BSS_START
+006c0 0af             | 	fit	480
+006c0                 | 	orgh
+006c0                 | hubentry
+006c0                 | 
+006c0                 | ' 
+006c0                 | ' 
+006c0                 | ' 'long keybuf[64]
+006c0                 | ' 'long mousebuf[128]
+006c0                 | ' 'long midiinbuf[64]
+006c0                 | ' ' Noooo!!! These go to lut !!!!!
+006c0                 | ' 
+006c0                 | ' pub dummy()
+006c0                 | _dummy
+006c0                 | ' 
+006c0                 | ' ' this is an object
+006c0                 | ' repeat
+006c0                 | LR__0001
+006c0     FC FF 9F FD | 	jmp	#LR__0001
+006c4                 | _dummy_ret
+006c4     2D 00 64 FD | 	ret
+006c8                 | hubexit
+006c8     81 00 80 FD | 	jmp	#cogexit
+006cc                 | objmem
+006cc     00 00 00 00 | 	long	0[1]
+006d0 0af             | 	org	COG_BSS_START
+006d0 0af             | arg01
+006d0 0af             | 	res	1
+006d0 0b0             | arg02
+006d0 0b0             | 	res	1
+006d0 0b1             | arg03
+006d0 0b1             | 	res	1
+006d0 0b2             | arg04
+006d0 0b2             | 	res	1
+006d0 0b3             | 	fit	480
+006d0 0b3             | 
