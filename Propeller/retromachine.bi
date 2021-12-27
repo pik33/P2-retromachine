@@ -9,7 +9,7 @@ end function
 function startvideo(mode=64, pin=0)
 v030.start(mode,pin)
 v030.setbordercolor(0,0,0)
-open SendRecvDevice(@v030.putchar, nil, nil) as #2
+open SendRecvDevice(@v030.putchar, nil, nil) as #0
 end function
 
 function putpixel(x,y,c)
