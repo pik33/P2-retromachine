@@ -13,7 +13,7 @@ uses
   BCM2835,
   BCM2708,
   SysUtils,
-  Serial,   {Include the Serial unit so we can open, read and write to the device}
+  Serial,
   fatfs,
   retrokeyboard,
   retromouse,
@@ -37,7 +37,6 @@ public
 end;
 
 
-{We'll need a window handle plus a couple of others.}
 var
  Count:LongWord;
  Character:Char;
@@ -329,26 +328,26 @@ if SerialOpen(1920000,SERIAL_DATA_8BIT,SERIAL_STOP_1BIT,SERIAL_PARITY_NONE,SERIA
     if oldmx<>mousex then
        begin
        oldmx:=mousex;
-       report[0]:=$31; report[1]:=(mousex mod 256); report[2]:=(mousex div 256); report[3]:=$FF;
+       report[0]:=$31; report[1]:=(mousex mod 128); report[2]:=(mousex div 128); report[3]:=$FF;
        sendreport(report);
        end;
     if oldmy<>mousey then
        begin
        oldmy:=mousey;
-       report[0]:=$32; report[1]:=(mousey mod 256); report[2]:=(mousey div 256); report[3]:=$FF;
+       report[0]:=$32; report[1]:=(mousey mod 128); report[2]:=(mousey div 128); report[3]:=$FF;
        sendreport(report);
        end;
     if mousewheel<>128 then
        begin
       // oldmw:=mousewheel;
-       report[0]:=$33; report[1]:=(mousewheel mod 256); report[2]:=(mousewheel div 256); report[3]:=$FF;
+       report[0]:=$33; report[1]:=(mousewheel mod 128); report[2]:=(mousewheel div 128); report[3]:=$FF;
        mousewheel:=128;
        sendreport(report);
        end;
     if oldmk<>mousek then
        begin
        oldmk:=mousek;
-       report[0]:=$34; report[1]:=(mousek mod 256); report[2]:=(mousek div 256); report[3]:=$FF;
+       report[0]:=$34; report[1]:=(mousek mod 128); report[2]:=(mousek div 128); report[3]:=$FF;
        sendreport(report);
        end;
     if mouseclick=1 then
@@ -378,7 +377,7 @@ if SerialOpen(1920000,SERIAL_DATA_8BIT,SERIAL_STOP_1BIT,SERIAL_PARITY_NONE,SERIA
     if key_modifiers<>oldkm then
        begin
        oldkm:=key_modifiers;
-       report[0]:=$39; report[1]:=key_modifiers; report[2]:=0; report[3]:=$FF;
+       report[0]:=$39; report[1]:=key_modifiers mod 128; report[2]:=key_modifiers div 128; report[3]:=$FF;
        sendreport(report);
        end;
       end;
@@ -386,5 +385,5 @@ if SerialOpen(1920000,SERIAL_DATA_8BIT,SERIAL_STOP_1BIT,SERIAL_PARITY_NONE,SERIA
 
 
 //     SerialRead(@Character,SizeOf(Character),Count);
-{No need to sleep on each loop, SerialRead will wait until data is received}
+
 end.

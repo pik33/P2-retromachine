@@ -328,56 +328,56 @@ if SerialOpen(1920000,SERIAL_DATA_8BIT,SERIAL_STOP_1BIT,SERIAL_PARITY_NONE,SERIA
     if oldmx<>mousex then
        begin
        oldmx:=mousex;
-       report[0]:=$31; report[1]:=(mousex mod 256); report[2]:=(mousex div 256); report[3]:=$FF;
+       report[0]:=$81; report[1]:=(mousex mod 128); report[2]:=(mousex div 128); report[3]:=$FF;
        sendreport(report);
        end;
     if oldmy<>mousey then
        begin
        oldmy:=mousey;
-       report[0]:=$32; report[1]:=(mousey mod 256); report[2]:=(mousey div 256); report[3]:=$FF;
+       report[0]:=$82; report[1]:=(mousey mod 128); report[2]:=(mousey div 128); report[3]:=$FF;
        sendreport(report);
        end;
     if mousewheel<>128 then
        begin
       // oldmw:=mousewheel;
-       report[0]:=$33; report[1]:=(mousewheel mod 256); report[2]:=(mousewheel div 256); report[3]:=$FF;
+       report[0]:=$83; report[1]:=(mousewheel mod 128); report[2]:=(mousewheel div 128); report[3]:=$FF;
        mousewheel:=128;
        sendreport(report);
        end;
     if oldmk<>mousek then
        begin
        oldmk:=mousek;
-       report[0]:=$34; report[1]:=(mousek mod 256); report[2]:=(mousek div 256); report[3]:=$FF;
+       report[0]:=$84; report[1]:=(mousek mod 128); report[2]:=(mousek div 128); report[3]:=$FF;
        sendreport(report);
        end;
     if mouseclick=1 then
        begin
-       report[0]:=$35; report[1]:=1; report[2]:=0; report[3]:=$FF;
+       report[0]:=$85; report[1]:=1; report[2]:=0; report[3]:=$FF;
        sendreport(report);
        mouseclick:=2;
        end;
     if mousedblclick=1 then
        begin
        mousedblclick:=2;
-       report[0]:=$36; report[1]:=1; report[2]:=0; report[3]:=$FF;
+       report[0]:=$86; report[1]:=1; report[2]:=0; report[3]:=$FF;
        sendreport(report);
        end;
     if key_release<>0 then
        begin
-       report[0]:=$37; report[1]:=key_release; report[2]:=0; report[3]:=$FF;
+       report[0]:=$87; report[1]:=key_release; report[2]:=0; report[3]:=$FF;
        key_release:=0;
        sendreport(report);
        end;
     if key_scancode<>0 then
        begin
-       report[0]:=$38; report[1]:=key_scancode; report[2]:=key_charcode; report[3]:=$FF;
+       report[0]:=$88; report[1]:=key_scancode; report[2]:=key_charcode; report[3]:=$FF;
        sendreport(report);
        key_scancode:=0;
        end;
     if key_modifiers<>oldkm then
        begin
        oldkm:=key_modifiers;
-       report[0]:=$39; report[1]:=key_modifiers; report[2]:=0; report[3]:=$FF;
+       report[0]:=$89; report[1]:=key_modifiers mod 128; report[2]:=key_modifiers div 128; report[3]:=$FF;
        sendreport(report);
        end;
       end;

@@ -1,0 +1,11 @@
+0_00_000-0_FF_FFF main program
+1_00_000-7_FF_FFF reserved for settings, programs etc
+8_00_000-8_00_FFF ST mono font
+8_01_000-8_01_FFF PC font
+8_02_000-8_0F_FFF reserved for more fonts
+8_10_000-8_10_FFF Atari 8-bit palette + 3 other palettes (what? 2-3-2, 8c32b, PC DOS maybe, todo)
+8_11_000-8_1F_FFF reserved (sprites? mouse pointers? )
+8_20_000-8_2F_FFF cog drivers
+8_30_000-D_FF_FFF reserved
+E_00_000-F_FF-FFF application area
+

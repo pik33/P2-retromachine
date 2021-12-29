@@ -1,8 +1,10 @@
 00000                 | 
 00000                 | #line 1 "D:/programowanie/20211226-P2-retromachine/Propeller/retrocog.p2asm"
+00000                 | ' _clkfreq=320_000_000
+00000                 | con
+00000                 | 	_clkfreq = 320000000
 00000                 | ' 
 00000                 | ' rxpin=32
-00000                 | con
 00000                 | 	rxpin = 32
 00000                 | ' txpin=33
 00000                 | 	txpin = 33
@@ -10,6 +12,10 @@
 00000                 | 	midiin = 29
 00000                 | ' midiout=30
 00000                 | 	midiout = 30
+00000                 | ' baudrate=1920000
+00000                 | 	baudrate = 1920000
+00000                 | ' mbaudrate=31250
+00000                 | 	mbaudrate = 31250
 00000                 | dat
 00000 000 00 00 00 00 | 	nop
 00004 001 01 EC 63 FD | 	cogid	pa
@@ -17,8 +23,8 @@
 0000c 003 04 EC E7 FC | 	coginit	pa,##$404
 00010                 | 	orgh	$10
 00010     00 00 00 00 | 	long	0	'reserved
-00014     00 00 00 00 | 	long	0 ' clock frequency: will default to 20000000
-00018     00 00 00 00 | 	long	0 ' clock mode: will default to $100094b
+00014     00 00 00 00 | 	long	0 ' clock frequency: will default to 320000000
+00018     00 00 00 00 | 	long	0 ' clock mode: will default to $1000ffb
 0001c     00 00 00 00 
       ...             
 003f8     00 00 00 00 
@@ -29,22 +35,23 @@
 00404 000 00 F0 0F F2 | 	cmp	ptra, #0 wz
 00408 001 0C 02 90 5D |  if_ne	jmp	#spininit
 0040c 002 AD F0 03 F6 | 	mov	ptra, objptr
-00410 003 0C F0 07 F1 | 	add	ptra, #12
-00414 004 14 EC 0F FB | 	rdlong	pa, #20 wz
-00418 005 E8 01 90 5D |  if_ne	jmp	#skip_clock_set_
-0041c 006 00 00 64 FD | 	hubset	#0
-00420 007 04 80 80 FF 
-00424 008 00 90 66 FD | 	hubset	##16779592
-00428 009 86 01 80 FF 
-0042c 00a 1F 80 66 FD | 	waitx	##200000
-00430 00b 04 80 00 FF 
-00434 00c 4B ED 07 F6 | 	mov	pa, ##16779595
-00438 00d 00 EC 63 FD | 	hubset	pa
-0043c 00e 18 EC 67 FC | 	wrlong	pa, #24
-00440 00f 96 98 80 FF 
-00444 010 14 00 6E FC | 	wrlong	##20000000, #20
-00448 011 B8 01 90 FD | 	jmp	#skip_clock_set_
-0044c 012 00 00 00 00 
+00410 003 01 00 00 FF 
+00414 004 98 F1 07 F1 | 	add	ptra, ##920
+00418 005 14 EC 0F FB | 	rdlong	pa, #20 wz
+0041c 006 E4 01 90 5D |  if_ne	jmp	#skip_clock_set_
+00420 007 00 00 64 FD | 	hubset	#0
+00424 008 07 80 80 FF 
+00428 009 00 F0 67 FD | 	hubset	##16781304
+0042c 00a 86 01 80 FF 
+00430 00b 1F 80 66 FD | 	waitx	##200000
+00434 00c 07 80 00 FF 
+00438 00d FB ED 07 F6 | 	mov	pa, ##16781307
+0043c 00e 00 EC 63 FD | 	hubset	pa
+00440 00f 18 EC 67 FC | 	wrlong	pa, #24
+00444 010 68 89 89 FF 
+00448 011 14 00 6C FC | 	wrlong	##320000000, #20
+0044c 012 B4 01 90 FD | 	jmp	#skip_clock_set_
+00450 013 00 00 00 00 
       ...             
 005fc 07e 00 00 00 00 
 00600 07f 00 00 00 00 | 	orgf	128
@@ -113,16 +120,9 @@
 006c0                 | hubentry
 006c0                 | 
 006c0                 | ' 
-006c0                 | ' 
-006c0                 | ' 'long keybuf[64]
-006c0                 | ' 'long mousebuf[128]
-006c0                 | ' 'long midiinbuf[64]
-006c0                 | ' ' Noooo!!! These go to lut !!!!!
-006c0                 | ' 
 006c0                 | ' pub dummy()
 006c0                 | _dummy
 006c0                 | ' 
-006c0                 | ' ' this is an object
 006c0                 | ' repeat
 006c0                 | LR__0001
 006c0     FC FF 9F FD | 	jmp	#LR__0001

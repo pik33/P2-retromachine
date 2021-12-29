@@ -185,7 +185,7 @@ hubentry
 ' 
 ' pub start(mode)   |iii,caps
 _start
-	mov	COUNT_, #36
+	mov	COUNT_, #37
 	call	#pushregs_
 ' 
 ' mode :=64+6
@@ -417,27 +417,27 @@ _start
 	wrlong	#147, objptr
 	sub	objptr, #60
 ' v.writeln(string(" "))
-	mov	arg01, ##@LR__0228
-	call	#_hng030rm_writeln
-' v.writeln(string("  P2 Retromachine v. 0.00"))
 	mov	arg01, ##@LR__0229
 	call	#_hng030rm_writeln
-' v.writeln(string(" "))
+' v.writeln(string("  P2 Retromachine v. 0.00"))
 	mov	arg01, ##@LR__0230
 	call	#_hng030rm_writeln
-' v.writeln(string("  Ready"))
+' v.writeln(string(" "))
 	mov	arg01, ##@LR__0231
 	call	#_hng030rm_writeln
-' v.writeln(string(" "))
+' v.writeln(string("  Ready"))
 	mov	arg01, ##@LR__0232
 	call	#_hng030rm_writeln
-' v.write(string("  "))
+' v.writeln(string(" "))
 	mov	arg01, ##@LR__0233
+	call	#_hng030rm_writeln
+' v.write(string("  "))
+	mov	arg01, ##@LR__0234
 	call	#_hng030rm_write
 	sub	objptr, ##564
 ' 
 ' iii:=fileopen(string("C:\kernel.img"))
-	mov	arg01, ##@LR__0234
+	mov	arg01, ##@LR__0235
 ' 
 ' q:=strsize(filename)
 	mov	local16, arg01
@@ -542,7 +542,7 @@ LR__0007
 	cmps	local10, #0 wcz
  if_b	jmp	#LR__0013
 '     v.write(string(" Midi: "))
-	mov	arg01, ##@LR__0235
+	mov	arg01, ##@LR__0236
 	add	objptr, ##564
 	call	#_hng030rm_write
 '     v.writeln(v.inttohex(mrr,2))
@@ -620,11 +620,11 @@ LR__0012
 LR__0013
 '     
 '  
-'   if rr==$31    'mousex
+'   if rr==$81    'mousex
 	add	objptr, ##544
 	rdlong	local10, objptr
 	sub	objptr, ##544
-	cmp	local10, #49 wz
+	cmp	local10, #129 wz
  if_ne	jmp	#LR__0018
 '     mousex:=serialblockingread()
 ' 
@@ -642,7 +642,7 @@ LR__0014
 	add	objptr, ##556
 	wrword	local10, objptr
 	sub	objptr, ##556
-'     mousex+=serialblockingread()<<8
+'     mousex+=serialblockingread()<<7
 ' 
 ' repeat
 LR__0015
@@ -655,7 +655,7 @@ LR__0015
 ' return r
 	mov	result1, local34
 	mov	local35, result1
-	shl	local35, #8
+	shl	local35, #7
 	add	objptr, ##556
 	rdword	local12, objptr
 	mov	local24, local12
@@ -682,7 +682,7 @@ LR__0016
 	cmp	local10, #255 wz
  if_ne	jmp	#LR__0017
 '      v.write(string("  Mouse moved, x= "))
-	mov	arg01, ##@LR__0236
+	mov	arg01, ##@LR__0237
 	add	objptr, ##564
 	call	#_hng030rm_write
 '      v.write(v.inttostr(mousex))
@@ -693,7 +693,7 @@ LR__0016
 	mov	arg01, result1
 	call	#_hng030rm_write
 '      v.write(string(", y= "))
-	mov	arg01, ##@LR__0237
+	mov	arg01, ##@LR__0238
 	call	#_hng030rm_write
 '      v.writeln(v.inttostr(mousey))
 	sub	objptr, #6
@@ -707,11 +707,11 @@ LR__0016
 LR__0017
 LR__0018
 ' 
-'   if rr==$32    'mousey
+'   if rr==$82    'mousey
 	add	objptr, ##544
 	rdlong	local10, objptr
 	sub	objptr, ##544
-	cmp	local10, #50 wz
+	cmp	local10, #130 wz
  if_ne	jmp	#LR__0023
 '     mousey:=serialblockingread()
 ' 
@@ -729,7 +729,7 @@ LR__0019
 	add	objptr, ##558
 	wrword	local10, objptr
 	sub	objptr, ##558
-'     mousey+=serialblockingread()<<8
+'     mousey+=serialblockingread()<<7
 ' 
 ' repeat
 LR__0020
@@ -742,7 +742,7 @@ LR__0020
 ' return r
 	mov	result1, local34
 	mov	local36, result1
-	shl	local36, #8
+	shl	local36, #7
 	add	objptr, ##558
 	rdword	local12, objptr
 	mov	local24, local12
@@ -769,7 +769,7 @@ LR__0021
 	cmp	local10, #255 wz
  if_ne	jmp	#LR__0022
 '      v.write(string("  Mouse moved, x= "))
-	mov	arg01, ##@LR__0238
+	mov	arg01, ##@LR__0239
 	add	objptr, ##564
 	call	#_hng030rm_write
 '      v.write(v.inttostr(mousex))
@@ -780,7 +780,7 @@ LR__0021
 	mov	arg01, result1
 	call	#_hng030rm_write
 '      v.write(string(", y= "))
-	mov	arg01, ##@LR__0239
+	mov	arg01, ##@LR__0240
 	call	#_hng030rm_write
 '      v.writeln(v.inttostr(mousey))
 	sub	objptr, #6
@@ -794,11 +794,11 @@ LR__0021
 LR__0022
 LR__0023
 ' 
-'   if rr==$33   'mousewheel
+'   if rr==$83   'mousewheel
 	add	objptr, ##544
 	rdlong	local10, objptr
 	sub	objptr, ##544
-	cmp	local10, #51 wz
+	cmp	local10, #131 wz
  if_ne	jmp	#LR__0028
 '     mousewheel:=serialblockingread()
 ' 
@@ -852,7 +852,7 @@ LR__0026
 	cmp	local10, #255 wz
  if_ne	jmp	#LR__0027
 '      v.write(string("  Mouse wheel: "))
-	mov	arg01, ##@LR__0240
+	mov	arg01, ##@LR__0241
 	add	objptr, ##564
 	call	#_hng030rm_write
 '      v.writeln(v.inttostr(mousewheel))
@@ -867,11 +867,11 @@ LR__0026
 LR__0027
 LR__0028
 ' 
-'   if rr==$34   'mousekey
+'   if rr==$84   'mousekey
 	add	objptr, ##544
 	rdlong	local10, objptr
 	sub	objptr, ##544
-	cmp	local10, #52 wz
+	cmp	local10, #132 wz
  if_ne	jmp	#LR__0033
 '     mousekey:=serialblockingread()
 ' 
@@ -925,7 +925,7 @@ LR__0031
 	cmp	local10, #255 wz
  if_ne	jmp	#LR__0032
 '      v.write(string("  Mouse key pressed: "))
-	mov	arg01, ##@LR__0241
+	mov	arg01, ##@LR__0242
 	add	objptr, ##564
 	call	#_hng030rm_write
 '      v.writeln(v.inttostr(mousekey))
@@ -940,11 +940,11 @@ LR__0031
 LR__0032
 LR__0033
 ' 
-'   if rr==$35   'mouseclick
+'   if rr==$85   'mouseclick
 	add	objptr, ##544
 	rdlong	local10, objptr
 	sub	objptr, ##544
-	cmp	local10, #53 wz
+	cmp	local10, #133 wz
  if_ne	jmp	#LR__0038
 '     dummy:=serialblockingread()
 ' 
@@ -998,18 +998,18 @@ LR__0036
 	cmp	local10, #255 wz
  if_ne	jmp	#LR__0037
 '      v.writeln(string("  Mouse clicked"))
-	mov	arg01, ##@LR__0242
+	mov	arg01, ##@LR__0243
 	add	objptr, ##564
 	call	#_hng030rm_writeln
 	sub	objptr, ##564
 LR__0037
 LR__0038
 ' 
-'   if rr==$36   'mouseclick
+'   if rr==$86   'mouseclick
 	add	objptr, ##544
 	rdlong	local10, objptr
 	sub	objptr, ##544
-	cmp	local10, #54 wz
+	cmp	local10, #134 wz
  if_ne	jmp	#LR__0043
 '     dummy:=serialblockingread()
 ' 
@@ -1063,18 +1063,18 @@ LR__0041
 	cmp	local10, #255 wz
  if_ne	jmp	#LR__0042
 '      v.writeln(string("  Mouse double clicked"))
-	mov	arg01, ##@LR__0243
+	mov	arg01, ##@LR__0244
 	add	objptr, ##564
 	call	#_hng030rm_writeln
 	sub	objptr, ##564
 LR__0042
 LR__0043
 ' 
-'   if rr==$37   'key released
+'   if rr==$87   'key released
 	add	objptr, ##544
 	rdlong	local10, objptr
 	sub	objptr, ##544
-	cmp	local10, #55 wz
+	cmp	local10, #135 wz
  if_ne	jmp	#LR__0048
 '     scancode:=serialblockingread()
 ' 
@@ -1128,7 +1128,7 @@ LR__0046
 	cmp	local10, #255 wz
  if_ne	jmp	#LR__0047
 '      v.write(string("  Key scancode "))
-	mov	arg01, ##@LR__0244
+	mov	arg01, ##@LR__0245
 	add	objptr, ##564
 	call	#_hng030rm_write
 '      v.write(v.inttostr(scancode))
@@ -1140,17 +1140,17 @@ LR__0046
 	mov	arg01, local24
 	call	#_hng030rm_write
 '      v.writeln(string(" released"))
-	mov	arg01, ##@LR__0245
+	mov	arg01, ##@LR__0246
 	call	#_hng030rm_writeln
 	sub	objptr, ##564
 LR__0047
 LR__0048
 ' 
-'   if rr==$38   'key pressed
+'   if rr==$88   'key pressed
 	add	objptr, ##544
 	rdlong	local10, objptr
 	sub	objptr, ##544
-	cmp	local10, #56 wz
+	cmp	local10, #136 wz
  if_ne	jmp	#LR__0053
 '     scancode:=serialblockingread()
 ' 
@@ -1204,7 +1204,7 @@ LR__0051
 	cmp	local10, #255 wz
  if_ne	jmp	#LR__0052
 '      v.write(string("  Key scancode "))
-	mov	arg01, ##@LR__0246
+	mov	arg01, ##@LR__0247
 	add	objptr, ##564
 	call	#_hng030rm_write
 '      v.write(v.inttostr(scancode))
@@ -1215,7 +1215,7 @@ LR__0051
 	mov	arg01, result1
 	call	#_hng030rm_write
 '      v.write(string(", charcode "))
-	mov	arg01, ##@LR__0247
+	mov	arg01, ##@LR__0248
 	call	#_hng030rm_write
 '      v.write(v.inttostr(charcode))
 	sub	objptr, #12
@@ -1226,17 +1226,17 @@ LR__0051
 	mov	arg01, local24
 	call	#_hng030rm_write
 '      v.writeln(string(" pressed"))
-	mov	arg01, ##@LR__0248
+	mov	arg01, ##@LR__0249
 	call	#_hng030rm_writeln
 	sub	objptr, ##564
 LR__0052
 LR__0053
 ' 
-'   if rr==$39   'modifier pressed
+'   if rr==$89   'modifier pressed
 	add	objptr, ##544
 	rdlong	local10, objptr
 	sub	objptr, ##544
-	cmp	local10, #57 wz
+	cmp	local10, #137 wz
  if_ne	jmp	#LR__0004
 '     scancode:=serialblockingread()
 ' 
@@ -1254,7 +1254,7 @@ LR__0054
 	add	objptr, ##553
 	wrbyte	local10, objptr
 	sub	objptr, ##553
-'     dummy:=serialblockingread()
+'     scancode+=serialblockingread()<<7
 ' 
 ' repeat
 LR__0055
@@ -1266,10 +1266,14 @@ LR__0055
 ' until r<>-1
 ' return r
 	mov	result1, local34
-	mov	local10, result1
-	add	objptr, ##560
-	wrbyte	local10, objptr
-	sub	objptr, ##560
+	mov	local37, result1
+	shl	local37, #7
+	add	objptr, ##553
+	rdbyte	local12, objptr
+	mov	local24, local12
+	add	local24, local37
+	wrbyte	local24, objptr
+	sub	objptr, ##553
 '     rr:=serialblockingread()
 ' 
 ' repeat
@@ -1294,9 +1298,9 @@ LR__0056
 	rdbyte	local10, objptr
 	sub	objptr, ##553
 	cmps	local10, #0 wcz
- if_be	jmp	#LR__0057
+ if_be	jmp	#LR__0058
 '         v.write(string("  Key modifier "))
-	mov	arg01, ##@LR__0249
+	mov	arg01, ##@LR__0250
 	add	objptr, ##564
 	call	#_hng030rm_write
 '         v.write(v.inttostr(scancode))
@@ -1308,14 +1312,56 @@ LR__0056
 	mov	arg01, local24
 	call	#_hng030rm_write
 '         v.writeln(string(" pressed"))
-	mov	arg01, ##@LR__0250
+	mov	arg01, ##@LR__0251
 	call	#_hng030rm_writeln
+'         if scancode==1
+	sub	objptr, #11
+	rdbyte	local10, objptr
+	sub	objptr, ##553
+	cmp	local10, #1 wz
+ if_ne	jmp	#LR__0057
+'           v.setmode (0)
+	mov	arg01, #0
+	add	objptr, ##564
+	call	#_hng030rm_setmode
 	sub	objptr, ##564
+'           serial_start(rxpin, txpin, baudrate)
+	mov	local24, ##1920000
+	mov	arg01, #32
+	mov	arg02, #33
+	mov	arg03, ##1920000
+	call	#_serial_start
+'           midi_start(29,30)
+	mov	arg01, #29
+	mov	arg02, #30
+	call	#_midi_start
+LR__0057
+'         if scancode==8
+	add	objptr, ##553
+	rdbyte	local10, objptr
+	sub	objptr, ##553
+	cmp	local10, #8 wz
+ if_ne	jmp	#LR__0004
+'           v.setmode(64)  
+	mov	arg01, #64
+	add	objptr, ##564
+	call	#_hng030rm_setmode
+	sub	objptr, ##564
+'           serial_start(rxpin, txpin, baudrate)
+	mov	local24, ##1920000
+	mov	arg01, #32
+	mov	arg02, #33
+	mov	arg03, ##1920000
+	call	#_serial_start
+'           midi_start(29,30)
+	mov	arg01, #29
+	mov	arg02, #30
+	call	#_midi_start
 '       else
 	jmp	#LR__0004
-LR__0057
+LR__0058
 '         v.writeln(string("  Modifiers released"))
-	mov	arg01, ##@LR__0251
+	mov	arg01, ##@LR__0252
 	add	objptr, ##564
 	call	#_hng030rm_writeln
 	sub	objptr, ##564
@@ -1342,7 +1388,7 @@ _serialcog
 	sub	objptr, #280
 ' 
 ' repeat
-LR__0058
+LR__0059
 '   if serialfront<>((serialtail-1) //32)
 	add	objptr, #280
 	rdlong	local01, objptr
@@ -1354,7 +1400,7 @@ LR__0058
 	rdlong	local03, objptr
 	sub	objptr, #284
 	cmp	local03, local02 wz
- if_e	jmp	#LR__0058
+ if_e	jmp	#LR__0059
 '     q:=rxcheck()
 ' 
 ' '' Check for serial input
@@ -1369,7 +1415,7 @@ LR__0058
 	call	#__system___pinread
 	mov	local05, result1 wz
 '   if (check)
- if_e	jmp	#LR__0059
+ if_e	jmp	#LR__0060
 '     rxbyte := rdpin(rxp) >> 24
 	add	objptr, #8
 	rdlong	arg01, objptr
@@ -1377,12 +1423,12 @@ LR__0058
 	mov	local04, #0
 	rdpin	local04, arg01
 	shr	local04, #24
-LR__0059
+LR__0060
 	mov	result1, local04
 	mov	local06, result1
 '     if q>=0
 	cmps	local06, #0 wcz
- if_b	jmp	#LR__0058
+ if_b	jmp	#LR__0059
 	add	objptr, #284
 	rdlong	local07, objptr
 	shl	local07, #2
@@ -1401,7 +1447,7 @@ LR__0059
  if_b	neg	local01, local01
 	wrlong	local01, objptr
 	sub	objptr, #284
-	jmp	#LR__0058
+	jmp	#LR__0059
 	mov	ptra, fp
 	call	#popregs_
 _serialcog_ret
@@ -1418,7 +1464,7 @@ _serialread
 	rdlong	_var02, objptr
 	sub	objptr, #280
 	cmp	_var01, _var02 wz
- if_e	jmp	#LR__0060
+ if_e	jmp	#LR__0061
 	add	objptr, #280
 	rdlong	_var03, objptr
 	shl	_var03, #2
@@ -1436,11 +1482,11 @@ _serialread
 	wrlong	_var01, objptr
 	sub	objptr, #280
 ' else
-	jmp	#LR__0061
-LR__0060
+	jmp	#LR__0062
+LR__0061
 '   r:=-1
 	neg	_var04, #1
-LR__0061
+LR__0062
 ' return r
 	mov	result1, _var04
 _serialread_ret
@@ -1485,9 +1531,9 @@ _serial_start
 	or	local05, #7
 ' 
 '   org
-	loc	pa,	#(@LR__0063-@LR__0062)
+	loc	pa,	#(@LR__0064-@LR__0063)
 	call	#FCACHE_LOAD_
-LR__0062
+LR__0063
 	org	0
 	fltl	local01
 	wrpin	#62, local01
@@ -1497,7 +1543,7 @@ LR__0062
 	wrpin	#124, local02
 	wxpin	local05, local02
 	drvl	local02
-LR__0063
+LR__0064
 	orgh
 	mov	ptra, fp
 	call	#popregs_
@@ -1539,9 +1585,9 @@ _midi_start
 	or	local05, #7
 ' 
 '   org
-	loc	pa,	#(@LR__0065-@LR__0064)
+	loc	pa,	#(@LR__0066-@LR__0065)
 	call	#FCACHE_LOAD_
-LR__0064
+LR__0065
 	org	0
 	fltl	local01
 	wrpin	#62, local01
@@ -1551,7 +1597,7 @@ LR__0064
 	wrpin	#124, local02
 	wxpin	local05, local02
 	drvl	local02
-LR__0065
+LR__0066
 	orgh
 	mov	ptra, fp
 	call	#popregs_
@@ -1579,14 +1625,14 @@ _tx
 ' '' Wait until last byte has finished
 ' 
 '   repeat
-LR__0066
+LR__0067
 '     check := pinr(txp)
 	add	objptr, #12
 	rdlong	arg01, objptr
 	sub	objptr, #12
 	call	#__system___pinread
 	cmp	result1, #0 wz
- if_e	jmp	#LR__0066
+ if_e	jmp	#LR__0067
 	mov	ptra, fp
 	call	#popregs_
 _tx_ret
@@ -1622,7 +1668,7 @@ _hng030rm_putpixel1
 	cmps	arg02, _var06 wcz
  if_b	neg	_var05, #1
 	test	_var01, _var05 wz
- if_e	jmp	#LR__0069
+ if_e	jmp	#LR__0070
 	add	objptr, #144
 	rdlong	_var07, objptr
 	sub	objptr, #144
@@ -1638,7 +1684,7 @@ _hng030rm_putpixel1
 	rdbyte	_var11, _var09
 '     if (c==0)
 	cmp	arg03, #0 wz
- if_ne	jmp	#LR__0067
+ if_ne	jmp	#LR__0068
 	abs	_var01, arg01 wc
 	and	_var01, #7
  if_b	neg	_var01, _var01
@@ -1646,15 +1692,15 @@ _hng030rm_putpixel1
 '       b:=b & !(1<<(x//8))
 	andn	_var11, _var12
 '     else
-	jmp	#LR__0068
-LR__0067
+	jmp	#LR__0069
+LR__0068
 	abs	_var01, arg01 wc
 	and	_var01, #7
  if_b	neg	_var01, _var01
 	decod	_var13, _var01
 '       b:=b |(1<<(x//8))
 	or	_var11, _var13
-LR__0068
+LR__0069
 	add	objptr, #144
 	rdlong	_var14, objptr
 	sub	objptr, #144
@@ -1666,7 +1712,7 @@ LR__0068
 	add	_var16, _var10
 '     byte[buf_ptr+4*cpl*y+(x>>3)]:=b
 	wrbyte	_var11, _var16
-LR__0069
+LR__0070
 _hng030rm_putpixel1_ret
 	ret
 
@@ -1698,7 +1744,7 @@ _hng030rm_putpixel2
 	cmps	arg02, _var06 wcz
  if_b	neg	_var05, #1
 	test	_var01, _var05 wz
- if_e	jmp	#LR__0070
+ if_e	jmp	#LR__0071
 	add	objptr, #144
 	rdlong	_var07, objptr
 	sub	objptr, #144
@@ -1734,7 +1780,7 @@ _hng030rm_putpixel2
 	add	_var15, _var10
 '     byte[buf_ptr+4*cpl*y+(x>>2)]:=b
 	wrbyte	_var11, _var15
-LR__0070
+LR__0071
 _hng030rm_putpixel2_ret
 	ret
 
@@ -1765,7 +1811,7 @@ _hng030rm_putpixel4
 	cmps	arg02, _var06 wcz
  if_b	neg	_var05, #1
 	test	_var01, _var05 wz
- if_e	jmp	#LR__0071
+ if_e	jmp	#LR__0072
 	add	objptr, #144
 	rdlong	_var07, objptr
 	sub	objptr, #144
@@ -1801,7 +1847,7 @@ _hng030rm_putpixel4
 	add	_var15, _var10
 '     byte[buf_ptr+4*cpl*y+(x>>1)]:=b
 	wrbyte	_var11, _var15
-LR__0071
+LR__0072
 _hng030rm_putpixel4_ret
 	ret
 
@@ -1832,7 +1878,7 @@ _hng030rm_putpixel8
 	cmps	arg02, _var06 wcz
  if_b	neg	_var05, #1
 	test	_var01, _var05 wz
- if_e	jmp	#LR__0072
+ if_e	jmp	#LR__0073
 	add	objptr, #144
 	rdlong	_var07, objptr
 	sub	objptr, #144
@@ -1844,7 +1890,7 @@ _hng030rm_putpixel8
 	add	_var09, arg01
 '     byte[buf_ptr+4*cpl*y+x]:=c
 	wrbyte	arg03, _var09
-LR__0072
+LR__0073
 _hng030rm_putpixel8_ret
 	ret
 
@@ -1889,7 +1935,7 @@ _hng030rm_cls
 	rdlong	local03, objptr
 	sub	objptr, #196
 	cmps	local03, ##512 wcz
- if_ae	jmp	#LR__0073
+ if_ae	jmp	#LR__0074
 	mov	local04, local01
 	shl	local04, #24
 	mov	local05, local02
@@ -1905,8 +1951,8 @@ _hng030rm_cls
 	mov	arg02, local04
 	call	#\builtin_longfill_
 ' else
-	jmp	#LR__0079
-LR__0073
+	jmp	#LR__0080
+LR__0074
 '   if (graphmode & 48) ==48
 	add	objptr, #196
 	rdlong	local03, objptr
@@ -1915,27 +1961,27 @@ LR__0073
 	cmp	local03, #48 wz
 '     c:=bc
  if_e	mov	local04, local02
- if_e	jmp	#LR__0078
+ if_e	jmp	#LR__0079
 '   elseif (graphmode & 48) ==32
 	add	objptr, #196
 	rdlong	local03, objptr
 	sub	objptr, #196
 	and	local03, #48
 	cmp	local03, #32 wz
- if_ne	jmp	#LR__0074
+ if_ne	jmp	#LR__0075
 	mov	local04, local02
 	shl	local04, #4
 	add	local04, local02
 '     c:=bc<<4+bc
-	jmp	#LR__0077
-LR__0074
+	jmp	#LR__0078
+LR__0075
 '   elseif (graphmode & 48) ==16
 	add	objptr, #196
 	rdlong	local03, objptr
 	sub	objptr, #196
 	and	local03, #48
 	cmp	local03, #16 wz
- if_ne	jmp	#LR__0075
+ if_ne	jmp	#LR__0076
 	mov	local04, local02
 	shl	local04, #6
 	mov	local06, local02
@@ -1947,8 +1993,8 @@ LR__0074
 	add	local04, local02
 '     c:=bc<<6+bc<<4+bc<<2+bc
 '   else
-	jmp	#LR__0076
-LR__0075
+	jmp	#LR__0077
+LR__0076
 '     if bc==1
 	cmp	local02, #1 wz
 '       c:=255
@@ -1956,9 +2002,9 @@ LR__0075
 '     else
 '       c:=0
  if_ne	mov	local04, #0
-LR__0076
 LR__0077
 LR__0078
+LR__0079
 	add	objptr, #48
 	rdlong	arg03, objptr
 	sub	objptr, #48
@@ -1967,7 +2013,7 @@ LR__0078
 	rdlong	arg01, objptr
 	mov	arg02, local04
 	call	#\builtin_bytefill_
-LR__0079
+LR__0080
 ' setwritecolors(fc,bc)
 ' 
 ' 
@@ -2003,14 +2049,14 @@ _hng030rm_outtextxy
 	mov	local02, #0
 	mov	arg01, arg03
 	mov	local03, #0
-	loc	pa,	#(@LR__0081-@LR__0080)
+	loc	pa,	#(@LR__0082-@LR__0081)
 	call	#FCACHE_LOAD_
-LR__0080
+LR__0081
 	rdbyte	local04, arg01 wz
  if_ne	add	local03, #1
  if_ne	add	arg01, #1
- if_ne	jmp	#LR__0080
-LR__0081
+ if_ne	jmp	#LR__0081
+LR__0082
 	mov	result1, local03
 	mov	local05, result1
 	sub	local05, #1
@@ -2018,9 +2064,9 @@ LR__0081
  if_a	mov	local06, #1
  if_be	neg	local06, #1
 	add	local05, local06
-	loc	pa,	#(@LR__0083-@LR__0082)
+	loc	pa,	#(@LR__0084-@LR__0083)
 	call	#FCACHE_LOAD_
-LR__0082
+LR__0083
 	add	objptr, #144
 	rdlong	local07, objptr
 	sub	objptr, #144
@@ -2041,8 +2087,8 @@ LR__0082
 	wrlong	local10, local09
 	add	local02, local06
 	cmp	local02, local05 wz
- if_ne	jmp	#LR__0082
-LR__0083
+ if_ne	jmp	#LR__0083
+LR__0084
 	mov	ptra, fp
 	call	#popregs_
 _hng030rm_outtextxy_ret
@@ -2075,27 +2121,27 @@ _hng030rm_write
 	sub	objptr, #52
 	mov	arg01, local01
 	mov	local06, #0
-	loc	pa,	#(@LR__0085-@LR__0084)
+	loc	pa,	#(@LR__0086-@LR__0085)
 	call	#FCACHE_LOAD_
-LR__0084
+LR__0085
 	rdbyte	local07, arg01 wz
  if_ne	add	local06, #1
  if_ne	add	arg01, #1
- if_ne	jmp	#LR__0084
-LR__0085
+ if_ne	jmp	#LR__0085
+LR__0086
 	mov	result1, local06
 	add	local05, local06
 	mov	local08, local05
-	loc	pa,	#(@LR__0087-@LR__0086)
+	loc	pa,	#(@LR__0088-@LR__0087)
 	call	#FCACHE_LOAD_
 ' repeat while ncx>cpl-1
-LR__0086
+LR__0087
 	add	objptr, #144
 	rdlong	local05, objptr
 	sub	objptr, #144
 	sub	local05, #1
 	cmps	local08, local05 wcz
- if_be	jmp	#LR__0088
+ if_be	jmp	#LR__0089
 '   ncx-=cpl
 	add	objptr, #144
 	rdlong	local09, objptr
@@ -2103,17 +2149,17 @@ LR__0086
 	sub	local08, local09
 '   ncy+=1
 	add	local04, #1
-	jmp	#LR__0086
-LR__0087
+	jmp	#LR__0087
 LR__0088
-' repeat while ncy>lines-1
 LR__0089
+' repeat while ncy>lines-1
+LR__0090
 	add	objptr, #148
 	rdlong	local05, objptr
 	sub	objptr, #148
 	sub	local05, #1
 	cmps	local04, local05 wcz
- if_be	jmp	#LR__0090
+ if_be	jmp	#LR__0091
 '   ncy-=1
 	sub	local04, #1
 '   scrollup()
@@ -2124,21 +2170,21 @@ LR__0089
 	sub	local05, #1
 	wrbyte	local05, objptr
 	sub	objptr, #53
-	jmp	#LR__0089
-LR__0090
+	jmp	#LR__0090
+LR__0091
 ' 
 ' repeat iii from 0 to strsize(text)-1
 	mov	local10, #0
 	mov	arg01, local01
 	mov	local06, #0
-	loc	pa,	#(@LR__0092-@LR__0091)
+	loc	pa,	#(@LR__0093-@LR__0092)
 	call	#FCACHE_LOAD_
-LR__0091
+LR__0092
 	rdbyte	local07, arg01 wz
  if_ne	add	local06, #1
  if_ne	add	arg01, #1
- if_ne	jmp	#LR__0091
-LR__0092
+ if_ne	jmp	#LR__0092
+LR__0093
 	mov	result1, local06
 	mov	local11, result1
 	sub	local11, #1
@@ -2146,9 +2192,9 @@ LR__0092
  if_a	mov	local12, #1
  if_be	neg	local12, #1
 	add	local11, local12
-	loc	pa,	#(@LR__0094-@LR__0093)
+	loc	pa,	#(@LR__0095-@LR__0094)
 	call	#FCACHE_LOAD_
-LR__0093
+LR__0094
 	add	objptr, #144
 	rdlong	local13, objptr
 	sub	objptr, #91
@@ -2171,8 +2217,8 @@ LR__0093
 	wrlong	local17, local16
 	add	local10, local12
 	cmp	local10, local11 wz
- if_ne	jmp	#LR__0093
-LR__0094
+ if_ne	jmp	#LR__0094
+LR__0095
 ' 
 ' outtextxy(cursor_x,cursor_y,text)
 	add	objptr, #52
@@ -2221,7 +2267,7 @@ _hng030rm_writeln
 	rdbyte	local02, objptr
 	sub	objptr, #53
 	cmps	local02, local01 wcz
- if_be	jmp	#LR__0095
+ if_be	jmp	#LR__0096
 '   scrollup()
 	call	#_hng030rm_scrollup
 	add	objptr, #148
@@ -2231,7 +2277,7 @@ _hng030rm_writeln
 	sub	objptr, #95
 	wrbyte	local03, objptr
 	sub	objptr, #53
-LR__0095
+LR__0096
 	mov	ptra, fp
 	call	#popregs_
 _hng030rm_writeln_ret
@@ -2278,9 +2324,9 @@ _hng030rm_scrollup
  if_a	mov	local07, #1
  if_be	neg	local07, #1
 	add	local04, local07
-	loc	pa,	#(@LR__0097-@LR__0096)
+	loc	pa,	#(@LR__0098-@LR__0097)
 	call	#FCACHE_LOAD_
-LR__0096
+LR__0097
 	mov	local08, local03
 	shl	local08, #2
 	rdlong	local09, objptr
@@ -2292,8 +2338,8 @@ LR__0096
 	wrlong	local10, local09
 	add	local03, local07
 	cmp	local03, local04 wz
- if_ne	jmp	#LR__0096
-LR__0097
+ if_ne	jmp	#LR__0097
+LR__0098
 	mov	ptra, fp
 	call	#popregs_
 _hng030rm_scrollup_ret
@@ -2323,7 +2369,7 @@ _hng030rm_inttostr
 	mov	local04, #0
 ' 
 ' if (j==0)
- if_ne	jmp	#LR__0098
+ if_ne	jmp	#LR__0099
 '   n_string[0]:=48
 	add	objptr, #68
 	wrbyte	#48, objptr
@@ -2333,8 +2379,8 @@ _hng030rm_inttostr
 	sub	objptr, #69
 ' 
 ' else
-	jmp	#LR__0105
-LR__0098
+	jmp	#LR__0106
+LR__0099
 '   if (j<0)
 	cmps	local02, #0 wcz
 '     j:=0-j
@@ -2346,12 +2392,12 @@ LR__0098
 	add	objptr, #79
 	wrbyte	#0, objptr
 	sub	objptr, #79
-	loc	pa,	#(@LR__0100-@LR__0099)
+	loc	pa,	#(@LR__0101-@LR__0100)
 	call	#FCACHE_LOAD_
 '   repeat while (pos>-1)
-LR__0099
+LR__0100
 	cmps	local03, ##-1 wcz
- if_be	jmp	#LR__0101
+ if_be	jmp	#LR__0102
 	mov	muldiva_, local02
 	mov	muldivb_, #10
 	call	#divide_
@@ -2369,16 +2415,16 @@ LR__0099
 '     pos-=1
 	sub	local03, #1
 	sub	objptr, #68
-	jmp	#LR__0099
-LR__0100
+	jmp	#LR__0100
 LR__0101
-'   repeat while n_string[0]==48
 LR__0102
+'   repeat while n_string[0]==48
+LR__0103
 	add	objptr, #68
 	rdbyte	local07, objptr
 	sub	objptr, #68
 	cmp	local07, #48 wz
- if_ne	jmp	#LR__0103
+ if_ne	jmp	#LR__0104
 	add	objptr, #68
 	mov	arg01, objptr
 	sub	objptr, #68
@@ -2387,12 +2433,12 @@ LR__0102
 '     bytemove(@n_string,@n_string+1,12)
 	mov	arg03, #12
 	call	#__system____builtin_memmove
-	jmp	#LR__0102
-LR__0103
+	jmp	#LR__0103
+LR__0104
 ' 
 '   if k==45
 	cmp	local04, #45 wz
- if_ne	jmp	#LR__0104
+ if_ne	jmp	#LR__0105
 	add	objptr, #68
 	mov	arg02, objptr
 	sub	objptr, #68
@@ -2405,8 +2451,8 @@ LR__0103
 	add	objptr, #68
 	wrbyte	local04, objptr
 	sub	objptr, #68
-LR__0104
 LR__0105
+LR__0106
 	add	objptr, #68
 	mov	result1, objptr
 	sub	objptr, #68
@@ -2433,7 +2479,7 @@ _hng030rm_inttostr_ret
 ' 
 ' pub setmode(mode) | i', 'xzoom, yzoom, azoom
 _hng030rm_setmode
-	mov	COUNT_, #80
+	mov	COUNT_, #33
 	call	#pushregs_
 	mov	local01, arg01
 ' 
@@ -2444,7 +2490,7 @@ _hng030rm_setmode
 ' if mode==(512+192+48)
 	cmp	local01, ##752 wz
 '   return 'no RAM
- if_e	jmp	#LR__0146
+ if_e	jmp	#LR__0129
 ' 
 ' case_fast (mode>>6) & 7 ' timings are the same for graphic and text
 	mov	local02, local01
@@ -2453,8 +2499,7 @@ _hng030rm_setmode
 	fle	local02, #8
 	mov	local03, local02
 	jmprel	local03
-LR__0106
-	jmp	#LR__0107
+LR__0107
 	jmp	#LR__0108
 	jmp	#LR__0109
 	jmp	#LR__0110
@@ -2463,7 +2508,8 @@ LR__0106
 	jmp	#LR__0113
 	jmp	#LR__0114
 	jmp	#LR__0115
-LR__0107
+	jmp	#LR__0116
+LR__0108
 ' 
 '     0:  longmove(@timings,@timings000,16)   'PAL 50 Hz signaling 1140x624, active 800x480, 100x30 text, wide border, 2 colors per pixel, 00_00_00_00_00=0, 354_693_878 Hz
 	add	objptr, #80
@@ -2478,8 +2524,8 @@ LR__0107
 	sub	ptr__hng030rm_dat__, ##7256
 	call	#__system__longmove
 	mov	local07, result1
-	jmp	#LR__0115
-LR__0108
+	jmp	#LR__0116
+LR__0109
 '     1:  longmove(@timings,@timings064,16)   'PAL 50 Hz signaling 1026x624, active 880x496, 110x31 text, medium border, 2 colors per pixel 00_01_00_00_00=64, 319_215_686 Hz
 	add	objptr, #80
 	mov	arg01, objptr
@@ -2493,8 +2539,8 @@ LR__0108
 	sub	ptr__hng030rm_dat__, ##7320
 	call	#__system__longmove
 	mov	local07, result1
-	jmp	#LR__0115
-LR__0109
+	jmp	#LR__0116
+LR__0110
 '     2:  longmove(@timings,@timings128,16)   'PAL 50 Hz signaling 912x624, active 800x480, 100x30 text, medium border, 2 colors per pixel 00_10_00_00_00=64, 283750000z
 	add	objptr, #80
 	mov	arg01, objptr
@@ -2508,8 +2554,8 @@ LR__0109
 	sub	ptr__hng030rm_dat__, ##7384
 	call	#__system__longmove
 	mov	local07, result1
-	jmp	#LR__0115
-LR__0110
+	jmp	#LR__0116
+LR__0111
 '     3:  longmove(@timings,@timings192,16)   'PAL 50 Hz signaling 1140x624, active 1024x576, 128x36 text, borderless, 2 colors per pixel 00_11_00_00_00=6192, 354_693_878 Hz
 	add	objptr, #80
 	mov	arg01, objptr
@@ -2523,8 +2569,8 @@ LR__0110
 	sub	ptr__hng030rm_dat__, ##7448
 	call	#__system__longmove
 	mov	local07, result1
-	jmp	#LR__0115
-LR__0111
+	jmp	#LR__0116
+LR__0112
 '     4:  longmove(@timings,@timings256,16)   'NTSC 50 Hz signaling 1140x524, active 800x480, 100x30 text, NO PLACE FOR wide border, 2 colors per pixel, 01_00_00_00_00=256, 357959184 Hz
 	add	objptr, #80
 	mov	arg01, objptr
@@ -2538,8 +2584,8 @@ LR__0111
 	sub	ptr__hng030rm_dat__, ##7512
 	call	#__system__longmove
 	mov	local07, result1
-	jmp	#LR__0115
-LR__0112
+	jmp	#LR__0116
+LR__0113
 '     5:  longmove(@timings,@timings320,16)   'NTSC 50 Hz signaling 1026x524, active 800x480, 100x30 text, NO PLACE FOR wide border, 2 colors per pixel, 01_01_00_00_00=320, 322162162 Hz
 	add	objptr, #80
 	mov	arg01, objptr
@@ -2553,8 +2599,8 @@ LR__0112
 	sub	ptr__hng030rm_dat__, ##7576
 	call	#__system__longmove
 	mov	local07, result1
-	jmp	#LR__0115
-LR__0113
+	jmp	#LR__0116
+LR__0114
 '     6:  longmove(@timings,@timings384,16)   'NTSC 50 Hz signaling 912x524, active 800x480, 100x30 text, NO PLACE FOR wide border, 2 colors per pixel, 01_10_00_00_00=384, 286363636 Hz
 	add	objptr, #80
 	mov	arg01, objptr
@@ -2568,8 +2614,8 @@ LR__0113
 	sub	ptr__hng030rm_dat__, ##7640
 	call	#__system__longmove
 	mov	local07, result1
-	jmp	#LR__0115
-LR__0114
+	jmp	#LR__0116
+LR__0115
 '     7:  longmove(@timings,@timings448,16)   'NTSC 50 Hz signaling 1026x524, active 880x496, 110x31 text, borderless, 2 colors per pixel, 01_11_00_00_00=496, 322162162 Hz
 	add	objptr, #80
 	mov	local08, objptr
@@ -2585,12 +2631,12 @@ LR__0114
 	sub	ptr__hng030rm_dat__, ##7704
 	call	#__system__longmove
 	mov	local07, result1
-LR__0115
+LR__0116
 ' 
 ' ' 4-bit graphics: do nothing with timings :)
 ' if mode<512
 	cmps	local01, ##512 wcz
- if_ae	jmp	#LR__0116
+ if_ae	jmp	#LR__0117
 	add	ptr__hng030rm_dat__, ##6232
 	mov	local10, ptr__hng030rm_dat__
 '   palette_ptr:=@ataripalette
@@ -2598,13 +2644,13 @@ LR__0115
 	wrlong	local10, objptr
 	sub	objptr, #24
 	sub	ptr__hng030rm_dat__, ##6232
-LR__0116
+LR__0117
 ' 
 ' if (mode & (%10_00_11_0000))==(%10_00_11_0000) ' 8bit graphics, 4 pixels per long instead of 8, cpp x2
 	mov	local02, local01
 	and	local02, ##560
 	cmp	local02, ##560 wz
- if_ne	jmp	#LR__0117
+ if_ne	jmp	#LR__0118
 '   timings[5]:=4
 	add	objptr, #100
 	wrlong	#4, objptr
@@ -2625,13 +2671,13 @@ LR__0116
 	wrlong	local12, objptr
 	sub	objptr, #24
 	sub	ptr__hng030rm_dat__, ##6232
-LR__0117
+LR__0118
 ' 
 ' if (mode & (%10_00_11_0000))==(%10_00_01_0000) ' 2bit graphics, 16 pixels per long instead of 8, cpp /2
 	mov	local02, local01
 	and	local02, ##560
 	cmp	local02, ##528 wz
- if_ne	jmp	#LR__0118
+ if_ne	jmp	#LR__0119
 '   timings[5]:=16
 	add	objptr, #100
 	wrlong	#16, objptr
@@ -2652,13 +2698,13 @@ LR__0117
 	wrlong	local14, objptr
 	sub	objptr, #24
 	sub	ptr__hng030rm_dat__, ##6152
-LR__0118
+LR__0119
 ' 
 ' if (mode & (%10_00_11_0000))==(%10_00_00_0000) ' 1bit graphics, 32 pixels per long instead of 8, cpp /4
 	mov	local02, local01
 	and	local02, ##560
 	cmp	local02, ##512 wz
- if_ne	jmp	#LR__0119
+ if_ne	jmp	#LR__0120
 '   timings[5]:=32
 	add	objptr, #100
 	wrlong	#32, objptr
@@ -2679,13 +2725,13 @@ LR__0118
 	wrlong	local16, objptr
 	sub	objptr, #24
 	sub	ptr__hng030rm_dat__, ##6144
-LR__0119
+LR__0120
 ' 
 ' if (mode & (%10_00_11_0000))==(%10_00_10_0000) ' 4bit graphics,
 	mov	local02, local01
 	and	local02, ##560
 	cmp	local02, ##544 wz
- if_ne	jmp	#LR__0120
+ if_ne	jmp	#LR__0121
 '   putpixel:=p4
 	add	objptr, #228
 	rdlong	local02, objptr
@@ -2698,13 +2744,13 @@ LR__0119
 	wrlong	local17, objptr
 	sub	objptr, #24
 	sub	ptr__hng030rm_dat__, ##6168
-LR__0120
+LR__0121
 ' 
 ' repeat i from 0 to 4
 	mov	local18, #0
-	loc	pa,	#(@LR__0122-@LR__0121)
+	loc	pa,	#(@LR__0123-@LR__0122)
 	call	#FCACHE_LOAD_
-LR__0121
+LR__0122
 	mov	local19, local18
 	shl	local19, #2
 	add	objptr, #80
@@ -2721,8 +2767,8 @@ LR__0121
 	wrlong	local22, local19
 	add	local18, #1
 	cmps	local18, #5 wcz
- if_b	jmp	#LR__0121
-LR__0122
+ if_b	jmp	#LR__0122
+LR__0123
 	add	objptr, #36
 	rdlong	local23, objptr
 	shl	local23, #17
@@ -2756,18 +2802,18 @@ LR__0122
 	mov	local08, local26
 	sub	objptr, #204
 	cmp	local08, #8 wz
- if_ne	jmp	#LR__0123
+ if_ne	jmp	#LR__0124
 	mov	local09, local01
 	shr	local09, #4
 	and	local09, #3
 	cmp	local09, #3 wz
- if_e	jmp	#LR__0123
+ if_e	jmp	#LR__0124
 '   xzoom:=4
 	mov	local02, #4
 	add	objptr, #204
 	wrlong	#4, objptr
 	sub	objptr, #204
-LR__0123
+LR__0124
 	mov	local27, local01
 	shr	local27, #2
 	and	local27, #3
@@ -2794,7 +2840,7 @@ LR__0123
 	sub	objptr, #144
 ' if (mode<512)
 	cmps	local01, ##512 wcz
- if_ae	jmp	#LR__0124
+ if_ae	jmp	#LR__0125
 	add	objptr, #128
 	rdlong	muldiva_, objptr
 	shr	muldiva_, #4
@@ -2814,7 +2860,7 @@ LR__0123
 	sub	objptr, #208
 	call	#unsdivide_
 	cmp	muldiva_, #0 wz
- if_e	jmp	#LR__0127
+ if_e	jmp	#LR__0128
 '     lines +=1
 	add	objptr, #148
 	rdlong	local02, objptr
@@ -2823,8 +2869,8 @@ LR__0123
 	sub	objptr, #148
 ' 
 ' else
-	jmp	#LR__0127
-LR__0124
+	jmp	#LR__0128
+LR__0125
 	add	objptr, #128
 	rdlong	muldiva_, objptr
 	add	objptr, #80
@@ -2842,7 +2888,7 @@ LR__0124
 	sub	objptr, #204
 	call	#divide_
 	cmp	muldiva_, #0 wz
- if_ne	jmp	#LR__0125
+ if_ne	jmp	#LR__0126
 '     cpl:=cpl/xzoom
 	add	objptr, #144
 	rdlong	muldiva_, objptr
@@ -2854,8 +2900,8 @@ LR__0124
 	wrlong	muldivb_, objptr
 	sub	objptr, #144
 '   else
-	jmp	#LR__0126
-LR__0125
+	jmp	#LR__0127
+LR__0126
 	add	objptr, #144
 	rdlong	muldiva_, objptr
 	add	objptr, #60
@@ -2868,8 +2914,8 @@ LR__0125
 	add	objptr, #144
 	wrlong	local30, objptr
 	sub	objptr, #144
-LR__0126
 LR__0127
+LR__0128
 	add	objptr, #144
 	rdlong	local08, objptr
 	add	objptr, #4
@@ -2897,6 +2943,21 @@ LR__0127
 	sub	objptr, #196
 ' makedl(mode)
 	mov	arg01, local01
+	call	#_hng030rm_makedl
+LR__0129
+	mov	ptra, fp
+	call	#popregs_
+_hng030rm_setmode_ret
+	ret
+
+' 
+' 
+' 
+' 
+' '---------- Make a display list
+' 
+' pub makedl (mode) |i, fontline2,charline,bufstart,zoom1,vzoom,lpc,hzoom
+_hng030rm_makedl
 ' 
 ' ''--%aaaa_aaaa_aaaa_aaaa_aazz_nnnn_llll_ll_01 - txt
 '   '' aaaa_aaaa_aaaa_aaaa_aazz_rrrr_rrrr_cc_10 - graph
@@ -2913,26 +2974,26 @@ LR__0127
 ' 
 ' if (mode &256==0)
 	test	arg01, #256 wz
- if_ne	jmp	#LR__0128
-	rdlong	local34, objptr
-	sub	local34, ##2304
+ if_ne	jmp	#LR__0130
+	rdlong	_var01, objptr
+	sub	_var01, ##2304
 '   dl_ptr:=buf_ptr-4*576
 	add	objptr, #28
-	wrlong	local34, objptr
+	wrlong	_var01, objptr
 	sub	objptr, #28
 ' else
-	jmp	#LR__0129
-LR__0128
-	rdlong	local35, objptr
-	sub	local35, ##1984
+	jmp	#LR__0131
+LR__0130
+	rdlong	_var02, objptr
+	sub	_var02, ##1984
 '   dl_ptr:=buf_ptr-4*496
 	add	objptr, #28
-	wrlong	local35, objptr
+	wrlong	_var02, objptr
 	sub	objptr, #28
-LR__0129
-	mov	local36, arg01
-	shr	local36, #2
-	and	local36, #3
+LR__0131
+	mov	_var03, arg01
+	shr	_var03, #2
+	and	_var03, #3
 '  ' dl_ptr:=buf_ptr-4*540
 ' 
 ' vzoom:=((mode>>2) & 3)
@@ -2940,282 +3001,279 @@ LR__0129
 ' 
 ' if mode<512 '' text modes
 	cmps	arg01, ##512 wcz
- if_ae	jmp	#LR__0137
+ if_ae	jmp	#LR__0139
 ' 
 '   if timings[6]>0 'borders
 	add	objptr, #104
-	rdlong	local37, objptr
+	rdlong	_var04, objptr
 	sub	objptr, #104
-	cmps	local37, #0 wcz
- if_be	jmp	#LR__0134
+	cmps	_var04, #0 wcz
+ if_be	jmp	#LR__0136
 '     repeat i from 0 to timings[6]-1 '0 to -1
-	mov	local38, #0
+	mov	_var05, #0
 	add	objptr, #104
-	rdlong	local39, objptr
+	rdlong	_var06, objptr
 	sub	objptr, #104
-	sub	local39, #1
-	cmps	local39, #0 wcz
- if_a	mov	local40, #1
- if_be	neg	local40, #1
-	mov	local41, local40
-	add	local39, local40
-	loc	pa,	#(@LR__0131-@LR__0130)
-	call	#FCACHE_LOAD_
-LR__0130
-	mov	local42, local38
-	shl	local42, #2
-	add	objptr, #28
-	rdlong	local43, objptr
-	sub	objptr, #28
-	add	local43, local42
-'       long[dl_ptr+4*i]:=$0
-	wrlong	#0, local43
-	add	local38, local41
-	cmp	local38, local39 wz
- if_ne	jmp	#LR__0130
-LR__0131
-'     repeat i from timings[6]+timings[12] to timings[15]-1
-	add	objptr, #104
-	rdlong	local38, objptr
-	add	objptr, #24
-	rdlong	local40, objptr
-	add	local38, local40
-	add	objptr, #12
-	rdlong	local44, objptr
-	sub	local44, #1
-	sub	objptr, #36
-	rdlong	local45, objptr
-	add	objptr, #24
-	rdlong	local46, objptr
-	sub	objptr, #128
-	add	local45, local46
-	cmps	local44, local45 wcz
- if_a	mov	local47, #1
- if_be	neg	local47, #1
-	mov	local48, local47
-	add	local44, local47
+	sub	_var06, #1
+	cmps	_var06, #0 wcz
+ if_a	mov	_var07, #1
+ if_be	neg	_var07, #1
+	mov	_var08, _var07
+	add	_var06, _var07
 	loc	pa,	#(@LR__0133-@LR__0132)
 	call	#FCACHE_LOAD_
 LR__0132
-	mov	local49, local38
-	shl	local49, #2
+	mov	_var09, _var05
+	shl	_var09, #2
 	add	objptr, #28
-	rdlong	local50, objptr
+	rdlong	_var10, objptr
 	sub	objptr, #28
-	add	local50, local49
+	add	_var10, _var09
 '       long[dl_ptr+4*i]:=$0
-	wrlong	#0, local50
-	add	local38, local48
-	cmp	local38, local44 wz
+	wrlong	#0, _var10
+	add	_var05, _var08
+	cmp	_var05, _var06 wz
  if_ne	jmp	#LR__0132
 LR__0133
+'     repeat i from timings[6]+timings[12] to timings[15]-1
+	add	objptr, #104
+	rdlong	_var05, objptr
+	add	objptr, #24
+	rdlong	_var07, objptr
+	add	_var05, _var07
+	add	objptr, #12
+	rdlong	_var11, objptr
+	sub	_var11, #1
+	sub	objptr, #36
+	rdlong	_var12, objptr
+	add	objptr, #24
+	rdlong	_var13, objptr
+	sub	objptr, #128
+	add	_var12, _var13
+	cmps	_var11, _var12 wcz
+ if_a	mov	_var14, #1
+ if_be	neg	_var14, #1
+	mov	_var15, _var14
+	add	_var11, _var14
+	loc	pa,	#(@LR__0135-@LR__0134)
+	call	#FCACHE_LOAD_
 LR__0134
-	mov	local51, #16
-	shl	local51, local36
+	mov	_var16, _var05
+	shl	_var16, #2
+	add	objptr, #28
+	rdlong	_var17, objptr
+	sub	objptr, #28
+	add	_var17, _var16
+'       long[dl_ptr+4*i]:=$0
+	wrlong	#0, _var17
+	add	_var05, _var15
+	cmp	_var05, _var11 wz
+ if_ne	jmp	#LR__0134
+LR__0135
+LR__0136
+	mov	_var18, #16
+	shl	_var18, _var03
 '   lpc:=16<<vzoom
 '   repeat i from timings[6] to timings[6]+timings[12]-1
 	add	objptr, #104
-	rdlong	local38, objptr
-	mov	local52, local38
+	rdlong	_var05, objptr
+	mov	_var19, _var05
 	add	objptr, #24
-	rdlong	local53, objptr
-	add	local52, local53
-	sub	local52, #1
+	rdlong	_var20, objptr
+	add	_var19, _var20
+	sub	_var19, #1
 	sub	objptr, #24
-	rdlong	local47, objptr
+	rdlong	_var14, objptr
 	sub	objptr, #104
-	cmps	local52, local47 wcz
- if_a	mov	local54, #1
- if_be	neg	local54, #1
-	mov	local55, local54
-	add	local52, local54
-	loc	pa,	#(@LR__0136-@LR__0135)
+	cmps	_var19, _var14 wcz
+ if_a	mov	_var21, #1
+ if_be	neg	_var21, #1
+	mov	_var22, _var21
+	add	_var19, _var21
+	loc	pa,	#(@LR__0138-@LR__0137)
 	call	#FCACHE_LOAD_
-LR__0135
-	mov	muldiva_, local38
+LR__0137
+	mov	muldiva_, _var05
 	add	objptr, #104
-	rdlong	local56, objptr
+	rdlong	_var23, objptr
 	sub	objptr, #104
-	sub	muldiva_, local56
-	mov	muldivb_, local51
+	sub	muldiva_, _var23
+	mov	muldivb_, _var18
 	call	#unsdivide_
-	shr	muldiva_, local36
+	shr	muldiva_, _var03
 '     fontline2:=((i-timings[6])+//lpc)>>vzoom
-	mov	local57, muldiva_
-	mov	muldiva_, local38
+	mov	_var24, muldiva_
+	mov	muldiva_, _var05
 	add	objptr, #104
-	rdlong	local56, objptr
+	rdlong	_var23, objptr
 	sub	objptr, #104
-	sub	muldiva_, local56
-	mov	muldivb_, local51
+	sub	muldiva_, _var23
+	mov	muldivb_, _var18
 	call	#unsdivide_
-	mov	local58, muldivb_
+	mov	_var25, muldivb_
 '     charline:=(i-timings[6])+/lpc
 	add	objptr, #144
-	rdlong	local56, objptr
+	rdlong	_var23, objptr
 	sub	objptr, #144
-	qmul	local56, local58
-	getqx	local59
-	shl	local59, #2
-	rdlong	local60, objptr
-	add	local60, local59
-	mov	local61, arg01
-	and	local61, #3
-	add	local60, local61
+	qmul	_var23, _var25
+	getqx	_var26
+	shl	_var26, #2
+	rdlong	_var27, objptr
+	add	_var27, _var26
+	mov	_var28, arg01
+	and	_var28, #3
+	add	_var27, _var28
 '     bufstart:=buf_ptr+4*((cpl)*charline)+(mode&3)
-	shl	local60, #12
-	shl	local57, #8
-	add	local60, local57
-	shl	local58, #2
-	add	local60, local58
-	add	local60, #1
-	mov	local62, local38
-	shl	local62, #2
+	shl	_var27, #12
+	shl	_var24, #8
+	add	_var27, _var24
+	shl	_var25, #2
+	add	_var27, _var25
+	add	_var27, #1
+	mov	_var29, _var05
+	shl	_var29, #2
 	add	objptr, #28
-	rdlong	local63, objptr
+	rdlong	_var30, objptr
 	sub	objptr, #28
-	add	local63, local62
+	add	_var30, _var29
 '     long[dl_ptr+4*i]:=(bufstart<<12)+(fontline2<<8)+(charline<<2)+1
-	wrlong	local60, local63
-	add	local38, local55
-	cmp	local38, local52 wz
- if_ne	jmp	#LR__0135
-LR__0136
-LR__0137
+	wrlong	_var27, _var30
+	add	_var05, _var22
+	cmp	_var05, _var19 wz
+ if_ne	jmp	#LR__0137
+LR__0138
+LR__0139
 ' 
 ' 
 ' 
 ' if (mode>=512)' and (mode & (%10_00_00_0000))==(%10_00_00_0000) ' graphics -> all modes TODO :mode 560+192=752 = 10_11_11_0000 impossib,e because out of memory
 	cmps	arg01, ##512 wcz
- if_b	jmp	#LR__0145
+ if_b	jmp	#LR__0147
 ' 
 '   if timings[6]>0 'borders
 	add	objptr, #104
-	rdlong	local37, objptr
+	rdlong	_var04, objptr
 	sub	objptr, #104
-	cmps	local37, #0 wcz
- if_be	jmp	#LR__0142
+	cmps	_var04, #0 wcz
+ if_be	jmp	#LR__0144
 '     repeat i from 0 to timings[6]-1 '0 to -1
-	mov	local38, #0
+	mov	_var05, #0
 	add	objptr, #104
-	rdlong	local64, objptr
+	rdlong	_var31, objptr
 	sub	objptr, #104
-	sub	local64, #1
-	cmps	local64, #0 wcz
- if_a	mov	local40, #1
- if_be	neg	local40, #1
-	mov	local65, local40
-	add	local64, local40
-	loc	pa,	#(@LR__0139-@LR__0138)
-	call	#FCACHE_LOAD_
-LR__0138
-	mov	local66, local38
-	shl	local66, #2
-	add	objptr, #28
-	rdlong	local67, objptr
-	sub	objptr, #28
-	add	local67, local66
-'       long[dl_ptr+4*i]:=$0
-	wrlong	#0, local67
-	add	local38, local65
-	cmp	local38, local64 wz
- if_ne	jmp	#LR__0138
-LR__0139
-'     repeat i from timings[6]+timings[12] to timings[15]-1
-	add	objptr, #104
-	rdlong	local38, objptr
-	add	objptr, #24
-	rdlong	local40, objptr
-	add	local38, local40
-	add	objptr, #12
-	rdlong	local68, objptr
-	sub	local68, #1
-	sub	objptr, #36
-	rdlong	local45, objptr
-	add	objptr, #24
-	rdlong	local46, objptr
-	sub	objptr, #128
-	add	local45, local46
-	cmps	local68, local45 wcz
- if_a	mov	local47, #1
- if_be	neg	local47, #1
-	mov	local69, local47
-	add	local68, local47
+	sub	_var31, #1
+	cmps	_var31, #0 wcz
+ if_a	mov	_var07, #1
+ if_be	neg	_var07, #1
+	mov	_var32, _var07
+	add	_var31, _var07
 	loc	pa,	#(@LR__0141-@LR__0140)
 	call	#FCACHE_LOAD_
 LR__0140
-	mov	local70, local38
-	shl	local70, #2
+	mov	_var33, _var05
+	shl	_var33, #2
 	add	objptr, #28
-	rdlong	local71, objptr
+	rdlong	_var34, objptr
 	sub	objptr, #28
-	add	local71, local70
+	add	_var34, _var33
 '       long[dl_ptr+4*i]:=$0
-	wrlong	#0, local71
-	add	local38, local69
-	cmp	local38, local68 wz
+	wrlong	#0, _var34
+	add	_var05, _var32
+	cmp	_var05, _var31 wz
  if_ne	jmp	#LR__0140
 LR__0141
+'     repeat i from timings[6]+timings[12] to timings[15]-1
+	add	objptr, #104
+	rdlong	_var05, objptr
+	add	objptr, #24
+	rdlong	_var07, objptr
+	add	_var05, _var07
+	add	objptr, #12
+	rdlong	_var35, objptr
+	sub	_var35, #1
+	sub	objptr, #36
+	rdlong	_var12, objptr
+	add	objptr, #24
+	rdlong	_var13, objptr
+	sub	objptr, #128
+	add	_var12, _var13
+	cmps	_var35, _var12 wcz
+ if_a	mov	_var14, #1
+ if_be	neg	_var14, #1
+	mov	_var36, _var14
+	add	_var35, _var14
+	loc	pa,	#(@LR__0143-@LR__0142)
+	call	#FCACHE_LOAD_
 LR__0142
+	mov	_var37, _var05
+	shl	_var37, #2
+	add	objptr, #28
+	rdlong	_var38, objptr
+	sub	objptr, #28
+	add	_var38, _var37
+'       long[dl_ptr+4*i]:=$0
+	wrlong	#0, _var38
+	add	_var05, _var36
+	cmp	_var05, _var35 wz
+ if_ne	jmp	#LR__0142
+LR__0143
+LR__0144
 '   repeat i from timings[6] to timings[6]+timings[12]-1
 	add	objptr, #104
-	rdlong	local38, objptr
-	mov	local72, local38
+	rdlong	_var05, objptr
+	mov	_var39, _var05
 	add	objptr, #24
-	rdlong	local53, objptr
-	add	local72, local53
-	sub	local72, #1
+	rdlong	_var20, objptr
+	add	_var39, _var20
+	sub	_var39, #1
 	sub	objptr, #24
-	rdlong	local47, objptr
+	rdlong	_var14, objptr
 	sub	objptr, #104
-	cmps	local72, local47 wcz
- if_a	mov	local54, #1
- if_be	neg	local54, #1
-	mov	local73, local54
-	add	local72, local54
-	loc	pa,	#(@LR__0144-@LR__0143)
+	cmps	_var39, _var14 wcz
+ if_a	mov	_var21, #1
+ if_be	neg	_var21, #1
+	mov	_var40, _var21
+	add	_var39, _var21
+	loc	pa,	#(@LR__0146-@LR__0145)
 	call	#FCACHE_LOAD_
-LR__0143
-	mov	local74, local38
-	add	objptr, #104
-	rdlong	local56, objptr
-	sub	local74, local56
-	shr	local74, local36
-	add	objptr, #40
-	rdlong	local56, objptr
-	sub	objptr, #144
-	qmul	local56, local74
-	getqx	local75
-	shl	local75, #2
-	rdlong	local76, objptr
-	add	local76, local75
-	mov	local77, arg01
-	and	local77, #3
-	add	local76, local77
-'     bufstart:=buf_ptr+4*(cpl*((i-timings[6])>>vzoom))+(mode&3)
-	shl	local76, #12
-	add	local76, #2
-	mov	local78, arg01
-	and	local78, #48
-	shr	local78, #2
-	add	local76, local78
-	mov	local79, local38
-	shl	local79, #2
-	add	objptr, #28
-	rdlong	local80, objptr
-	sub	objptr, #28
-	add	local80, local79
-'     long[dl_ptr+4*i]:=(bufstart<<12)+2+(mode &48)>>2
-	wrlong	local76, local80
-	add	local38, local73
-	cmp	local38, local72 wz
- if_ne	jmp	#LR__0143
-LR__0144
 LR__0145
+	mov	_var41, _var05
+	add	objptr, #104
+	rdlong	_var23, objptr
+	sub	_var41, _var23
+	shr	_var41, _var03
+	add	objptr, #40
+	rdlong	_var23, objptr
+	sub	objptr, #144
+	qmul	_var23, _var41
+	getqx	_var42
+	shl	_var42, #2
+	rdlong	_var43, objptr
+	add	_var43, _var42
+	mov	_var44, arg01
+	and	_var44, #3
+	add	_var43, _var44
+'     bufstart:=buf_ptr+4*(cpl*((i-timings[6])>>vzoom))+(mode&3)
+	shl	_var43, #12
+	add	_var43, #2
+	mov	_var45, arg01
+	and	_var45, #48
+	shr	_var45, #2
+	add	_var43, _var45
+	mov	_var46, _var05
+	shl	_var46, #2
+	add	objptr, #28
+	rdlong	_var47, objptr
+	sub	objptr, #28
+	add	_var47, _var46
+'     long[dl_ptr+4*i]:=(bufstart<<12)+2+(mode &48)>>2
+	wrlong	_var43, _var47
+	add	_var05, _var40
+	cmp	_var05, _var39 wz
+ if_ne	jmp	#LR__0145
 LR__0146
-	mov	ptra, fp
-	call	#popregs_
-_hng030rm_setmode_ret
+LR__0147
+_hng030rm_makedl_ret
 	ret
 hubexit
 	jmp	#cogexit
@@ -3245,18 +3303,18 @@ __system___txraw
 	call	#pushregs_
 	mov	local01, arg01
 	rdlong	local02, ptr___system__dat__ wz
- if_ne	jmp	#LR__0147
+ if_ne	jmp	#LR__0148
 	mov	arg01, ##230400
 	call	#__system___setbaud
-LR__0147
+LR__0148
 	wypin	local01, #62
 	waitx	#1
-	loc	pa,	#(@LR__0149-@LR__0148)
+	loc	pa,	#(@LR__0150-@LR__0149)
 	call	#FCACHE_LOAD_
-LR__0148
-	testp	#62 wc
- if_nc	jmp	#LR__0148
 LR__0149
+	testp	#62 wc
+ if_nc	jmp	#LR__0149
+LR__0150
 	mov	result1, #1
 	mov	ptra, fp
 	call	#popregs_
@@ -3266,52 +3324,52 @@ __system___txraw_ret
 __system____builtin_memmove
 	mov	_var01, arg01
 	cmps	arg01, arg02 wcz
- if_ae	jmp	#LR__0157
-	loc	pa,	#(@LR__0151-@LR__0150)
+ if_ae	jmp	#LR__0158
+	loc	pa,	#(@LR__0152-@LR__0151)
 	call	#FCACHE_LOAD_
-LR__0150
+LR__0151
 	cmps	arg03, #3 wcz
- if_be	jmp	#LR__0152
+ if_be	jmp	#LR__0153
 	rdlong	_var02, arg02
 	wrlong	_var02, arg01
 	add	arg01, #4
 	add	arg02, #4
 	sub	arg03, #4
-	jmp	#LR__0150
-LR__0151
+	jmp	#LR__0151
 LR__0152
-	mov	_var03, arg03 wz
- if_e	jmp	#LR__0163
-	loc	pa,	#(@LR__0155-@LR__0153)
-	call	#FCACHE_LOAD_
 LR__0153
-	rep	@LR__0156, _var03
+	mov	_var03, arg03 wz
+ if_e	jmp	#LR__0164
+	loc	pa,	#(@LR__0156-@LR__0154)
+	call	#FCACHE_LOAD_
 LR__0154
+	rep	@LR__0157, _var03
+LR__0155
 	rdbyte	_var02, arg02
 	wrbyte	_var02, arg01
 	add	arg01, #1
 	add	arg02, #1
-LR__0155
 LR__0156
-	jmp	#LR__0163
 LR__0157
+	jmp	#LR__0164
+LR__0158
 	add	arg01, arg03
 	add	arg02, arg03
 	mov	_var04, arg03 wz
- if_e	jmp	#LR__0162
-	loc	pa,	#(@LR__0160-@LR__0158)
+ if_e	jmp	#LR__0163
+	loc	pa,	#(@LR__0161-@LR__0159)
 	call	#FCACHE_LOAD_
-LR__0158
-	rep	@LR__0161, _var04
 LR__0159
+	rep	@LR__0162, _var04
+LR__0160
 	sub	arg01, #1
 	sub	arg02, #1
 	rdbyte	_var02, arg02
 	wrbyte	_var02, arg01
-LR__0160
 LR__0161
 LR__0162
 LR__0163
+LR__0164
 	mov	result1, _var01
 __system____builtin_memmove_ret
 	ret
@@ -3319,41 +3377,41 @@ __system____builtin_memmove_ret
 __system__longmove
 	mov	_var01, arg01
 	cmps	arg01, arg02 wcz
- if_ae	jmp	#LR__0168
+ if_ae	jmp	#LR__0169
 	mov	_var02, arg03 wz
- if_e	jmp	#LR__0174
-	loc	pa,	#(@LR__0166-@LR__0164)
+ if_e	jmp	#LR__0175
+	loc	pa,	#(@LR__0167-@LR__0165)
 	call	#FCACHE_LOAD_
-LR__0164
-	rep	@LR__0167, _var02
 LR__0165
+	rep	@LR__0168, _var02
+LR__0166
 	rdlong	_var03, arg02
 	wrlong	_var03, arg01
 	add	arg01, #4
 	add	arg02, #4
-LR__0166
 LR__0167
-	jmp	#LR__0174
 LR__0168
+	jmp	#LR__0175
+LR__0169
 	mov	_var04, arg03
 	shl	_var04, #2
 	add	arg01, _var04
 	add	arg02, _var04
 	mov	_var05, arg03 wz
- if_e	jmp	#LR__0173
-	loc	pa,	#(@LR__0171-@LR__0169)
+ if_e	jmp	#LR__0174
+	loc	pa,	#(@LR__0172-@LR__0170)
 	call	#FCACHE_LOAD_
-LR__0169
-	rep	@LR__0172, _var05
 LR__0170
+	rep	@LR__0173, _var05
+LR__0171
 	sub	arg01, #4
 	sub	arg02, #4
 	rdlong	_var03, arg02
 	wrlong	_var03, arg01
-LR__0171
 LR__0172
 LR__0173
 LR__0174
+LR__0175
 	mov	result1, _var01
 __system__longmove_ret
 	ret
@@ -3379,12 +3437,12 @@ __system___make_methodptr
 	mov	arg01, #8
 	call	#__system___gc_alloc_managed
 	mov	local03, result1 wz
- if_e	jmp	#LR__0175
+ if_e	jmp	#LR__0176
 	wrlong	local01, local03
 	mov	local04, local03
 	add	local04, #4
 	wrlong	local02, local04
-LR__0175
+LR__0176
 	mov	result1, local03
 	mov	ptra, fp
 	call	#popregs_
@@ -3397,13 +3455,13 @@ __system___lockmem
 	cogid	result1
 	mov	local01, result1
 	add	local01, #256
-LR__0176
+LR__0177
 	rdlong	local02, arg01 wz
  if_e	wrlong	local01, arg01
  if_e	rdlong	local02, arg01
  if_e	rdlong	local02, arg01
 	cmp	local02, local01 wz
- if_ne	jmp	#LR__0176
+ if_ne	jmp	#LR__0177
 	mov	ptra, fp
 	call	#popregs_
 __system___lockmem_ret
@@ -3414,16 +3472,16 @@ __system___tx
 	call	#pushregs_
 	mov	local01, arg01
 	cmp	local01, #10 wz
- if_ne	jmp	#LR__0177
+ if_ne	jmp	#LR__0178
 	add	ptr___system__dat__, #8
 	rdlong	local02, ptr___system__dat__
 	sub	ptr___system__dat__, #8
 	test	local02, #2 wz
- if_e	jmp	#LR__0177
+ if_e	jmp	#LR__0178
 	mov	local02, #13
 	mov	arg01, #13
 	call	#__system___txraw
-LR__0177
+LR__0178
 	mov	arg01, local01
 	call	#__system___txraw
 	mov	ptra, fp
@@ -3447,18 +3505,18 @@ __system___waitms
 	call	#pushregs_
 	mov	local01, arg01
 	rdlong	local02, #20
-	loc	pa,	#(@LR__0179-@LR__0178)
+	loc	pa,	#(@LR__0180-@LR__0179)
 	call	#FCACHE_LOAD_
-LR__0178
+LR__0179
 	cmps	local01, ##1000 wcz
  if_a	waitx	local02
  if_a	sub	local01, ##1000
- if_a	jmp	#LR__0178
-LR__0179
+ if_a	jmp	#LR__0179
+LR__0180
 	add	ptr___system__dat__, #12
 	rdlong	local03, ptr___system__dat__ wz
 	sub	ptr___system__dat__, #12
- if_ne	jmp	#LR__0180
+ if_ne	jmp	#LR__0181
 	mov	muldiva_, local02
 	mov	muldivb_, ##1000
 	call	#unsdivide_
@@ -3466,7 +3524,7 @@ LR__0179
 	add	ptr___system__dat__, #12
 	wrlong	muldivb_, ptr___system__dat__
 	sub	ptr___system__dat__, #12
-LR__0180
+LR__0181
 	cmps	local01, #0 wcz
  if_a	qmul	local01, local03
  if_a	getqx	arg01
@@ -3483,7 +3541,7 @@ __system___gc_ptrs
 	mov	local02, local01
 	add	local02, ##4088
 	rdlong	local03, local01 wz
- if_ne	jmp	#LR__0181
+ if_ne	jmp	#LR__0182
 	mov	local04, local02
 	sub	local04, local01
 	wrword	#1, local01
@@ -3511,7 +3569,7 @@ __system___gc_ptrs
 	add	local10, #6
 	wrword	#0, local10
 	sub	local01, #16
-LR__0181
+LR__0182
 	mov	result2, local02
 	mov	result1, local01
 	mov	ptra, fp
@@ -3524,15 +3582,15 @@ __system___gc_nextBlockPtr
 	call	#pushregs_
 	mov	local01, arg01
 	rdword	local02, local01 wz
- if_ne	jmp	#LR__0182
-	mov	arg01, ##@LR__0225
+ if_ne	jmp	#LR__0183
+	mov	arg01, ##@LR__0226
 	call	#__system___gc_errmsg
-	jmp	#LR__0183
-LR__0182
+	jmp	#LR__0184
+LR__0183
 	shl	local02, #4
 	mov	result1, local01
 	add	result1, local02
-LR__0183
+LR__0184
 	mov	ptra, fp
 	call	#popregs_
 __system___gc_nextBlockPtr_ret
@@ -3548,9 +3606,9 @@ __system___gc_tryalloc
 	mov	local04, result2
 	mov	local05, local03
 	mov	local06, #0
-	loc	pa,	#(@LR__0185-@LR__0184)
+	loc	pa,	#(@LR__0186-@LR__0185)
 	call	#FCACHE_LOAD_
-LR__0184
+LR__0185
 	mov	local07, local05
 	add	local05, #6
 	mov	local08, local05
@@ -3568,21 +3626,21 @@ LR__0184
  if_ne	mov	local12, local09
  if_ne	rdword	local06, local12
 	cmp	local05, #0 wz
- if_e	jmp	#LR__0186
+ if_e	jmp	#LR__0187
 	cmps	local05, local04 wcz
- if_ae	jmp	#LR__0186
+ if_ae	jmp	#LR__0187
 	cmps	local01, local06 wcz
- if_a	jmp	#LR__0184
-LR__0185
+ if_a	jmp	#LR__0185
 LR__0186
+LR__0187
 	cmp	local05, #0 wz
  if_e	mov	result1, local05
- if_e	jmp	#LR__0189
+ if_e	jmp	#LR__0190
 	mov	local13, local05
 	add	local13, #6
 	rdword	local14, local13
 	cmps	local01, local06 wcz
- if_ae	jmp	#LR__0188
+ if_ae	jmp	#LR__0189
 	mov	local15, local05
 	wrword	local01, local15
 	mov	local16, local01
@@ -3618,9 +3676,9 @@ LR__0186
 	mov	arg01, local17
 	call	#__system___gc_nextBlockPtr
 	mov	local24, result1 wz
- if_e	jmp	#LR__0187
+ if_e	jmp	#LR__0188
 	cmps	local24, local04 wcz
- if_ae	jmp	#LR__0187
+ if_ae	jmp	#LR__0188
 	mov	local25, local24
 	add	local25, #4
 	mov	local09, local03
@@ -3633,8 +3691,8 @@ LR__0186
  if_ne	mov	result1, arg02
 	mov	local11, result1
 	wrword	local11, local25
-LR__0187
 LR__0188
+LR__0189
 	add	local07, #6
 	wrword	local14, local07
 	mov	local09, ##27776
@@ -3657,7 +3715,7 @@ LR__0188
 	add	local05, #8
 	mov	result1, local05
 	or	result1, ##1669332992
-LR__0189
+LR__0190
 	mov	ptra, fp
 	call	#popregs_
 __system___gc_tryalloc_ret
@@ -3667,14 +3725,14 @@ __system___gc_errmsg
 	mov	COUNT_, #2
 	call	#pushregs_
 	mov	local01, arg01
-LR__0190
+LR__0191
 	rdbyte	local02, local01 wz
 	add	local01, #1
- if_e	jmp	#LR__0191
+ if_e	jmp	#LR__0192
 	mov	arg01, local02
 	call	#__system___tx
-	jmp	#LR__0190
-LR__0191
+	jmp	#LR__0191
+LR__0192
 	mov	result1, #0
 	mov	ptra, fp
 	call	#popregs_
@@ -3688,15 +3746,15 @@ __system___gc_alloc_managed
 	mov	arg02, #0
 	call	#__system___gc_doalloc
 	mov	local02, result1 wz
- if_ne	jmp	#LR__0192
+ if_ne	jmp	#LR__0193
 	cmps	local01, #0 wcz
- if_be	jmp	#LR__0192
-	mov	arg01, ##@LR__0226
+ if_be	jmp	#LR__0193
+	mov	arg01, ##@LR__0227
 	call	#__system___gc_errmsg
-	jmp	#LR__0193
-LR__0192
-	mov	result1, local02
+	jmp	#LR__0194
 LR__0193
+	mov	result1, local02
+LR__0194
 	mov	ptra, fp
 	call	#popregs_
 __system___gc_alloc_managed_ret
@@ -3708,7 +3766,7 @@ __system___gc_doalloc
 	mov	local01, arg01 wz
 	mov	local02, arg02
  if_e	mov	result1, #0
- if_e	jmp	#LR__0201
+ if_e	jmp	#LR__0202
 	add	local01, #23
 	andn	local01, #15
 	shr	local01, #4
@@ -3721,16 +3779,16 @@ __system___gc_doalloc
 	mov	arg02, local02
 	call	#__system___gc_tryalloc
 	mov	local04, result1 wz
- if_ne	jmp	#LR__0194
+ if_ne	jmp	#LR__0195
 	call	#__system___gc_docollect
 	mov	arg01, local01
 	mov	arg02, local02
 	call	#__system___gc_tryalloc
 	mov	local04, result1
-LR__0194
+LR__0195
 	wrlong	#0, local03
 	cmp	local04, #0 wz
- if_e	jmp	#LR__0200
+ if_e	jmp	#LR__0201
 	shl	local01, #4
 	sub	local01, #8
 	abs	local05, local01 wc
@@ -3738,20 +3796,20 @@ LR__0194
  if_b	neg	local05, local05
 	mov	local06, local05 wz
 	mov	local07, local04
- if_e	jmp	#LR__0199
-	loc	pa,	#(@LR__0197-@LR__0195)
+ if_e	jmp	#LR__0200
+	loc	pa,	#(@LR__0198-@LR__0196)
 	call	#FCACHE_LOAD_
-LR__0195
-	rep	@LR__0198, local06
 LR__0196
+	rep	@LR__0199, local06
+LR__0197
 	wrlong	#0, local07
 	add	local07, #4
-LR__0197
 LR__0198
 LR__0199
 LR__0200
-	mov	result1, local04
 LR__0201
+	mov	result1, local04
+LR__0202
 	mov	ptra, fp
 	call	#popregs_
 __system___gc_doalloc_ret
@@ -3768,13 +3826,13 @@ __system___gc_isvalidptr
 	mov	_var03, _var01
 	andn	_var03, ##-1048576
 	cmps	_var03, arg01 wcz
- if_b	jmp	#LR__0202
-	cmps	_var03, arg02 wcz
  if_b	jmp	#LR__0203
-LR__0202
+	cmps	_var03, arg02 wcz
+ if_b	jmp	#LR__0204
+LR__0203
 	mov	result1, #0
 	jmp	#__system___gc_isvalidptr_ret
-LR__0203
+LR__0204
 	mov	_var02, _var03
 	xor	_var02, arg01
 	and	_var02, #15 wz
@@ -3804,9 +3862,9 @@ __system___gc_dofree
 	mov	arg01, local01
 	call	#__system___gc_nextBlockPtr
 	mov	local06, result1
-	loc	pa,	#(@LR__0205-@LR__0204)
+	loc	pa,	#(@LR__0206-@LR__0205)
 	call	#FCACHE_LOAD_
-LR__0204
+LR__0205
 	add	local05, #4
 	mov	local07, local05
 	rdword	arg02, local07 wz
@@ -3816,7 +3874,7 @@ LR__0204
  if_ne	add	arg01, arg02
  if_ne	mov	result1, arg01
 	mov	local05, result1 wz
- if_e	jmp	#LR__0206
+ if_e	jmp	#LR__0207
 	mov	arg01, local05
 	mov	local08, #0
 	add	arg01, #2
@@ -3825,9 +3883,9 @@ LR__0204
  if_e	neg	local08, #1
 	mov	result1, local08
 	mov	local10, result1 wz
- if_e	jmp	#LR__0204
-LR__0205
+ if_e	jmp	#LR__0205
 LR__0206
+LR__0207
 	cmp	local05, #0 wz
  if_e	mov	local05, local03
 	mov	local11, local05
@@ -3844,11 +3902,11 @@ LR__0206
 	mov	local14, result1
 	wrword	local14, local11
 	cmp	local05, local03 wz
- if_e	jmp	#LR__0209
+ if_e	jmp	#LR__0210
 	mov	arg01, local05
 	call	#__system___gc_nextBlockPtr
 	cmp	result1, local01 wz
- if_ne	jmp	#LR__0208
+ if_ne	jmp	#LR__0209
 	mov	local15, local05
 	rdword	local16, local15
 	mov	local17, local01
@@ -3860,7 +3918,7 @@ LR__0206
 	call	#__system___gc_nextBlockPtr
 	mov	local06, result1
 	cmps	local06, local02 wcz
- if_ae	jmp	#LR__0207
+ if_ae	jmp	#LR__0208
 	mov	local18, local06
 	add	local18, #4
 	mov	arg02, local05 wz
@@ -3870,19 +3928,19 @@ LR__0206
  if_ne	mov	result1, arg02
 	mov	local14, result1
 	wrword	local14, local18
-LR__0207
+LR__0208
 	rdword	local13, local12
 	wrword	local13, local11
 	wrword	#0, local12
 	mov	local01, local05
-LR__0208
 LR__0209
+LR__0210
 	mov	arg01, local01
 	call	#__system___gc_nextBlockPtr
 	mov	local19, result1 wz
- if_e	jmp	#LR__0211
+ if_e	jmp	#LR__0212
 	cmps	local19, local02 wcz
- if_ae	jmp	#LR__0211
+ if_ae	jmp	#LR__0212
 	mov	arg01, local19
 	mov	local08, #0
 	add	arg01, #2
@@ -3890,7 +3948,7 @@ LR__0209
 	cmp	local09, ##27791 wz
  if_e	neg	local08, #1
 	mov	result1, local08 wz
- if_e	jmp	#LR__0211
+ if_e	jmp	#LR__0212
 	mov	local05, local01
 	mov	local01, local19
 	mov	local20, local05
@@ -3914,9 +3972,9 @@ LR__0209
 	call	#__system___gc_nextBlockPtr
 	mov	local10, result1
 	mov	local06, local10 wz
- if_e	jmp	#LR__0210
+ if_e	jmp	#LR__0211
 	cmps	local06, local02 wcz
- if_ae	jmp	#LR__0210
+ if_ae	jmp	#LR__0211
 	mov	local26, local06
 	add	local26, #4
 	mov	local13, local03
@@ -3929,8 +3987,8 @@ LR__0209
  if_ne	mov	result1, arg02
 	mov	local14, result1
 	wrword	local14, local26
-LR__0210
 LR__0211
+LR__0212
 	mov	result1, local06
 	mov	ptra, fp
 	call	#popregs_
@@ -3948,10 +4006,10 @@ __system___gc_docollect
 	mov	local03, result1 wz
 	cogid	result1
 	mov	local04, result1
- if_e	jmp	#LR__0213
-LR__0212
+ if_e	jmp	#LR__0214
+LR__0213
 	cmps	local03, local01 wcz
- if_ae	jmp	#LR__0213
+ if_ae	jmp	#LR__0214
 	mov	local05, local03
 	add	local05, #2
 	rdword	local06, local05
@@ -3960,8 +4018,8 @@ LR__0212
 	mov	arg01, local03
 	call	#__system___gc_nextBlockPtr
 	mov	local03, result1 wz
- if_ne	jmp	#LR__0212
-LR__0213
+ if_ne	jmp	#LR__0213
+LR__0214
 	mov	local07, #0
 	mov	arg01, #0
 	call	#__system____topofstack
@@ -3973,12 +4031,12 @@ LR__0213
 	mov	arg01, local02
 	call	#__system___gc_nextBlockPtr
 	mov	local09, result1 wz
- if_ne	jmp	#LR__0214
-	mov	arg01, ##@LR__0227
+ if_ne	jmp	#LR__0215
+	mov	arg01, ##@LR__0228
 	call	#__system___gc_errmsg
-	jmp	#LR__0220
-LR__0214
+	jmp	#LR__0221
 LR__0215
+LR__0216
 	mov	local03, local09
 	mov	arg01, local03
 	call	#__system___gc_nextBlockPtr
@@ -3987,31 +4045,31 @@ LR__0215
 	add	local10, #2
 	rdword	local11, local10
 	test	local11, #32 wz
- if_ne	jmp	#LR__0218
+ if_ne	jmp	#LR__0219
 	mov	local12, local11
 	and	local12, #16 wz
- if_ne	jmp	#LR__0218
+ if_ne	jmp	#LR__0219
 	mov	local07, local11
 	and	local07, #15
 	mov	local11, local07
 	cmp	local11, local04 wz
- if_e	jmp	#LR__0216
+ if_e	jmp	#LR__0217
 	cmp	local11, #14 wz
- if_ne	jmp	#LR__0217
-LR__0216
+ if_ne	jmp	#LR__0218
+LR__0217
 	mov	local07, local03
 	mov	arg01, local07
 	call	#__system___gc_dofree
 	mov	local12, result1
 	mov	local09, local12
-LR__0217
 LR__0218
-	cmp	local09, #0 wz
- if_e	jmp	#LR__0219
-	cmps	local09, local01 wcz
- if_b	jmp	#LR__0215
 LR__0219
+	cmp	local09, #0 wz
+ if_e	jmp	#LR__0220
+	cmps	local09, local01 wcz
+ if_b	jmp	#LR__0216
 LR__0220
+LR__0221
 	mov	ptra, fp
 	call	#popregs_
 __system___gc_docollect_ret
@@ -4025,16 +4083,16 @@ __system___gc_markhub
 	call	#__system___gc_ptrs
 	mov	local03, result1
 	mov	local04, result2
-LR__0221
+LR__0222
 	cmps	local01, local02 wcz
- if_ae	jmp	#LR__0222
+ if_ae	jmp	#LR__0223
 	rdlong	arg03, local01
 	add	local01, #4
 	mov	arg01, local03
 	mov	arg02, local04
 	call	#__system___gc_isvalidptr
 	mov	local05, result1 wz
- if_e	jmp	#LR__0221
+ if_e	jmp	#LR__0222
 	mov	arg01, local05
 	mov	local06, #0
 	add	arg01, #2
@@ -4043,15 +4101,15 @@ LR__0221
  if_e	neg	local06, #1
 	mov	result1, local06
 	mov	local08, result1 wz
- if_ne	jmp	#LR__0221
+ if_ne	jmp	#LR__0222
 	mov	local09, local05
 	add	local09, #2
 	rdword	local10, local09
 	andn	local10, #15
 	or	local10, #46
 	wrword	local10, local09
-	jmp	#LR__0221
-LR__0222
+	jmp	#LR__0222
+LR__0223
 	mov	ptra, fp
 	call	#popregs_
 __system___gc_markhub_ret
@@ -4064,7 +4122,7 @@ __system___gc_markcog
 	mov	local01, result1
 	mov	local02, result2
 	mov	local03, #0
-LR__0223
+LR__0224
 	mov	local04, #496
 	sub	local04, local03
 	add	local04, #496
@@ -4076,99 +4134,99 @@ LR__0223
 	mov	arg03, local05
 	call	#__system___gc_isvalidptr
 	mov	local05, result1 wz
- if_e	jmp	#LR__0224
+ if_e	jmp	#LR__0225
 	add	local05, #2
 	rdword	local06, local05
 	or	local06, #32
 	wrword	local06, local05
-LR__0224
+LR__0225
 	add	local03, #1
 	cmps	local03, #496 wcz
- if_b	jmp	#LR__0223
+ if_b	jmp	#LR__0224
 	mov	ptra, fp
 	call	#popregs_
 __system___gc_markcog_ret
 	ret
 
-LR__0225
+LR__0226
 	byte	" !!! corrupted heap??? !!! "
 	byte	0
-LR__0226
+LR__0227
 	byte	" !!! out of heap memory !!! "
 	byte	0
-LR__0227
+LR__0228
 	byte	" !!! corrupted heap !!! "
 	byte	0
-LR__0228
-	byte	" "
-	byte	0
 LR__0229
-	byte	"  P2 Retromachine v. 0.00"
+	byte	" "
 	byte	0
 LR__0230
-	byte	" "
+	byte	"  P2 Retromachine v. 0.00"
 	byte	0
 LR__0231
-	byte	"  Ready"
-	byte	0
-LR__0232
 	byte	" "
 	byte	0
+LR__0232
+	byte	"  Ready"
+	byte	0
 LR__0233
-	byte	"  "
+	byte	" "
 	byte	0
 LR__0234
-	byte	"C:\kernel.img"
+	byte	"  "
 	byte	0
 LR__0235
-	byte	" Midi: "
+	byte	"C:\kernel.img"
 	byte	0
 LR__0236
-	byte	"  Mouse moved, x= "
+	byte	" Midi: "
 	byte	0
 LR__0237
-	byte	", y= "
-	byte	0
-LR__0238
 	byte	"  Mouse moved, x= "
 	byte	0
-LR__0239
+LR__0238
 	byte	", y= "
 	byte	0
+LR__0239
+	byte	"  Mouse moved, x= "
+	byte	0
 LR__0240
-	byte	"  Mouse wheel: "
+	byte	", y= "
 	byte	0
 LR__0241
-	byte	"  Mouse key pressed: "
+	byte	"  Mouse wheel: "
 	byte	0
 LR__0242
-	byte	"  Mouse clicked"
+	byte	"  Mouse key pressed: "
 	byte	0
 LR__0243
-	byte	"  Mouse double clicked"
+	byte	"  Mouse clicked"
 	byte	0
 LR__0244
-	byte	"  Key scancode "
+	byte	"  Mouse double clicked"
 	byte	0
 LR__0245
-	byte	" released"
-	byte	0
-LR__0246
 	byte	"  Key scancode "
 	byte	0
+LR__0246
+	byte	" released"
+	byte	0
 LR__0247
-	byte	", charcode "
+	byte	"  Key scancode "
 	byte	0
 LR__0248
-	byte	" pressed"
+	byte	", charcode "
 	byte	0
 LR__0249
-	byte	"  Key modifier "
-	byte	0
-LR__0250
 	byte	" pressed"
 	byte	0
+LR__0250
+	byte	"  Key modifier "
+	byte	0
 LR__0251
+	byte	" pressed"
+	byte	0
+LR__0252
 	byte	"  Modifiers released"
 	byte	0
 	alignl
@@ -5739,6 +5797,68 @@ _var15
 	res	1
 _var16
 	res	1
+_var17
+	res	1
+_var18
+	res	1
+_var19
+	res	1
+_var20
+	res	1
+_var21
+	res	1
+_var22
+	res	1
+_var23
+	res	1
+_var24
+	res	1
+_var25
+	res	1
+_var26
+	res	1
+_var27
+	res	1
+_var28
+	res	1
+_var29
+	res	1
+_var30
+	res	1
+_var31
+	res	1
+_var32
+	res	1
+_var33
+	res	1
+_var34
+	res	1
+_var35
+	res	1
+_var36
+	res	1
+_var37
+	res	1
+_var38
+	res	1
+_var39
+	res	1
+_var40
+	res	1
+_var41
+	res	1
+_var42
+	res	1
+_var43
+	res	1
+_var44
+	res	1
+_var45
+	res	1
+_var46
+	res	1
+_var47
+	res	1
 arg01
 	res	1
 arg02
@@ -5820,92 +5940,6 @@ local35
 local36
 	res	1
 local37
-	res	1
-local38
-	res	1
-local39
-	res	1
-local40
-	res	1
-local41
-	res	1
-local42
-	res	1
-local43
-	res	1
-local44
-	res	1
-local45
-	res	1
-local46
-	res	1
-local47
-	res	1
-local48
-	res	1
-local49
-	res	1
-local50
-	res	1
-local51
-	res	1
-local52
-	res	1
-local53
-	res	1
-local54
-	res	1
-local55
-	res	1
-local56
-	res	1
-local57
-	res	1
-local58
-	res	1
-local59
-	res	1
-local60
-	res	1
-local61
-	res	1
-local62
-	res	1
-local63
-	res	1
-local64
-	res	1
-local65
-	res	1
-local66
-	res	1
-local67
-	res	1
-local68
-	res	1
-local69
-	res	1
-local70
-	res	1
-local71
-	res	1
-local72
-	res	1
-local73
-	res	1
-local74
-	res	1
-local75
-	res	1
-local76
-	res	1
-local77
-	res	1
-local78
-	res	1
-local79
-	res	1
-local80
 	res	1
 muldiva_
 	res	1

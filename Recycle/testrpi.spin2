@@ -1,0 +1,399 @@
+'' v. 0.01 - initial                                                            '
+'' pik33@o2.pl                                                                  '
+''------------------------------------------------------------------------------'
+
+con
+
+hdmi_base       = 0            'must be a multiple of 8
+'_clkfreq        = 354_689_500   '200x Atari 8-bit PAL,  50x Amiga PAL
+'_clkfreq       = 357_954_500   '200x Atari 8-bit NTSC, 50x Amiga NTSC
+_clkfreq		= 320_000_000    'will be set via video driver
+rxpin           = 32
+txpin           = 33
+baudrate        = 1920000
+
+
+obj
+
+v:    "hng030rm"
+
+var
+
+long vgacog
+long sdcog
+long rxp
+long txp
+long mrxp
+long mtxp
+long serialbuf[64]
+long serialtail,serialfront
+long serialstack[64]
+long rr,mrr
+byte charcode
+byte scancode
+byte mousewheel
+byte mousekey
+word mousex
+word mousey
+byte dummy
+
+pub start(mode)   |iii,caps
+
+mode :=64+6
+caps:=0
+pinl(31)
+waitms(100)
+iii:=0
+vgacog:=v.start(mode,hdmi_base)
+'v.setmode(mode+64)
+v.setfontfamily(0)
+v.cls(154,147)
+v.setbordercolor(0,0,0)
+serial_start(rxpin, txpin, baudrate)
+midi_start(29,30)
+pinwrite(14,0)
+pinwrite(15,0)
+
+cogspin(16,serialcog(),@serialstack)
+v.setcursorshape(0)
+v.setwritecolors(154,147)
+v.writeln(string(" "))
+v.writeln(string("  P2 Retromachine v. 0.00"))
+v.writeln(string(" "))
+v.writeln(string("  Ready"))
+v.writeln(string(" "))
+v.write(string("  "))
+
+iii:=fileopen(string("C:\kernel.img"))
+
+repeat
+ 
+  repeat 
+    rr:=serialread()
+    mrr:=mrxcheck()
+ '   debug(udec(mrr))
+  until rr>=0 || mrr>=0  
+    
+'  rr:=serialblockingread()
+
+{{
+  if rr==$38
+    scancode:=serialblockingread()
+    charcode:=serialblockingread()
+    rr:=serialblockingread()
+    if rr==255
+      if charcode==185 'caps
+        if caps==0
+          caps:=1
+        else
+          caps:=0
+      if charcode==136 'bksp
+        v.bksp()
+
+
+
+      if charcode<128
+        v.putchar(charcode)
+      if charcode==141
+        v.crlf()
+
+}}   
+  if mrr>=0
+    v.write(string(" Midi: "))
+    v.writeln(v.inttohex(mrr,2))
+    
+ 
+  if rr==$81    'mousex
+    mousex:=serialblockingread()
+    mousex+=serialblockingread()<<7
+    rr:=serialblockingread()
+    if rr==255
+     v.write(string("  Mouse moved, x= "))
+     v.write(v.inttostr(mousex))
+     v.write(string(", y= "))
+     v.writeln(v.inttostr(mousey))
+
+  if rr==$82    'mousey
+    mousey:=serialblockingread()
+    mousey+=serialblockingread()<<7
+    rr:=serialblockingread()
+    if rr==255
+     v.write(string("  Mouse moved, x= "))
+     v.write(v.inttostr(mousex))
+     v.write(string(", y= "))
+     v.writeln(v.inttostr(mousey))
+
+  if rr==$83   'mousewheel
+    mousewheel:=serialblockingread()
+    dummy:=serialblockingread()
+    rr:=serialblockingread()
+    if rr==255
+     v.write(string("  Mouse wheel: "))
+     v.writeln(v.inttostr(mousewheel))
+
+  if rr==$84   'mousekey
+    mousekey:=serialblockingread()
+    dummy:=serialblockingread()
+    rr:=serialblockingread()
+    if rr==255
+     v.write(string("  Mouse key pressed: "))
+     v.writeln(v.inttostr(mousekey))
+
+  if rr==$85   'mouseclick
+    dummy:=serialblockingread()
+    dummy:=serialblockingread()
+    rr:=serialblockingread()
+    if rr==255
+     v.writeln(string("  Mouse clicked"))
+
+  if rr==$86   'mouseclick
+    dummy:=serialblockingread()
+    dummy:=serialblockingread()
+    rr:=serialblockingread()
+    if rr==255
+     v.writeln(string("  Mouse double clicked"))
+
+  if rr==$87   'key released
+    scancode:=serialblockingread()
+    dummy:=serialblockingread()
+    rr:=serialblockingread()
+    if rr==255
+     v.write(string("  Key scancode "))
+     v.write(v.inttostr(scancode))
+     v.writeln(string(" released"))
+
+  if rr==$88   'key pressed
+    scancode:=serialblockingread()
+    charcode:=serialblockingread()
+    rr:=serialblockingread()
+    if rr==255
+     v.write(string("  Key scancode "))
+     v.write(v.inttostr(scancode))
+     v.write(string(", charcode "))
+     v.write(v.inttostr(charcode))
+     v.writeln(string(" pressed"))
+
+  if rr==$89   'modifier pressed
+    scancode:=serialblockingread()
+    scancode+=serialblockingread()<<7
+    rr:=serialblockingread()
+    if rr==255
+      if scancode>0
+        v.write(string("  Key modifier "))
+        v.write(v.inttostr(scancode))
+        v.writeln(string(" pressed"))
+        if scancode==1
+          v.setmode (0)
+          serial_start(rxpin, txpin, baudrate)
+          midi_start(29,30)
+        if scancode==8
+          v.setmode(64)  
+          serial_start(rxpin, txpin, baudrate)
+          midi_start(29,30)
+      else
+        v.writeln(string("  Modifiers released"))
+
+ 
+
+pub fileopen(filename) :r       |q ,i
+
+q:=strsize(filename)
+tx($40)
+repeat i from 0 to q-1
+  tx(byte[filename+i])
+tx(255)
+return q
+
+
+pub serialcog()|q
+
+serialfront:=0
+serialtail:=0
+
+repeat
+  if serialfront<>((serialtail-1) //32)
+    q:=rxcheck()
+    if q>=0
+     serialbuf[serialfront]:=q
+     serialfront+=1
+     serialfront:=serialfront // 32
+
+pub serialread():r
+
+if serialfront<>serialtail
+  r:=serialbuf[serialtail]
+  serialtail:=(serialtail+1)//32
+else
+  r:=-1
+return r
+
+pub serialblockingread(): r
+
+repeat
+  r:=serialread()
+until r<>-1
+return r
+
+
+
+''---------------------- Serial functions from jm_serial.spin2
+
+pub serial_start(rxpin2, txpin2, baud) | bitmode
+
+'' Start simple serial coms on rxpin and txpin at baud
+
+'  longmove(@rxp, @rxpin2, 2)                                     ' save pins
+
+  rxp:=rxpin2
+  txp:=txpin2
+
+  bitmode := muldiv64(clkfreq, $1_0000, baud) & $FFFFFC00       ' set bit timing
+  bitmode |= 7                                                  ' set bits (8)
+
+  org
+                fltl      rxpin2                                 ' configure rx smart pin
+                wrpin     ##P_ASYNC_RX, rxpin2
+                wxpin     bitmode, rxpin2
+                drvl      rxpin2
+                fltl      txpin2                                ' configure tx smart pin
+                wrpin     ##(P_ASYNC_TX | P_OE), txpin2
+                wxpin     bitmode, txpin2
+                drvl      txpin2
+  end
+
+pub midi_start(mrxpin2, mtxpin2) | bitmode
+
+'' Start simple serial coms on rxpin and txpin at baud
+
+'  longmove(@rxp, @rxpin2, 2)                                     ' save pins
+
+  mrxp:=mrxpin2
+  mtxp:=mtxpin2
+
+  bitmode := muldiv64(clkfreq, $1_0000, 31250) & $FFFFFC00       ' set bit timing
+  bitmode |= 7                                                  ' set bits (8)
+
+  org
+                fltl      mrxpin2                                 ' configure rx smart pin
+                wrpin     ##P_ASYNC_RX, mrxpin2
+                wxpin     bitmode, mrxpin2
+                drvl      mrxpin2
+                fltl      mtxpin2                                ' configure tx smart pin
+                wrpin     ##(P_ASYNC_TX | P_OE), mtxpin2
+                wxpin     bitmode, mtxpin2
+                drvl      mtxpin2
+  end
+
+
+pub rxflush()
+
+'' Clear serial input
+
+  repeat
+  while (rxcheck() >= 0)
+
+
+pub rxcheck() : rxbyte | check
+
+'' Check for serial input
+'' -- returns -1 if nothing available
+
+  rxbyte := -1
+  check := pinr(rxp)
+  if (check)
+    rxbyte := rdpin(rxp) >> 24
+
+
+pub rxtime(ms) : b | mstix, t
+
+'' Wait ms milliseconds for a byte to be received
+'' -- returns -1 if no byte received, $00..$FF if byte
+
+  mstix := clkfreq / 1000
+
+  t := getct()
+  repeat
+  until ((b := rxcheck()) >= 0) or (((getct() - t) / mstix) > ms)
+
+
+pub rx() : rxbyte
+
+'' Wait for serial input
+'' -- blocks!
+
+  repeat
+    rxbyte := rxcheck()
+  until (rxbyte >= 0)
+
+
+pub tx(b)
+
+'' Emit byte
+
+  wypin(txp, b)
+  txflush()
+
+pub txflush() | check
+
+'' Wait until last byte has finished
+
+  repeat
+    check := pinr(txp)
+  while (check == 0)
+
+
+pub mrxflush()
+
+'' Clear serial input
+
+  repeat
+  while (mrxcheck() >= 0)
+
+
+pub mrxcheck() : rxbyte | check
+
+'' Check for serial input
+'' -- returns -1 if nothing available
+
+  rxbyte := -1
+  check := pinr(mrxp)
+  if (check)
+    rxbyte := rdpin(mrxp) >> 24
+
+
+pub mrxtime(ms) : b | mstix, t
+
+'' Wait ms milliseconds for a byte to be received
+'' -- returns -1 if no byte received, $00..$FF if byte
+
+  mstix := clkfreq / 1000
+
+  t := getct()
+  repeat
+  until ((b := mrxcheck()) >= 0) or (((getct() - t) / mstix) > ms)
+
+
+pub mrx() : rxbyte
+
+'' Wait for serial input
+'' -- blocks!
+
+  repeat
+    rxbyte := mrxcheck()
+  until (rxbyte >= 0)
+
+
+pub mtx(b)
+
+'' Emit byte
+
+  wypin(mtxp, b)
+  mtxflush()
+
+pub mtxflush() | check
+
+'' Wait until last byte has finished
+
+  repeat
+    check := pinr(mtxp)
+  while (check == 0)
