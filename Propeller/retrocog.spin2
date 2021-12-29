@@ -19,9 +19,14 @@ long mousefront,mousetail
 long midifront,miditail
 
 long kbdbuf[32]
+
 long mousebuf[128]
+
 long midibuf[32]
-long serialstack[32]
+
+long serialstack[36]
+
+
 
 pub dummy()
 
@@ -155,9 +160,9 @@ pub serial_start(rxpin, txpin, baud) | bitmode
 
 bitmode := muldiv64(clkfreq, $1_0000, baud) & $FFFFFC00       ' set bit timing
 bitmode |= 7                                                  ' set bits (8)
-pinstart(rxpin,P_ASYNC_RX,bitmode,0)
+pinstart(rxpin,P_HIGH_15K|P_ASYNC_RX,bitmode,0)
 pinstart(txpin,P_ASYNC_TX|P_OE,bitmode,0)
-
+pinhigh(rxpin)
 
 pub rxcheck(pin) : rxbyte | check
 
