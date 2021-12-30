@@ -1,0 +1,829 @@
+' _clkfreq=90*3546895
+con
+	_clkfreq = 319220550
+' 
+' 
+' c4=262
+	c4 = 262
+' d4=294
+	d4 = 294
+' e4=330
+	e4 = 330
+' f4=349
+	f4 = 349
+' g4=392
+	g4 = 392
+' a4=440
+	a4 = 440
+' h4=494
+	h4 = 494
+dat
+	nop
+	cogid	pa
+	coginit	pa,##$404
+	orgh	$10
+	long	0	'reserved
+	long	0 ' clock frequency: will default to 319215798
+	long	0 ' clock mode: will default to $1cb2dfb
+	orgh	$400
+ _ret_	mov	result1, #0
+	org	0
+entry
+	cmp	ptra, #0 wz
+ if_ne	jmp	#spininit
+	mov	ptra, objptr
+	add	ptra, #100
+	rdlong	pa, #20 wz
+ if_ne	jmp	#skip_clock_set_
+	hubset	#0
+	hubset	##30092792
+	waitx	##200000
+	mov	pa, ##30092795
+	hubset	pa
+	wrlong	pa, #24
+	wrlong	##319215798, #20
+	jmp	#skip_clock_set_
+	orgf	128
+skip_clock_set_
+	call	#_test
+cogexit
+	waitx	##160000
+	cogid	arg01
+	cogstop	arg01
+spininit
+	rdlong	objptr, ptra
+	add	ptra, #4
+	rdlong	result1, ptra
+	add	ptra, #4
+	rdlong	arg01, ptra
+	add	ptra, #4
+	rdlong	arg02, ptra
+	add	ptra, #4
+	rdlong	arg03, ptra
+	add	ptra, #4
+	rdlong	arg04, ptra
+	sub	ptra, #16
+	call	result1
+	jmp	#cogexit
+FCACHE_LOAD_
+    pop	fcache_tmpb_
+    add	fcache_tmpb_, pa
+    push	fcache_tmpb_
+    sub	fcache_tmpb_, pa
+    shr	pa, #2
+    altd	pa
+    mov	 0-0, ret_instr_
+    sub	pa, #1
+    setq	pa
+    rdlong	$0, fcache_tmpb_
+    jmp	#\$0 ' jmp to cache
+ret_instr_
+    ret
+fcache_tmpb_
+    long 0
+builtin_bytefill_
+        shr	arg03, #1 wc
+ if_c   wrbyte	arg02, arg01
+ if_c   add	arg01, #1
+        movbyts	arg02, #0
+builtin_wordfill_
+        shr	arg03, #1 wc
+ if_c   wrword	arg02, arg01
+ if_c   add	arg01, #2
+        setword	arg02, arg02, #1
+builtin_longfill_
+        wrfast	#0,arg01
+        cmp	arg03, #0 wz
+ if_nz  rep	#1, arg03
+ if_nz  wflong	arg02
+        ret
+COUNT_
+    long 0
+RETADDR_
+    long 0
+fp
+    long 0
+pushregs_
+    pop  pa
+    pop  RETADDR_
+    tjz  COUNT_, #pushregs_done_
+    sub  COUNT_, #1
+    setq COUNT_
+    wrlong local01, ptra
+    add  COUNT_, #1
+pushregs_done_
+    shl  COUNT_, #2
+    add  ptra, COUNT_
+    shr  COUNT_, #2
+    setq #2 ' push 3 registers starting at COUNT_
+    wrlong COUNT_, ptra
+    add    ptra, #12
+    mov    fp, ptra
+    jmp  pa
+ popregs_
+    pop    pa
+    sub    ptra, #12
+    setq   #2
+    rdlong COUNT_, ptra
+    tjz    COUNT_, #popregs__ret
+    shl    COUNT_, #2
+    sub    ptra, COUNT_
+    shr    COUNT_, #2
+    sub    COUNT_, #1
+    setq   COUNT_
+    rdlong local01, ptra
+popregs__ret
+    push   RETADDR_
+    jmp    pa
+
+unsdivide_
+       setq    #0
+       qdiv    muldiva_, muldivb_
+       getqx   muldivb_
+ _ret_ getqy   muldiva_
+
+divide_
+       abs     muldiva_,muldiva_     wc       'abs(x)
+       muxc    itmp2_,#%11                    'store sign of x
+       abs     muldivb_,muldivb_     wcz      'abs(y)
+ if_c  xor     itmp2_,#%10                    'store sign of y
+ if_z  ret
+       call    #unsdivide_
+       test    itmp2_,#1        wc       'restore sign, remainder
+       negc    muldiva_,muldiva_ 
+       test    itmp2_,#%10      wc       'restore sign, division result
+ _ret_ negc    muldivb_,muldivb_
+
+itmp1_
+	long	0
+itmp2_
+	long	0
+objptr
+	long	@objmem
+ptr___system__dat__
+	long	@__system__dat_
+ptr__dat__
+	long	@_dat_
+result1
+	long	0
+COG_BSS_START
+	fit	480
+	orgh
+hubentry
+
+' 
+' 
+' 
+' pub test() |q
+_test
+' 
+' start(14)
+' 
+' samplestart:=0
+	wrlong	#0, objptr
+' loopstart:=0
+	add	objptr, #4
+	wrlong	#0, objptr
+' loopend:=0
+	add	objptr, #4
+	wrlong	#0, objptr
+' volume:=$4000
+	add	objptr, #4
+	wrlong	##16384, objptr
+' synthfreq:=0
+	add	objptr, #4
+	wrlong	#0, objptr
+' cmd:=0
+	add	objptr, #4
+	wrlong	#0, objptr
+' pin:=thepin
+	add	objptr, #76
+	wrlong	#14, objptr
+	sub	objptr, #96
+' 'pinstart(pin ,(P_DAC_DITHER_RND | P_DAC_75R_2V | P_OE),90,0)
+' coginit(2,@driver,@samplestart)
+	mov	arg02, ptr__dat__
+	mov	arg03, objptr
+	mov	arg01, #2
+	setq	arg03
+	coginit	arg01, arg02 wc
+ if_b	neg	arg01, #1
+	mov	result1, arg01
+' waitms(10)
+	mov	arg01, #10
+	call	#__system___waitms
+' 
+' repeat
+LR__0001
+'   sawbeep(c4,16384,500)
+	mov	arg01, #262
+	decod	arg02, #14
+	mov	arg03, #500
+	call	#_sawbeep
+'   sawbeep(d4,16384,500)
+	mov	arg01, #294
+	decod	arg02, #14
+	mov	arg03, #500
+	call	#_sawbeep
+'   sawbeep(e4,16384,500)
+	mov	arg01, #330
+	decod	arg02, #14
+	mov	arg03, #500
+	call	#_sawbeep
+'   sawbeep(f4,16384,500)
+	mov	arg01, #349
+	decod	arg02, #14
+	mov	arg03, #500
+	call	#_sawbeep
+'   sawbeep(g4,16384,500)
+	mov	arg01, #392
+	decod	arg02, #14
+	mov	arg03, #500
+	call	#_sawbeep
+'   sawbeep(a4,16384,500)
+	mov	arg01, #440
+	decod	arg02, #14
+	mov	arg03, #500
+	call	#_sawbeep
+'   sawbeep(h4,16384,500)
+	mov	arg01, #494
+	decod	arg02, #14
+	mov	arg03, #500
+	call	#_sawbeep
+'   sawbeep(2*c4,16384,500)
+	mov	arg01, ##524
+	decod	arg02, #14
+	mov	arg03, #500
+	call	#_sawbeep
+' 
+' 
+'   beep(2*c4,16384,500)
+	mov	arg01, ##524
+	decod	arg02, #14
+	mov	arg03, #500
+	call	#_beep
+'   beep(h4,16384,500)
+	mov	arg01, #494
+	decod	arg02, #14
+	mov	arg03, #500
+	call	#_beep
+'   beep(a4,16384,500)
+	mov	arg01, #440
+	decod	arg02, #14
+	mov	arg03, #500
+	call	#_beep
+'   beep(g4,16384,500)
+	mov	arg01, #392
+	decod	arg02, #14
+	mov	arg03, #500
+	call	#_beep
+'   beep(f4,16384,500)
+	mov	arg01, #349
+	decod	arg02, #14
+	mov	arg03, #500
+	call	#_beep
+'   beep(e4,16384,500)
+	mov	arg01, #330
+	decod	arg02, #14
+	mov	arg03, #500
+	call	#_beep
+'   beep(d4,16384,500)
+	mov	arg01, #294
+	decod	arg02, #14
+	mov	arg03, #500
+	call	#_beep
+'   beep(c4,16384,500)
+	mov	arg01, #262
+	decod	arg02, #14
+	mov	arg03, #500
+	call	#_beep
+' 
+'   sinebeep(c4>>2,16384,500)
+	mov	arg01, #65
+	decod	arg02, #14
+	mov	arg03, #500
+	call	#_sinebeep
+'   sinebeep(d4>>2,16384,500)
+	mov	arg01, #73
+	decod	arg02, #14
+	mov	arg03, #500
+	call	#_sinebeep
+'   sinebeep(e4,16384,500)
+	mov	arg01, #330
+	decod	arg02, #14
+	mov	arg03, #500
+	call	#_sinebeep
+'   sinebeep(f4,16384,500)
+	mov	arg01, #349
+	decod	arg02, #14
+	mov	arg03, #500
+	call	#_sinebeep
+'   sinebeep(g4,16384,500)
+	mov	arg01, #392
+	decod	arg02, #14
+	mov	arg03, #500
+	call	#_sinebeep
+'   sinebeep(a4,16384,500)
+	mov	arg01, #440
+	decod	arg02, #14
+	mov	arg03, #500
+	call	#_sinebeep
+'   sinebeep(h4,16384,500)
+	mov	arg01, #494
+	decod	arg02, #14
+	mov	arg03, #500
+	call	#_sinebeep
+'   sinebeep(2*c4,16384,500)
+	mov	arg01, ##524
+	decod	arg02, #14
+	mov	arg03, #500
+	call	#_sinebeep
+	jmp	#LR__0001
+_test_ret
+	ret
+
+' 
+' 
+' pub beep(freq,vol,time)
+_beep
+	mov	COUNT_, #1
+	call	#pushregs_
+	mov	local01, arg03
+	shl	arg01, #1
+	mov	muldiva_, ##3546895
+	mov	muldivb_, arg01
+	call	#divide_
+' 
+' synthfreq:=3546895/(2*freq)
+	add	objptr, #16
+	wrlong	muldivb_, objptr
+' debug(udec(synthfreq))
+' volume:=vol
+	sub	objptr, #4
+	wrlong	arg02, objptr
+	sub	objptr, #12
+	add	ptr__dat__, #426
+' samplestart:=@square
+	wrlong	ptr__dat__, objptr
+' loopstart:=0
+	add	objptr, #4
+	wrlong	#0, objptr
+' loopend:=2
+	add	objptr, #4
+	wrlong	#2, objptr
+' cmd:=1
+	mov	arg01, #1
+	add	objptr, #12
+	wrlong	#1, objptr
+	sub	objptr, #20
+' waitus(1)
+	sub	ptr__dat__, #426
+	call	#__system___waitus
+' cmd:=0
+	add	objptr, #20
+	wrlong	#0, objptr
+	sub	objptr, #20
+' waitms(time)
+	mov	arg01, local01
+	call	#__system___waitms
+' volume:=0  
+	add	objptr, #12
+	wrlong	#0, objptr
+	sub	objptr, #12
+	mov	ptra, fp
+	call	#popregs_
+_beep_ret
+	ret
+
+'   
+' pub sawbeep(freq,vol,time)
+_sawbeep
+	mov	COUNT_, #1
+	call	#pushregs_
+	mov	local01, arg03
+	mov	muldivb_, arg01
+	shl	muldivb_, #3
+	add	muldivb_, arg01
+	mov	muldiva_, ##3546895
+	call	#divide_
+' 
+' synthfreq:=3546895/(9*freq)
+	add	objptr, #16
+	wrlong	muldivb_, objptr
+' debug(udec(synthfreq))
+' volume:=vol
+	sub	objptr, #4
+	wrlong	arg02, objptr
+	sub	objptr, #12
+	add	ptr__dat__, #408
+' samplestart:=@saw
+	wrlong	ptr__dat__, objptr
+' loopstart:=0
+	add	objptr, #4
+	wrlong	#0, objptr
+' loopend:=16
+	add	objptr, #4
+	wrlong	#16, objptr
+' cmd:=1
+	mov	arg01, #1
+	add	objptr, #12
+	wrlong	#1, objptr
+	sub	objptr, #20
+' waitus(1)
+	sub	ptr__dat__, #408
+	call	#__system___waitus
+' cmd:=0
+	add	objptr, #20
+	wrlong	#0, objptr
+	sub	objptr, #20
+' waitms(time)
+	mov	arg01, local01
+	call	#__system___waitms
+' volume:=0    
+	add	objptr, #12
+	wrlong	#0, objptr
+	sub	objptr, #12
+	mov	ptra, fp
+	call	#popregs_
+_sawbeep_ret
+	ret
+
+' 
+' pub sinebeep(freq,vol,time)
+_sinebeep
+	mov	COUNT_, #1
+	call	#pushregs_
+	mov	local01, arg03
+	mov	muldivb_, arg01
+	shl	muldivb_, #1
+	add	muldivb_, arg01
+	shl	muldivb_, #3
+	mov	muldiva_, ##3546895
+	call	#divide_
+' 
+' synthfreq:=3546895/(24*freq)
+	add	objptr, #16
+	wrlong	muldivb_, objptr
+' debug(udec(synthfreq))
+' volume:=vol
+	sub	objptr, #4
+	wrlong	arg02, objptr
+	sub	objptr, #12
+	add	ptr__dat__, #430
+' samplestart:=@sine
+	wrlong	ptr__dat__, objptr
+' loopstart:=0
+	add	objptr, #4
+	wrlong	#0, objptr
+' loopend:=46
+	add	objptr, #4
+	wrlong	#46, objptr
+' cmd:=1
+	mov	arg01, #1
+	add	objptr, #12
+	wrlong	#1, objptr
+	sub	objptr, #20
+' waitus(1)
+	sub	ptr__dat__, #430
+	call	#__system___waitus
+' cmd:=0
+	add	objptr, #20
+	wrlong	#0, objptr
+	sub	objptr, #20
+' waitms(time)
+	mov	arg01, local01
+	call	#__system___waitms
+' volume:=0   
+	add	objptr, #12
+	wrlong	#0, objptr
+	sub	objptr, #12
+	mov	ptra, fp
+	call	#popregs_
+_sinebeep_ret
+	ret
+hubexit
+	jmp	#cogexit
+
+__system___waitms
+	mov	COUNT_, #3
+	call	#pushregs_
+	mov	local01, arg01
+	rdlong	local02, #20
+	loc	pa,	#(@LR__0003-@LR__0002)
+	call	#FCACHE_LOAD_
+LR__0002
+	cmps	local01, ##1000 wcz
+ if_a	waitx	local02
+ if_a	sub	local01, ##1000
+ if_a	jmp	#LR__0002
+LR__0003
+	add	ptr___system__dat__, #12
+	rdlong	local03, ptr___system__dat__ wz
+	sub	ptr___system__dat__, #12
+ if_ne	jmp	#LR__0004
+	mov	muldiva_, local02
+	mov	muldivb_, ##1000
+	call	#unsdivide_
+	mov	local03, muldivb_
+	add	ptr___system__dat__, #12
+	wrlong	muldivb_, ptr___system__dat__
+	sub	ptr___system__dat__, #12
+LR__0004
+	cmps	local01, #0 wcz
+ if_a	qmul	local01, local03
+ if_a	getqx	arg01
+ if_a	waitx	arg01
+	mov	ptra, fp
+	call	#popregs_
+__system___waitms_ret
+	ret
+
+__system___waitus
+	mov	COUNT_, #2
+	call	#pushregs_
+	mov	local01, arg01
+	add	ptr___system__dat__, #16
+	rdlong	local02, ptr___system__dat__ wz
+	sub	ptr___system__dat__, #16
+ if_ne	jmp	#LR__0005
+	rdlong	muldiva_, #20
+	mov	muldivb_, ##1000000
+	call	#unsdivide_
+	mov	local02, muldivb_
+	add	ptr___system__dat__, #16
+	wrlong	muldivb_, ptr___system__dat__
+	sub	ptr___system__dat__, #16
+LR__0005
+	qmul	local01, local02
+	getqx	arg01
+	waitx	arg01
+	mov	ptra, fp
+	call	#popregs_
+__system___waitus_ret
+	ret
+	alignl
+_dat_
+'-' 
+'-' driver 			org 0
+'-' 
+'-'         		setq #24
+	byte	$28, $30, $64, $fd
+'-'         		rdlong  sstart,ptra 
+	byte	$00, $77, $04, $fb
+'-'         		
+'-'              	mov spin2,spin
+	byte	$53, $b6, $00, $f6
+'-'          		add spin2,#1
+	byte	$01, $b6, $04, $f1
+'-' 
+'-'         		fltl spin 
+	byte	$50, $a6, $60, $fd
+'-'         		fltl spin2
+	byte	$50, $b6, $60, $fd
+'-'         		
+'-'         		wrpin ##(P_DAC_DITHER_RND | P_DAC_75R_2V | P_OE), spin 
+	byte	$80, $0b, $80, $ff, $53, $88, $08, $fc
+'-'           		wxpin #90, spin 
+	byte	$53, $b4, $18, $fc
+'-'        	    	wrpin ##(P_DAC_DITHER_RND | P_DAC_75R_2V | P_OE), spin2 
+	byte	$80, $0b, $80, $ff, $5b, $88, $08, $fc
+'-'           		wxpin #90, spin2
+	byte	$5b, $b4, $18, $fc
+'-'        		 
+'-'         		dirh spin 
+	byte	$41, $a6, $60, $fd
+'-'        	        dirh spin2
+	byte	$41, $b6, $60, $fd
+'-'        	    
+'-'            		add spin,#%1_000000
+	byte	$40, $a6, $04, $f1
+'-'         		setse1 spin
+	byte	$20, $a6, $60, $fd
+'-'         		sub spin,#%1_000000
+	byte	$40, $a6, $84, $f1
+'-'         		
+'-'         		mov ptra2,ptra
+	byte	$f8, $bd, $00, $f6
+'-'         		add ptra2,#0
+	byte	$00, $bc, $04, $f1
+'-'         		mov ptra3,ptra
+	byte	$f8, $bf, $00, $f6
+'-'         		add ptra3,#0
+	byte	$00, $be, $04, $f1
+'-'         		mov ptra4,ptra
+	byte	$f8, $c1, $00, $f6
+'-'         		add ptra4,#0
+	byte	$00, $c0, $04, $f1
+'-'         		
+'-'         		
+'-' loop            skipf skippattern
+	byte	$32, $c2, $60, $fd
+'-' 			
+'-'                 setq #5
+	byte	$28, $0a, $64, $fd
+'-'         		rdlong sstart,ptra
+	byte	$00, $77, $04, $fb
+'-'                 rdfast d31,ptr	
+	byte	$54, $ba, $70, $fc
+'-'                 mov skippattern,skip2
+	byte	$63, $c2, $00, $f6
+'-'                 
+'-'                 nop
+	byte	$00, $00, $00, $00
+'-'          		nop
+	byte	$00, $00, $00, $00
+'-'                 rdfast d31,ptr	
+	byte	$54, $ba, $70, $fc
+'-'                 mov skippattern,skip3
+	byte	$64, $c2, $00, $f6
+'-' 
+'-'                 nop
+	byte	$00, $00, $00, $00
+'-'         		nop
+	byte	$00, $00, $00, $00
+'-'                 rdfast d31,ptr	
+	byte	$54, $ba, $70, $fc
+'-'                 mov skippattern,skip4
+	byte	$65, $c2, $00, $f6
+'-' 
+'-'                 nop
+	byte	$00, $00, $00, $00
+'-'         		nop
+	byte	$00, $00, $00, $00
+'-'                 rdfast d31,ptr	
+	byte	$54, $ba, $70, $fc
+'-'                 mov skippattern,skip1
+	byte	$62, $c2, $00, $f6
+'-'                 
+'-'                 
+'-' 
+'-'         		cmp command,#0 wz   '17 nops left
+	byte	$00, $80, $0c, $f2
+'-'         if_nz	mov ptr,sstart
+	byte	$3b, $a8, $00, $56
+'-'                 add lstart,sstart
+	byte	$3b, $78, $00, $f1
+'-'                 add lend,sstart
+	byte	$3b, $7a, $00, $f1
+'-'         		
+'-'         		
+'-'                 add counter,#1
+	byte	$01, $b2, $04, $f1
+'-' 				cmp counter,freq wcz
+	byte	$3f, $b2, $18, $f2
+'-' 		if_ge   mov counter,#0
+	byte	$00, $b2, $04, $36
+'-' 		if_lt   jmp #p111
+	byte	$1c, $00, $90, $cd
+'-' 
+'-' p101         	rfword x ',ptr
+	byte	$11, $b0, $60, $fd
+'-' 				
+'-'      			scas x,vol
+	byte	$3e, $b0, $30, $fa
+'-' 			    mov x,0-0
+	byte	$00, $b0, $00, $f6
+'-' 		        						   	
+'-' 				add x,a8000
+	byte	$5a, $b0, $00, $f1
+'-' 		        cmp	ptr,lend wz
+	byte	$3d, $a8, $08, $f2
+'-'  		if_nz	add ptr,#2
+	byte	$02, $a8, $04, $51
+'-'  		if_z    mov ptr,lstart             '~~61 clocks
+	byte	$3c, $a8, $00, $a6
+'-' 
+'-'  p111          	waitse1
+	byte	$24, $28, $60, $fd
+'-'                 wypin x,spin 
+	byte	$53, $b0, $20, $fc
+'-'                 wypin x,spin2 
+	byte	$5b, $b0, $20, $fc
+'-' 		
+'-' 				jmp #loop
+	byte	$70, $ff, $9f, $fd
+'-' 
+'-' 
+'-' sstart   	long 	0
+	byte	$00, $00, $00, $00
+'-' lstart		long 	0
+	byte	$00, $00, $00, $00
+'-' lend		long 	0
+	byte	$00, $00, $00, $00
+'-' vol			long 	0
+	byte	$00, $00, $00, $00
+'-' freq		long 	0
+	byte	$00, $00, $00, $00
+'-' command     long 	0
+	byte	$00, $00, $00, $00
+'-' sstart2   	long 	0
+	byte	$00, $00, $00, $00
+'-' lstart2		long 	0
+	byte	$00, $00, $00, $00
+'-' lend2		long 	0
+	byte	$00, $00, $00, $00
+'-' vol2		long 	0
+	byte	$00, $00, $00, $00
+'-' freq2		long 	0
+	byte	$00, $00, $00, $00
+'-' command2    long 	0
+	byte	$00, $00, $00, $00
+'-' sstart3   	long 	0
+	byte	$00, $00, $00, $00
+'-' lstart3		long 	0
+	byte	$00, $00, $00, $00
+'-' lend3		long 	0
+	byte	$00, $00, $00, $00
+'-' vol3		long 	0
+	byte	$00, $00, $00, $00
+'-' freq3		long 	0
+	byte	$00, $00, $00, $00
+'-' command3    long 	0
+	byte	$00, $00, $00, $00
+'-' sstart4   	long 	0
+	byte	$00, $00, $00, $00
+'-' lstart4		long 	0
+	byte	$00, $00, $00, $00
+'-' lend4		long 	0
+	byte	$00, $00, $00, $00
+'-' vol4		long 	0
+	byte	$00, $00, $00, $00
+'-' freq4		long 	0
+	byte	$00, $00, $00, $00
+'-' command4    long 	0
+	byte	$00, $00, $00, $00
+'-' spin        long 	0
+	byte	$00, $00, $00, $00
+'-' ptr			long 	0
+	byte	$00, $00, $00, $00
+'-' ptr2 long 0
+	byte	$00, $00, $00, $00
+'-' ptr3 long 0
+	byte	$00, $00, $00, $00
+'-' ptr4 long 0
+	byte	$00, $00, $00, $00
+'-' x       	long    0
+	byte	$00, $00, $00, $00
+'-' counter 	long 	0
+	byte	$00, $00, $00, $00
+'-' a8000		long 	$8000
+	byte	$00, $80, $00, $00
+'-' spin2       long    0
+	byte	$00, $00, $00, $00
+'-' counter2 long 4
+	byte	$04, $00, $00, $00
+'-' d31 long $80000000
+	byte	$00, $00, $00, $80
+'-' ptra2 long 0
+	byte	$00, $00, $00, $00
+'-' ptra3 long 0
+	byte	$00, $00, $00, $00
+'-' ptra4 long 0
+	byte	$00, $00, $00, $00
+'-' 
+'-' skippattern long %111111111110000
+	byte	$f0, $7f, $00, $00
+'-' skip1 long %1111111111110000
+	byte	$f0, $ff, $00, $00
+'-' skip2 long %1111111100001111
+	byte	$0f, $ff, $00, $00
+'-' skip3 long %1111000011111111
+	byte	$ff, $f0, $00, $00
+'-' skip4 long %0000111111111111
+	byte	$ff, $0f, $00, $00
+'-' saw     word  -32000, -24000, -16000, -8000, 0, 8000, 16000, 24000, 32000
+	byte	$00, $83, $40, $a2, $80, $c1, $c0, $e0, $00, $00, $40, $1f, $80, $3e, $c0, $5d
+	byte	$00, $7d
+'-' square  word  -32000, 32000
+	byte	$00, $83, $00, $7d
+'-' sine    word 0,8282,16000, 22627, 27713, 30910, 32000,30710,27713,22627,16000,8282,0,-8282,-16000,-22627,-27713,-30910,-32000,-30910,-27713,-22627,-16000,-8282
+	byte	$00, $00, $5a, $20, $80, $3e, $63, $58, $41, $6c, $be, $78, $00, $7d, $f6, $77
+	byte	$41, $6c, $63, $58, $80, $3e, $5a, $20, $00, $00, $a6, $df, $80, $c1, $9d, $a7
+	byte	$bf, $93, $42, $87, $00, $83, $42, $87, $bf, $93, $9d, $a7, $80, $c1, $a6, $df
+	byte	$00, $00
+	alignl
+__system__dat_
+	byte	$00[8]
+	byte	$03, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
+objmem
+	long	0[1]
+	org	COG_BSS_START
+arg01
+	res	1
+arg02
+	res	1
+arg03
+	res	1
+arg04
+	res	1
+local01
+	res	1
+local02
+	res	1
+local03
+	res	1
+muldiva_
+	res	1
+muldivb_
+	res	1
+	fit	480

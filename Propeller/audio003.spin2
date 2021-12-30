@@ -1,0 +1,292 @@
+' Paula-like audiodriver v. 0.02 - 20211107
+
+con
+_clkfreq=90*3546895
+
+
+c4=262
+d4=294
+e4=330
+f4=349
+g4=392
+a4=440
+h4=494
+
+
+
+var
+
+long samplestart
+long loopstart
+long loopend         'loopstart==loopend=no loop
+long volume
+long synthfreq
+long cmd
+long samplestart2
+long loopstart2
+long loopend2        'loopstart==loopend=no loop
+long volume2
+long synthfreq2
+long cmd2
+long samplestart3
+long loopstart3
+long loopend3         'loopstart==loopend=no loop
+long volume3
+long synthfreq3
+long cmd3
+long samplestart4
+long loopstart4
+long loopend4         'loopstart==loopend=no loop
+long volume4
+long synthfreq4
+long cmd4
+
+
+long pin
+
+
+
+pub test() |q
+
+start(14)
+
+repeat
+  sawbeep(c4,16384,500)
+  sawbeep(d4,16384,500)
+  sawbeep(e4,16384,500)
+  sawbeep(f4,16384,500)
+  sawbeep(g4,16384,500)
+  sawbeep(a4,16384,500)
+  sawbeep(h4,16384,500)
+  sawbeep(2*c4,16384,500)
+
+
+  beep(2*c4,16384,500)
+  beep(h4,16384,500)
+  beep(a4,16384,500)
+  beep(g4,16384,500)
+  beep(f4,16384,500)
+  beep(e4,16384,500)
+  beep(d4,16384,500)
+  beep(c4,16384,500)
+
+  sinebeep(c4>>2,16384,500)
+  sinebeep(d4>>2,16384,500)
+  sinebeep(e4,16384,500)
+  sinebeep(f4,16384,500)
+  sinebeep(g4,16384,500)
+  sinebeep(a4,16384,500)
+  sinebeep(h4,16384,500)
+  sinebeep(2*c4,16384,500)
+
+
+pub beep(freq,vol,time)
+
+synthfreq:=3546895/(2*freq)
+debug(udec(synthfreq))
+volume:=vol
+samplestart:=@square
+loopstart:=0
+loopend:=2
+cmd:=1
+waitus(1)
+cmd:=0
+waitms(time)
+volume:=0  
+  
+pub sawbeep(freq,vol,time)
+
+synthfreq:=3546895/(9*freq)
+debug(udec(synthfreq))
+volume:=vol
+samplestart:=@saw
+loopstart:=0
+loopend:=16
+cmd:=1
+waitus(1)
+cmd:=0
+waitms(time)
+volume:=0    
+
+pub sinebeep(freq,vol,time)
+
+synthfreq:=3546895/(24*freq)
+debug(udec(synthfreq))
+volume:=vol
+samplestart:=@sine
+loopstart:=0
+loopend:=46
+cmd:=1
+waitus(1)
+cmd:=0
+waitms(time)
+volume:=0   
+  
+pub beep2(freq,vol)
+
+synthfreq:=3546895/(2*freq)
+debug(udec(synthfreq))
+volume:=vol
+samplestart:=@square
+loopstart:=0
+loopend:=2
+cmd:=1
+waitus(1)
+cmd:=0
+   
+pub change(freq,vol)
+
+synthfreq:=3546895/(2*freq)
+volume:=vol
+ 
+pub start(thepin)
+
+samplestart:=0
+loopstart:=0
+loopend:=0
+volume:=$4000
+synthfreq:=0
+cmd:=0
+pin:=thepin
+'pinstart(pin ,(P_DAC_DITHER_RND | P_DAC_75R_2V | P_OE),90,0)
+coginit(2,@driver,@samplestart)
+waitms(10)
+
+'
+dat     
+
+driver 			org 0
+
+        		setq #24
+        		rdlong  sstart,ptra 
+        		
+             	mov spin2,spin
+         		add spin2,#1
+
+        		fltl spin 
+        		fltl spin2
+        		
+        		wrpin ##(P_DAC_DITHER_RND | P_DAC_75R_2V | P_OE), spin 
+          		wxpin #90, spin 
+       	    	wrpin ##(P_DAC_DITHER_RND | P_DAC_75R_2V | P_OE), spin2 
+          		wxpin #90, spin2
+       		 
+        		dirh spin 
+       	        dirh spin2
+       	    
+           		add spin,#%1_000000
+        		setse1 spin
+        		sub spin,#%1_000000
+        		
+        		mov ptra2,ptra
+        		add ptra2,#0
+        		mov ptra3,ptra
+        		add ptra3,#0
+        		mov ptra4,ptra
+        		add ptra4,#0
+        		
+        		
+loop            skipf skippattern
+			
+                setq #5
+        		rdlong sstart,ptra
+                rdfast d31,ptr	
+                mov skippattern,skip2
+                
+                nop
+         		nop
+                rdfast d31,ptr	
+                mov skippattern,skip3
+
+                nop
+        		nop
+                rdfast d31,ptr	
+                mov skippattern,skip4
+
+                nop
+        		nop
+                rdfast d31,ptr	
+                mov skippattern,skip1
+                
+                
+
+        		cmp command,#0 wz   '17 nops left
+        if_nz	mov ptr,sstart
+                add lstart,sstart
+                add lend,sstart
+        		
+        		
+                add counter,#1
+				cmp counter,freq wcz
+		if_ge   mov counter,#0
+		if_lt   jmp #p111
+
+p101         	rfword x ',ptr
+				
+     			scas x,vol
+			    mov x,0-0
+		        						   	
+				add x,a8000
+		        cmp	ptr,lend wz
+ 		if_nz	add ptr,#2
+ 		if_z    mov ptr,lstart             '~~61 clocks
+
+ p111          	waitse1
+                wypin x,spin 
+                wypin x,spin2 
+		
+				jmp #loop
+
+
+sstart   	long 	0
+lstart		long 	0
+lend		long 	0
+vol			long 	0
+freq		long 	0
+command     long 	0
+sstart2   	long 	0
+lstart2		long 	0
+lend2		long 	0
+vol2		long 	0
+freq2		long 	0
+command2    long 	0
+sstart3   	long 	0
+lstart3		long 	0
+lend3		long 	0
+vol3		long 	0
+freq3		long 	0
+command3    long 	0
+sstart4   	long 	0
+lstart4		long 	0
+lend4		long 	0
+vol4		long 	0
+freq4		long 	0
+command4    long 	0
+spin        long 	0
+ptr			long 	0
+ptr2 long 0
+ptr3 long 0
+ptr4 long 0
+x       	long    0
+counter 	long 	0
+a8000		long 	$8000
+spin2       long    0
+counter2 long 4
+d31 long $80000000
+ptra2 long 0
+ptra3 long 0
+ptra4 long 0
+
+skippattern long %111111111110000
+skip1 long %1111111111110000
+skip2 long %1111111100001111
+skip3 long %1111000011111111
+skip4 long %0000111111111111
+
+
+
+
+DAT
+saw     word  -32000, -24000, -16000, -8000, 0, 8000, 16000, 24000, 32000
+square  word  -32000, 32000
+sine    word 0,8282,16000, 22627, 27713, 30910, 32000,30710,27713,22627,16000,8282,0,-8282,-16000,-22627,-27713,-30910,-32000,-30910,-27713,-22627,-16000,-8282

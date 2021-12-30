@@ -1,8 +1,7 @@
-' _clkfreq=320_000_000
-con
-	_clkfreq = 320000000
+' 
 ' 
 ' rxpin=32
+con
 	rxpin = 32
 ' txpin=33
 	txpin = 33
@@ -10,18 +9,24 @@ con
 	midiin = 29
 ' midiout=30
 	midiout = 30
+' srxpin=63
+	srxpin = 63
+' stxpin=62
+	stxpin = 62
 ' baudrate=1920000
 	baudrate = 1920000
 ' mbaudrate=31250
 	mbaudrate = 31250
+' sbaudrate=2000000
+	sbaudrate = 2000000
 dat
 	nop
 	cogid	pa
 	coginit	pa,##$404
 	orgh	$10
 	long	0	'reserved
-	long	0 ' clock frequency: will default to 320000000
-	long	0 ' clock mode: will default to $1000ffb
+	long	0 ' clock frequency: will default to 20000000
+	long	0 ' clock mode: will default to $100094b
 	orgh	$400
  _ret_	mov	result1, #0
 	org	0
@@ -29,16 +34,16 @@ entry
 	cmp	ptra, #0 wz
  if_ne	jmp	#spininit
 	mov	ptra, objptr
-	add	ptra, ##920
+	add	ptra, ##1088
 	rdlong	pa, #20 wz
  if_ne	jmp	#skip_clock_set_
 	hubset	#0
-	hubset	##16781304
+	hubset	##16779592
 	waitx	##200000
-	mov	pa, ##16781307
+	mov	pa, ##16779595
 	hubset	pa
 	wrlong	pa, #24
-	wrlong	##320000000, #20
+	wrlong	##20000000, #20
 	jmp	#skip_clock_set_
 	orgf	128
 skip_clock_set_

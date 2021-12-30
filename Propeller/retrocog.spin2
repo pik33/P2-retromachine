@@ -3,30 +3,30 @@
 ' v. 0.01 pik33@o2.pl
 '
 con
-_clkfreq=320_000_000
+
 
 rxpin=32
 txpin=33
 midiin=29
 midiout=30
+srxpin=63
+stxpin=62
 baudrate=1920000
 mbaudrate=31250
+sbaudrate=2000000
 
 var
 
 long kbdfront,kbdtail
 long mousefront,mousetail
 long midifront,miditail
+long serialfront,serialtail
 
 long kbdbuf[32]
-
 long mousebuf[128]
-
 long midibuf[32]
-
-long serialstack[36]
-
-
+byte serialbuf[32]
+long serialstack[64]
 
 pub dummy()
 
@@ -36,13 +36,15 @@ repeat
 pub start :cog
 
 cog:=cogspin(16,serialcog(),@serialstack)
+return cog
 
-pub serialcog()| rr, mrr, b, mb, midireport, kbmreport
+pub serialcog()| rr, mrr, srr, b, mb, midireport, kbmreport
 
 'start serial and midi
 
 serial_start(rxpin, txpin, baudrate)
 serial_start(midiin,midiout,mbaudrate)
+serial_start(srxpin,stxpin,sbaudrate)
 
 mb:=(-1)
 b:=(-1)
@@ -53,17 +55,21 @@ kbdfront:=0
 kbdtail:=0
 midifront:=0
 miditail:=0
+serialfront:=0
+serialtail:=0
 long[$30]:=0
 long[$34]:=0
 long[$38]:=0
+long[$3C]:=0
 
 repeat
 
-  repeat 
-    rr:=rxcheck(rxpin)
-    mrr:=rxcheck(midiin)
+'  repeat 
+  rr:=rxcheck(rxpin)
+  mrr:=rxcheck(midiin)
+  srr:=rxcheck(srxpin)
 
-  until rr>=0 || mrr>=0  
+'  until rr>=0 || mrr>=0  || srr>=0
 
   
 ' midi. Must be >= $80 for a command
@@ -76,7 +82,12 @@ repeat
 '$E0-$EF - 3 bytes pitch bend, $2000 - center
 '$F0-$FF - 1 byte
   
-
+  if srr>=0
+  
+    if serialfront<>((serialtail-1) //32)
+      serialbuf[serialfront]:=srr
+      serialfront+=1
+      serialfront:=serialfront // 32
     
   if ((mrr>=$80) && (mrr<=$BF)) || ((mrr>=$E0) && (mrr<=$EF)) 
     mb:=2
@@ -90,7 +101,7 @@ repeat
     mb:=4
     midireport:=mrr<<24  
   
-  if (mrr<$80) && (mb>0)
+  if (mrr<$80) && (mb>0) && (mrr>=0)
     
     mb--
     if mb<3
@@ -110,7 +121,7 @@ repeat
     b:=3
     kbmreport:=rr<<24
   
-  if (rr<$80) && (b>0)
+  if (rr<$80) && (b>0) && (rr>=0)
     b--
     kbmreport+=rr<<(b<<3)  
   
@@ -152,6 +163,13 @@ repeat
       long[$38]:=midibuf[miditail]
       miditail++
       miditail:= miditail // 32
+      
+  if long[$3c]==0
+    if serialfront<>serialtail
+      byte[$3c]:=255
+      byte[$3D]:=serialbuf[serialtail]
+      serialtail++
+      serialtail:= serialtail // 32
       
 
 ''---------------------- Serial functions from jm_serial.spin2, modified

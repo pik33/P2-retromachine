@@ -1,0 +1,91 @@
+_clkfreq=90*3546895 '1246955 kHz
+
+con left=14
+    right=15
+
+    freql=440
+    freqr=440
+    volume=16384
+
+pub test
+
+coginit(16,@audiodriver,@sinewave)
+
+
+dat
+
+audiodriver
+
+        
+        org
+        
+        wrpin   dac,#left
+        wxpin   #256,#left
+
+        wrpin   dac,#right
+        wxpin   #256,#right
+
+        dirh    #left addpins 1
+
+        setse1  #%001<<6 + left
+        
+        mov start,ptra
+        add start,#16
+        
+        
+.loop   add     p1,##$8000           'calculate right sample
+        and p1,##$7FFFFFF
+        mov p12,p1
+        shr p12,#16
+        add p12,start
+
+        rdword x,p12
+        wypin   x,#left
+
+        add     p2,f2           'calculate left sample
+        qrotate amp,p2
+        getqx   x
+        bitnot  x,#15
+        wypin   x,#right
+
+        waitse1                 'wait for new period
+
+        jmp     #.loop          'loop
+
+
+
+x       long    0
+
+p1      long    0
+p2      long    0
+
+f1      long    round(freql * 65536.0 * 65536.0 * 256.0 / float(clkfreq_))
+f2      long    round(freqr * 65536.0 * 65536.0 * 256.0 / float(clkfreq_))
+p12 long 0
+start long 0
+
+amp     long    volume
+
+'dac    long    %10111_00000000_01_00010_0      'random dither (noisier, needs no period)
+dac     long    %10111_00000000_01_00011_0      'pwm (quieter, needs 256N period)    
+
+
+dat 
+
+sinewave file "C:\s\sinus.s2"
+
+interrupt
+add cnt,1
+cmp cnt, time
+
+if_eq wypin sample
+if eq add tail,1
+ifeq rdlut next time, nneext sample
+iret
+
+Program
+find nearest time
+compute sample
+put to lut sample, time
+get new time for this channel
+wait until free place in lut

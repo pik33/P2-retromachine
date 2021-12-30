@@ -5,7 +5,8 @@
 8_02_000-8_0F_FFF reserved for more fonts
 8_10_000-8_10_FFF Atari 8-bit palette + 3 other palettes (what? 2-3-2, 8c32b, PC DOS maybe, todo)
 8_11_000-8_1F_FFF reserved (sprites? mouse pointers? )
-8_20_000-8_2F_FFF cog drivers
-8_30_000-D_FF_FFF reserved
+8_20_000-8_5F_FFF cog drivers
+8_60_000-8_7F_FFF audio samples
+8_80_000-D_FF_FFF reserved
 E_00_000-F_FF-FFF application area
 

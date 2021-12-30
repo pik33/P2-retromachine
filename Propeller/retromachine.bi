@@ -1,4 +1,4 @@
-const _clkfreq = 320_000_000
+const _clkfreq = 319_215_686  'PAL*90
 option implicit
 dim v030 as class using "hng030rm"
 dim rm as class using "retrocog"

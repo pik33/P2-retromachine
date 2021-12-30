@@ -62,4 +62,8 @@ do
     if cmd=15 then print "Novation control key "; b12 ' TODO Sysex has to be properly processed 
   endif
       
+  if lpeek($3c)<>0 then
+    print "Serial byte read: "; peek($3D)
+    lpoke $3C,0
+  endif     
 loop
