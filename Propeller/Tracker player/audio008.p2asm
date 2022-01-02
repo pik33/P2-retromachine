@@ -1,0 +1,2154 @@
+' 
+'  _clkfreq = 319220550 ' This is 90x Amiga PAL   =3546895, change to NTSC freq if needed
+con
+	_clkfreq = 319220550
+' '_clkfreq = 322159050 ' This is 90x Amiga NTSC = 3579545
+' 
+' ' audio pins TODO: make a variable for start() instead of const
+' 
+' left= 14
+	left = 14
+' right=15
+	right = 15
+' 
+' ' 4th octave frequencies, rounded to integer
+' 
+' c4=262
+	c4 = 262
+' d4=294
+	d4 = 294
+' e4=330
+	e4 = 330
+' f4=349
+	f4 = 349
+' g4=392
+	g4 = 392
+' a4=440
+	a4 = 440
+' h4=494
+	h4 = 494
+dat
+	nop
+	cogid	pa
+	coginit	pa,##$404
+	orgh	$10
+	long	0	'reserved
+	long	0 ' clock frequency: will default to 319215798
+	long	0 ' clock mode: will default to $1cb2dfb
+	orgh	$400
+ _ret_	mov	result1, #0
+	org	0
+entry
+	cmp	ptra, #0 wz
+ if_ne	jmp	#spininit
+	mov	ptra, objptr
+	add	ptra, #288
+	rdlong	pa, #20 wz
+ if_ne	jmp	#skip_clock_set_
+	hubset	#0
+	hubset	##30092792
+	waitx	##200000
+	mov	pa, ##30092795
+	hubset	pa
+	wrlong	pa, #24
+	wrlong	##319215798, #20
+	jmp	#skip_clock_set_
+	orgf	128
+skip_clock_set_
+	call	#_test
+cogexit
+	waitx	##160000
+	cogid	arg01
+	cogstop	arg01
+spininit
+	rdlong	objptr, ptra
+	add	ptra, #4
+	rdlong	result1, ptra
+	add	ptra, #4
+	rdlong	arg01, ptra
+	add	ptra, #4
+	rdlong	arg02, ptra
+	add	ptra, #4
+	rdlong	arg03, ptra
+	add	ptra, #4
+	rdlong	arg04, ptra
+	sub	ptra, #16
+	call	result1
+	jmp	#cogexit
+FCACHE_LOAD_
+    pop	fcache_tmpb_
+    add	fcache_tmpb_, pa
+    push	fcache_tmpb_
+    sub	fcache_tmpb_, pa
+    shr	pa, #2
+    altd	pa
+    mov	 0-0, ret_instr_
+    sub	pa, #1
+    setq	pa
+    rdlong	$0, fcache_tmpb_
+    jmp	#\$0 ' jmp to cache
+ret_instr_
+    ret
+fcache_tmpb_
+    long 0
+builtin_bytefill_
+        shr	arg03, #1 wc
+ if_c   wrbyte	arg02, arg01
+ if_c   add	arg01, #1
+        movbyts	arg02, #0
+builtin_wordfill_
+        shr	arg03, #1 wc
+ if_c   wrword	arg02, arg01
+ if_c   add	arg01, #2
+        setword	arg02, arg02, #1
+builtin_longfill_
+        wrfast	#0,arg01
+        cmp	arg03, #0 wz
+ if_nz  rep	#1, arg03
+ if_nz  wflong	arg02
+        ret
+COUNT_
+    long 0
+RETADDR_
+    long 0
+fp
+    long 0
+pushregs_
+    pop  pa
+    pop  RETADDR_
+    tjz  COUNT_, #pushregs_done_
+    sub  COUNT_, #1
+    setq COUNT_
+    wrlong local01, ptra
+    add  COUNT_, #1
+pushregs_done_
+    shl  COUNT_, #2
+    add  ptra, COUNT_
+    shr  COUNT_, #2
+    setq #2 ' push 3 registers starting at COUNT_
+    wrlong COUNT_, ptra
+    add    ptra, #12
+    mov    fp, ptra
+    jmp  pa
+ popregs_
+    pop    pa
+    sub    ptra, #12
+    setq   #2
+    rdlong COUNT_, ptra
+    tjz    COUNT_, #popregs__ret
+    shl    COUNT_, #2
+    sub    ptra, COUNT_
+    shr    COUNT_, #2
+    sub    COUNT_, #1
+    setq   COUNT_
+    rdlong local01, ptra
+popregs__ret
+    push   RETADDR_
+    jmp    pa
+
+unsdivide_
+       setq    #0
+       qdiv    muldiva_, muldivb_
+       getqx   muldivb_
+ _ret_ getqy   muldiva_
+
+divide_
+       abs     muldiva_,muldiva_     wc       'abs(x)
+       muxc    itmp2_,#%11                    'store sign of x
+       abs     muldivb_,muldivb_     wcz      'abs(y)
+ if_c  xor     itmp2_,#%10                    'store sign of y
+ if_z  ret
+       call    #unsdivide_
+       test    itmp2_,#1        wc       'restore sign, remainder
+       negc    muldiva_,muldiva_ 
+       test    itmp2_,#%10      wc       'restore sign, division result
+ _ret_ negc    muldivb_,muldivb_
+
+itmp1_
+	long	0
+itmp2_
+	long	0
+objptr
+	long	@objmem
+ptr___system__dat__
+	long	@__system__dat_
+ptr__dat__
+	long	@_dat_
+result1
+	long	0
+COG_BSS_START
+	fit	480
+	orgh
+hubentry
+
+' 
+' 
+' 
+' '----------------------------------------------------------------
+' '------------  Alpha testing the thing --------------------------
+' '---------------------------------------------------------------- 
+' 
+' pub test
+_test
+' 
+' start()
+	add	ptr__dat__, ##1748
+' 
+' 
+' channel1[0]:=@null
+	wrlong	ptr__dat__, objptr
+' channel1[1]:=0
+	add	objptr, #4
+	wrlong	#0, objptr
+' channel1[2]:=0
+	add	objptr, #4
+	wrlong	#0, objptr
+' channel1[3]:=2
+	add	objptr, #4
+	wrlong	#2, objptr
+' channel1[4]:=0
+	add	objptr, #4
+	wrlong	#0, objptr
+' channel1[5]:=8192
+	add	objptr, #4
+	wrlong	##8192, objptr
+' channel1[6]:=1010
+	add	objptr, #4
+	wrlong	##1010, objptr
+' channel1[7]:=2
+	add	objptr, #4
+	wrlong	#2, objptr
+' 
+' channel2[0]:=@null
+	add	objptr, #8
+	wrlong	ptr__dat__, objptr
+' channel2[1]:=0
+	add	objptr, #4
+	wrlong	#0, objptr
+' channel2[2]:=0
+	add	objptr, #4
+	wrlong	#0, objptr
+' channel2[3]:=2
+	add	objptr, #4
+	wrlong	#2, objptr
+' channel2[4]:=0
+	add	objptr, #4
+	wrlong	#0, objptr
+' channel2[5]:=8192
+	add	objptr, #4
+	wrlong	##8192, objptr
+' channel2[6]:=1030
+	add	objptr, #4
+	wrlong	##1030, objptr
+' channel2[7]:=2
+	add	objptr, #4
+	wrlong	#2, objptr
+' 
+' channel3[0]:=@null
+	add	objptr, #8
+	wrlong	ptr__dat__, objptr
+' channel3[1]:=0
+	add	objptr, #4
+	wrlong	#0, objptr
+' channel3[2]:=0
+	add	objptr, #4
+	wrlong	#0, objptr
+' channel3[3]:=2
+	add	objptr, #4
+	wrlong	#2, objptr
+' channel3[4]:=0
+	add	objptr, #4
+	wrlong	#0, objptr
+' channel3[5]:=8192
+	add	objptr, #4
+	wrlong	##8192, objptr
+' channel3[6]:=1070'
+	add	objptr, #4
+	wrlong	##1070, objptr
+' channel3[7]:=2
+	add	objptr, #4
+	wrlong	#2, objptr
+' 
+' channel4[0]:=@null
+	add	objptr, #8
+	wrlong	ptr__dat__, objptr
+' channel4[1]:=0
+	add	objptr, #4
+	wrlong	#0, objptr
+' channel4[2]:=0
+	add	objptr, #4
+	wrlong	#0, objptr
+' channel4[3]:=2
+	add	objptr, #4
+	wrlong	#2, objptr
+' channel4[4]:=0
+	add	objptr, #4
+	wrlong	#0, objptr
+' channel4[5]:=8192
+	add	objptr, #4
+	wrlong	##8192, objptr
+' channel4[6]:=1090
+	add	objptr, #4
+	wrlong	##1090, objptr
+' channel4[7]:=2
+	add	objptr, #4
+	wrlong	#2, objptr
+' channel4[8]:=1
+	add	objptr, #4
+	wrlong	#1, objptr
+' 
+' channel5[0]:=@null
+	add	objptr, #4
+	wrlong	ptr__dat__, objptr
+' channel5[1]:=0
+	add	objptr, #4
+	wrlong	#0, objptr
+' channel5[2]:=0
+	add	objptr, #4
+	wrlong	#0, objptr
+' channel5[3]:=2
+	add	objptr, #4
+	wrlong	#2, objptr
+' channel5[4]:=0
+	add	objptr, #4
+	wrlong	#0, objptr
+' channel5[5]:=8192
+	add	objptr, #4
+	wrlong	##8192, objptr
+' channel5[6]:=1130
+	add	objptr, #4
+	wrlong	##1130, objptr
+' channel5[7]:=2
+	add	objptr, #4
+	wrlong	#2, objptr
+' 
+' channel6[0]:=@null
+	add	objptr, #8
+	wrlong	ptr__dat__, objptr
+' channel6[1]:=0
+	add	objptr, #4
+	wrlong	#0, objptr
+' channel6[2]:=0
+	add	objptr, #4
+	wrlong	#0, objptr
+' channel6[3]:=2
+	add	objptr, #4
+	wrlong	#2, objptr
+' channel6[4]:=0
+	add	objptr, #4
+	wrlong	#0, objptr
+' channel6[5]:=8192
+	add	objptr, #4
+	wrlong	##8192, objptr
+' channel6[6]:=1270
+	add	objptr, #4
+	wrlong	##1270, objptr
+' channel6[7]:=2
+	add	objptr, #4
+	wrlong	#2, objptr
+' 
+' channel7[0]:=@null
+	add	objptr, #8
+	wrlong	ptr__dat__, objptr
+' channel7[1]:=0
+	add	objptr, #4
+	wrlong	#0, objptr
+' channel7[2]:=0
+	add	objptr, #4
+	wrlong	#0, objptr
+' channel7[3]:=2
+	add	objptr, #4
+	wrlong	#2, objptr
+' channel7[4]:=0
+	add	objptr, #4
+	wrlong	#0, objptr
+' channel7[5]:=8192
+	add	objptr, #4
+	wrlong	##8192, objptr
+' channel7[6]:=1310
+	add	objptr, #4
+	wrlong	##1310, objptr
+' channel7[7]:=2
+	add	objptr, #4
+	wrlong	#2, objptr
+' 
+' channel8[0]:=@null
+	add	objptr, #8
+	wrlong	ptr__dat__, objptr
+' channel8[1]:=0
+	add	objptr, #4
+	wrlong	#0, objptr
+' channel8[2]:=0
+	add	objptr, #4
+	wrlong	#0, objptr
+' channel8[3]:=2
+	add	objptr, #4
+	wrlong	#2, objptr
+' channel8[4]:=0
+	add	objptr, #4
+	wrlong	#0, objptr
+' channel8[5]:=8192
+	add	objptr, #4
+	wrlong	##8192, objptr
+' channel8[6]:=1370
+	add	objptr, #4
+	wrlong	##1370, objptr
+' channel8[7]:=2
+	add	objptr, #4
+	wrlong	#2, objptr
+' 
+' channel1[8]:=1
+	sub	objptr, #248
+	wrlong	#1, objptr
+' channel2[8]:=1
+	add	objptr, #36
+	wrlong	#1, objptr
+' channel3[8]:=1
+	add	objptr, #36
+	wrlong	#1, objptr
+' channel4[8]:=1
+	add	objptr, #36
+	wrlong	#1, objptr
+' channel5[8]:=1
+	add	objptr, #36
+	wrlong	#1, objptr
+' channel6[8]:=1
+	add	objptr, #36
+	wrlong	#1, objptr
+' channel7[8]:=1
+	add	objptr, #36
+	wrlong	#1, objptr
+' channel8[8]:=1
+	add	objptr, #36
+	wrlong	#1, objptr
+	sub	objptr, #284
+' 
+' cog:=coginit(16,@audio,@channel1)
+	sub	ptr__dat__, ##1748
+	mov	arg02, ptr__dat__
+	mov	arg03, objptr
+	mov	arg01, #16
+	setq	arg03
+	coginit	arg01, arg02 wc
+ if_b	neg	arg01, #1
+	mov	result1, arg01
+' return cog
+' waitms(500)
+	mov	arg01, #500
+	call	#__system___waitms
+' repeat
+LR__0001
+'   play(c4,500,16384)
+	mov	arg01, #262
+	mov	arg02, #500
+	decod	arg03, #14
+	call	#_play
+'   play(d4,500,16384)
+	mov	arg01, #294
+	mov	arg02, #500
+	decod	arg03, #14
+	call	#_play
+'   play(e4,500,16384)
+	mov	arg01, #330
+	mov	arg02, #500
+	decod	arg03, #14
+	call	#_play
+'   play(f4,500,16384)
+	mov	arg01, #349
+	mov	arg02, #500
+	decod	arg03, #14
+	call	#_play
+'   play(g4,500,16384)
+	mov	arg01, #392
+	mov	arg02, #500
+	decod	arg03, #14
+	call	#_play
+'   play(a4,500,16384)
+	mov	arg01, #440
+	mov	arg02, #500
+	decod	arg03, #14
+	call	#_play
+'   play(h4,500,16384)
+	mov	arg01, #494
+	mov	arg02, #500
+	decod	arg03, #14
+	call	#_play
+'   play(2*c4,500,16384)
+	mov	arg01, ##524
+	mov	arg02, #500
+	decod	arg03, #14
+	call	#_play
+'   play(c4,500,0)
+	mov	arg01, #262
+	mov	arg02, #500
+	mov	arg03, #0
+	call	#_play
+'   play(2*c4,500,16384)
+	mov	arg01, ##524
+	mov	arg02, #500
+	decod	arg03, #14
+	call	#_play
+'   play(h4,500,16384)
+	mov	arg01, #494
+	mov	arg02, #500
+	decod	arg03, #14
+	call	#_play
+'   play(a4,500,16384)
+	mov	arg01, #440
+	mov	arg02, #500
+	decod	arg03, #14
+	call	#_play
+'   play(g4,500,16384)
+	mov	arg01, #392
+	mov	arg02, #500
+	decod	arg03, #14
+	call	#_play
+'   play(f4,500,16384)
+	mov	arg01, #349
+	mov	arg02, #500
+	decod	arg03, #14
+	call	#_play
+'   play(e4,500,16384)
+	mov	arg01, #330
+	mov	arg02, #500
+	decod	arg03, #14
+	call	#_play
+'   play(d4,500,16384)
+	mov	arg01, #294
+	mov	arg02, #500
+	decod	arg03, #14
+	call	#_play
+'   play(c4,500,16384)
+	mov	arg01, #262
+	mov	arg02, #500
+	decod	arg03, #14
+	call	#_play
+'   play(c4,500,0)
+	mov	arg01, #262
+	mov	arg02, #500
+	mov	arg03, #0
+	call	#_play
+	jmp	#LR__0001
+_test_ret
+	ret
+
+' 
+'  
+'  
+' '----------------------------------------------------------------
+' '------------  An alpha test playing procedure ------------------
+' '------------  Plays sine waves in allchannels ------------------
+' '------------  makes a harmonic sound ---------------------------
+' '---------------------------------------------------------------- 
+' 
+' pub play(ff,time,vol) |ilss,ss,ssf
+_play
+	mov	COUNT_, #11
+	call	#pushregs_
+	mov	local01, arg02
+	mov	muldiva_, ##40000
+	mov	muldivb_, arg01
+	call	#divide_
+' 
+' ' Test play 
+' 
+' ilss:=40000/ff
+	decod	muldiva_, #10
+	call	#divide_
+	mov	local02, muldivb_
+	shl	local02, #1
+' ss:=2*(1024/ilss)
+' if ss<2
+	cmps	local02, #2 wcz
+'   ss:=2
+ if_b	mov	local02, #2
+	qmul	local02, ##3568945
+	getqx	muldiva_
+	shl	arg01, #11
+	mov	muldivb_, arg01
+	call	#divide_
+' ssf:=(ss*3568945)/(ff*2048)
+	mov	local03, muldivb_
+	add	ptr__dat__, ##1756
+	mov	local04, ptr__dat__
+' 
+' channel1[0]:=@sinewave
+	wrlong	local04, objptr
+' channel1[1]:=0
+	add	objptr, #4
+	wrlong	#0, objptr
+' channel1[2]:=16
+	add	objptr, #4
+	wrlong	#16, objptr
+' channel1[3]:=2048+16
+	add	objptr, #4
+	wrlong	##2064, objptr
+' channel1[4]:=vol
+	add	objptr, #4
+	wrlong	arg03, objptr
+' channel1[5]:=8192
+	add	objptr, #4
+	wrlong	##8192, objptr
+' channel1[6]:= ssf
+	add	objptr, #4
+	wrlong	local03, objptr
+' channel1[7]:= ss
+	add	objptr, #4
+	wrlong	local02, objptr
+' 
+' channel2[0]:=@sinewave
+	add	objptr, #8
+	wrlong	local04, objptr
+' channel2[1]:=0
+	add	objptr, #4
+	wrlong	#0, objptr
+' channel2[2]:=16
+	add	objptr, #4
+	wrlong	#16, objptr
+' channel2[3]:=2048+16
+	add	objptr, #4
+	wrlong	##2064, objptr
+	abs	local05, arg03 wc
+	shr	local05, #1
+	sub	ptr__dat__, ##1756
+ if_b	neg	local05, local05
+' channel2[4]:=vol/2
+	add	objptr, #4
+	wrlong	local05, objptr
+' channel2[5]:=8192
+	add	objptr, #4
+	wrlong	##8192, objptr
+' channel2[6]:= ssf
+	add	objptr, #4
+	wrlong	local03, objptr
+	mov	local06, local02
+	shl	local06, #1
+' channel2[7]:= ss*2
+	add	objptr, #4
+	wrlong	local06, objptr
+' 
+' channel3[0]:=@sinewave
+	add	objptr, #8
+	wrlong	local04, objptr
+' channel3[1]:=0
+	add	objptr, #4
+	wrlong	#0, objptr
+' channel3[2]:=16
+	add	objptr, #4
+	wrlong	#16, objptr
+' channel3[3]:=2048+16
+	add	objptr, #4
+	wrlong	##2064, objptr
+	sub	objptr, #84
+	mov	muldiva_, arg03
+	mov	muldivb_, #3
+	call	#divide_
+' channel3[4]:=vol/3
+	add	objptr, #88
+	wrlong	muldivb_, objptr
+' channel3[5]:=8192
+	add	objptr, #4
+	wrlong	##8192, objptr
+' channel3[6]:= ssf
+	add	objptr, #4
+	wrlong	local03, objptr
+	mov	local07, local02
+	shl	local07, #1
+	add	local07, local02
+' channel3[7]:= ss*3
+	add	objptr, #4
+	wrlong	local07, objptr
+' 
+' channel4[0]:=@sinewave
+	add	objptr, #8
+	wrlong	local04, objptr
+' channel4[1]:=0
+	add	objptr, #4
+	wrlong	#0, objptr
+' channel4[2]:=16
+	add	objptr, #4
+	wrlong	#16, objptr
+' channel4[3]:=2048+16
+	add	objptr, #4
+	wrlong	##2064, objptr
+	abs	local05, arg03 wc
+	shr	local05, #2
+ if_b	neg	local05, local05
+' channel4[4]:=vol/4
+	add	objptr, #4
+	wrlong	local05, objptr
+' channel4[5]:=8192
+	add	objptr, #4
+	wrlong	##8192, objptr
+' channel4[6]:= ssf
+	add	objptr, #4
+	wrlong	local03, objptr
+	mov	local08, local02
+	shl	local08, #2
+' channel4[7]:= ss*4
+	add	objptr, #4
+	wrlong	local08, objptr
+' 
+' channel5[0]:=@sinewave
+	add	objptr, #8
+	wrlong	local04, objptr
+' channel5[1]:=0
+	add	objptr, #4
+	wrlong	#0, objptr
+' channel5[2]:=16
+	add	objptr, #4
+	wrlong	#16, objptr
+' channel5[3]:=2048+16
+	add	objptr, #4
+	wrlong	##2064, objptr
+	sub	objptr, #156
+	mov	muldiva_, arg03
+	mov	muldivb_, #5
+	call	#divide_
+' channel5[4]:=vol/5
+	add	objptr, #160
+	wrlong	muldivb_, objptr
+' channel5[5]:=8192
+	add	objptr, #4
+	wrlong	##8192, objptr
+' channel5[6]:= ssf
+	add	objptr, #4
+	wrlong	local03, objptr
+	mov	local09, local02
+	shl	local09, #2
+	add	local09, local02
+' channel5[7]:= ss*5
+	add	objptr, #4
+	wrlong	local09, objptr
+' 
+' channel6[0]:=@sinewave
+	add	objptr, #8
+	wrlong	local04, objptr
+' channel6[1]:=0
+	add	objptr, #4
+	wrlong	#0, objptr
+' channel6[2]:=16
+	add	objptr, #4
+	wrlong	#16, objptr
+' channel6[3]:=2048+16
+	add	objptr, #4
+	wrlong	##2064, objptr
+	sub	objptr, #192
+	mov	muldiva_, arg03
+	mov	muldivb_, #6
+	call	#divide_
+' channel6[4]:=vol/6
+	add	objptr, #196
+	wrlong	muldivb_, objptr
+' channel6[5]:=8192
+	add	objptr, #4
+	wrlong	##8192, objptr
+' channel6[6]:= ssf
+	add	objptr, #4
+	wrlong	local03, objptr
+	mov	local10, local02
+	shl	local10, #1
+	add	local10, local02
+	shl	local10, #1
+' channel6[7]:= ss*6
+	add	objptr, #4
+	wrlong	local10, objptr
+' 
+' channel7[0]:=@sinewave
+	add	objptr, #8
+	wrlong	local04, objptr
+' channel7[1]:=0
+	add	objptr, #4
+	wrlong	#0, objptr
+' channel7[2]:=16
+	add	objptr, #4
+	wrlong	#16, objptr
+' channel7[3]:=2048+16
+	add	objptr, #4
+	wrlong	##2064, objptr
+	sub	objptr, #228
+	mov	muldiva_, arg03
+	mov	muldivb_, #7
+	call	#divide_
+' channel7[4]:=vol/7
+	add	objptr, #232
+	wrlong	muldivb_, objptr
+' channel7[5]:=8192
+	add	objptr, #4
+	wrlong	##8192, objptr
+' channel7[6]:= ssf
+	add	objptr, #4
+	wrlong	local03, objptr
+	mov	local11, local02
+	shl	local11, #3
+	sub	local11, local02
+' channel7[7]:= ss*7
+	add	objptr, #4
+	wrlong	local11, objptr
+' 
+' channel8[0]:=@sinewave
+	add	objptr, #8
+	wrlong	local04, objptr
+' channel8[1]:=0
+	add	objptr, #4
+	wrlong	#0, objptr
+' channel8[2]:=16
+	add	objptr, #4
+	wrlong	#16, objptr
+' channel8[3]:=2048+16
+	add	objptr, #4
+	wrlong	##2064, objptr
+	abs	local05, arg03 wc
+	shr	local05, #3
+ if_b	neg	local05, local05
+' channel8[4]:=vol/8
+	add	objptr, #4
+	wrlong	local05, objptr
+' channel8[5]:=8192
+	add	objptr, #4
+	wrlong	##8192, objptr
+' channel8[6]:= ssf
+	add	objptr, #4
+	wrlong	local03, objptr
+	shl	local02, #3
+' channel8[7]:= ss*8
+	add	objptr, #4
+	wrlong	local02, objptr
+' 
+' 
+' 
+' 
+' 
+' channel1[8]:=0
+	sub	objptr, #248
+	wrlong	#0, objptr
+' channel2[8]:=0
+	add	objptr, #36
+	wrlong	#0, objptr
+' channel3[8]:=0
+	add	objptr, #36
+	wrlong	#0, objptr
+' channel4[8]:=0
+	add	objptr, #36
+	wrlong	#0, objptr
+' channel5[8]:=0
+	add	objptr, #36
+	wrlong	#0, objptr
+' channel6[8]:=0
+	add	objptr, #36
+	wrlong	#0, objptr
+' channel7[8]:=0
+	add	objptr, #36
+	wrlong	#0, objptr
+' channel8[8]:=0
+	add	objptr, #36
+	wrlong	#0, objptr
+	sub	objptr, #284
+' waitus(200)
+	mov	arg01, #200
+	call	#__system___waitus
+' channel1[8]:=1
+	add	objptr, #32
+	wrlong	#1, objptr
+' channel2[8]:=1
+	add	objptr, #36
+	wrlong	#1, objptr
+' channel3[8]:=1
+	add	objptr, #36
+	wrlong	#1, objptr
+' channel4[8]:=1
+	add	objptr, #36
+	wrlong	#1, objptr
+' channel5[8]:=1
+	add	objptr, #36
+	wrlong	#1, objptr
+' channel6[8]:=1
+	add	objptr, #36
+	wrlong	#1, objptr
+' channel7[8]:=1
+	add	objptr, #36
+	wrlong	#1, objptr
+' channel8[8]:=1
+	add	objptr, #36
+	wrlong	#1, objptr
+	sub	objptr, #284
+' 
+' waitms(time)
+	mov	arg01, local01
+	call	#__system___waitms
+	mov	ptra, fp
+	call	#popregs_
+_play_ret
+	ret
+hubexit
+	jmp	#cogexit
+
+__system___waitms
+	mov	COUNT_, #3
+	call	#pushregs_
+	mov	local01, arg01
+	rdlong	local02, #20
+	loc	pa,	#(@LR__0003-@LR__0002)
+	call	#FCACHE_LOAD_
+LR__0002
+	cmps	local01, ##1000 wcz
+ if_a	waitx	local02
+ if_a	sub	local01, ##1000
+ if_a	jmp	#LR__0002
+LR__0003
+	add	ptr___system__dat__, #12
+	rdlong	local03, ptr___system__dat__ wz
+	sub	ptr___system__dat__, #12
+ if_ne	jmp	#LR__0004
+	mov	muldiva_, local02
+	mov	muldivb_, ##1000
+	call	#unsdivide_
+	mov	local03, muldivb_
+	add	ptr___system__dat__, #12
+	wrlong	muldivb_, ptr___system__dat__
+	sub	ptr___system__dat__, #12
+LR__0004
+	cmps	local01, #0 wcz
+ if_a	qmul	local01, local03
+ if_a	getqx	arg01
+ if_a	waitx	arg01
+	mov	ptra, fp
+	call	#popregs_
+__system___waitms_ret
+	ret
+
+__system___waitus
+	mov	COUNT_, #2
+	call	#pushregs_
+	mov	local01, arg01
+	add	ptr___system__dat__, #16
+	rdlong	local02, ptr___system__dat__ wz
+	sub	ptr___system__dat__, #16
+ if_ne	jmp	#LR__0005
+	rdlong	muldiva_, #20
+	mov	muldivb_, ##1000000
+	call	#unsdivide_
+	mov	local02, muldivb_
+	add	ptr___system__dat__, #16
+	wrlong	muldivb_, ptr___system__dat__
+	sub	ptr___system__dat__, #16
+LR__0005
+	qmul	local01, local02
+	getqx	arg01
+	waitx	arg01
+	mov	ptra, fp
+	call	#popregs_
+__system___waitus_ret
+	ret
+	alignl
+_dat_
+'-' 
+'-' audio       org
+'-'   
+'-'             setq    #26             ' Init cog channel variables from the hub, channel#*9 longs
+	byte	$28, $34, $64, $fd
+'-'             rdlong  sstart1,ptra
+	byte	$00, $9b, $06, $fb
+'-'         
+'-'             wrpin   dac,#left       ' Noise dither DACs at clk/90
+	byte	$0e, $68, $07, $fc
+'-'             wxpin   #90,#left
+	byte	$0e, $b4, $1c, $fc
+'-' 
+'-'             wrpin   dac,#right
+	byte	$0f, $68, $07, $fc
+'-'             wxpin   #90,#right
+	byte	$0f, $b4, $1c, $fc
+'-' 
+'-'             dirh    #left addpins 1
+	byte	$41, $9c, $64, $fd
+'-' 
+'-'             setse1  #%001<<6 + left ' Set the event - DAC empty
+	byte	$20, $9c, $64, $fd
+'-'             mov     ijmp1,#isr1     ' Init the interrupt
+	byte	$28, $e9, $07, $f6
+'-'             setint1 #4              ' Interrupt from DAC empty event
+	byte	$25, $08, $64, $fd
+'-'             
+'-' '---------------------------------------------------------------------------------        
+'-' '----------------- The main loop -------------------------------------------------
+'-' '---------------------------------------------------------------------------------
+'-' 
+'-' loop        setq    #8              ' Read channel regs from the hub
+	byte	$28, $10, $64, $fd
+'-'             rdlong  sstart1,ptra++
+	byte	$61, $9b, $06, $fb
+'-'             setq    #8              ' Cannot do one big setq+rdlong as it interferes with interrupts
+	byte	$28, $10, $64, $fd
+'-'             rdlong  sstart2,ptra++
+	byte	$61, $ad, $06, $fb
+'-'             setq    #8
+	byte	$28, $10, $64, $fd
+'-'             rdlong  sstart3,ptra++
+	byte	$61, $bf, $06, $fb
+'-'             setq    #8
+	byte	$28, $10, $64, $fd
+'-'             rdlong  sstart4,ptra++
+	byte	$61, $d1, $06, $fb
+'-'             setq    #8
+	byte	$28, $10, $64, $fd
+'-'             rdlong  sstart5,ptra++
+	byte	$61, $e3, $06, $fb
+'-'             setq    #8
+	byte	$28, $10, $64, $fd
+'-'             rdlong  sstart6,ptra++
+	byte	$61, $f5, $06, $fb
+'-'             setq    #8
+	byte	$28, $10, $64, $fd
+'-'             rdlong  sstart7,ptra++
+	byte	$61, $07, $07, $fb
+'-'             setq    #8
+	byte	$28, $10, $64, $fd
+'-'             rdlong  sstart8,ptra++
+	byte	$61, $19, $07, $fb
+'-' 
+'-'             sub ptra,#9*4*8    
+	byte	$20, $f1, $87, $f1
+'-'     
+'-'             cmp     acmd1,#0 wz     ' if cmd=0, zero the phase accumulator
+	byte	$00, $aa, $0e, $f2
+'-'     if_e    mov     p1,#0
+	byte	$00, $76, $06, $a6
+'-'             cmp     acmd2,#0 wz
+	byte	$00, $bc, $0e, $f2
+'-'     if_e    mov     p2,#0
+	byte	$00, $78, $06, $a6
+'-'             cmp     acmd3,#0 wz
+	byte	$00, $ce, $0e, $f2
+'-'     if_e    mov     p3,#0
+	byte	$00, $7a, $06, $a6
+'-'             cmp     acmd4,#0 wz
+	byte	$00, $e0, $0e, $f2
+'-'     if_e    mov     p4,#0
+	byte	$00, $7c, $06, $a6
+'-'             cmp     acmd5,#0 wz
+	byte	$00, $f2, $0e, $f2
+'-'     if_e    mov     p5,#0
+	byte	$00, $7e, $06, $a6
+'-'             cmp     acmd6,#0 wz
+	byte	$00, $04, $0f, $f2
+'-'     if_e    mov     p6,#0
+	byte	$00, $80, $06, $a6
+'-'             cmp     acmd7,#0 wz
+	byte	$00, $16, $0f, $f2
+'-'     if_e    mov     p7,#0
+	byte	$00, $82, $06, $a6
+'-'             cmp     acmd8,#0 wz
+	byte	$00, $28, $0f, $f2
+'-'     if_e    mov     p8,#0
+	byte	$00, $84, $06, $a6
+'-'           
+'-'             mov     qq,tail         ' Check if the buffer is full	
+	byte	$46, $87, $02, $f6
+'-'             sub     qq,#2
+	byte	$02, $86, $86, $f1
+'-'             and     qq,#511
+	byte	$ff, $87, $06, $f5
+'-'             cmp     qq,front wcz
+	byte	$45, $87, $1a, $f2
+'-'     if_e    jmp     #loop           ' If the buffer is full, do nothing               
+	byte	$68, $ff, $9f, $ad
+'-'       
+'-'             mov     cn,#0           ' Find the channel to compute
+	byte	$00, $3e, $07, $f6
+'-'             mov     ct,time1        ' with the lowest next sample time
+	byte	$96, $41, $03, $f6
+'-'             fle     ct,time2 wcz    ' TODO: THIS WILL FAIL AFTER 1210 (or 605? )seconds when overflow
+	byte	$97, $41, $3b, $f3
+'-'     if_c    mov     cn,#1   
+	byte	$01, $3e, $07, $c6
+'-'             fle     ct,time3 wcz
+	byte	$98, $41, $3b, $f3
+'-'     if_c    mov     cn,#2        
+	byte	$02, $3e, $07, $c6
+'-'             fle     ct,time4 wcz
+	byte	$99, $41, $3b, $f3
+'-'     if_c    mov     cn,#3 
+	byte	$03, $3e, $07, $c6
+'-'             fle     ct,time5 wcz
+	byte	$9a, $41, $3b, $f3
+'-'     if_c    mov     cn,#4 
+	byte	$04, $3e, $07, $c6
+'-'             fle     ct,time6 wcz
+	byte	$9b, $41, $3b, $f3
+'-'     if_c    mov     cn,#5 
+	byte	$05, $3e, $07, $c6
+'-'             fle     ct,time7 wcz
+	byte	$9c, $41, $3b, $f3
+'-'     if_c    mov     cn,#6 
+	byte	$06, $3e, $07, $c6
+'-'             fle     ct,time8 wcz
+	byte	$9d, $41, $3b, $f3
+'-'     if_c    mov     cn,#7 
+	byte	$07, $3e, $07, $c6
+'-'  
+'-'             cmp     cn,#0 wz'
+	byte	$00, $3e, $0f, $f2
+'-'     if_z    jmp     #p201       
+	byte	$38, $00, $90, $ad
+'-'             cmp     cn,#1 wz
+	byte	$01, $3e, $0f, $f2
+'-'     if_z    jmp     #p202       
+	byte	$8c, $00, $90, $ad
+'-'             cmp     cn,#2 wz
+	byte	$02, $3e, $0f, $f2
+'-'     if_z    jmp     #p203       
+	byte	$e0, $00, $90, $ad
+'-'             cmp     cn,#3 wz
+	byte	$03, $3e, $0f, $f2
+'-'     if_z    jmp     #p204       
+	byte	$34, $01, $90, $ad
+'-'             cmp     cn,#4 wz
+	byte	$04, $3e, $0f, $f2
+'-'     if_z    jmp     #p205       
+	byte	$88, $01, $90, $ad
+'-'             cmp     cn,#5 wz
+	byte	$05, $3e, $0f, $f2
+'-'     if_z    jmp     #p206       
+	byte	$dc, $01, $90, $ad
+'-'             cmp     cn,#6 wz
+	byte	$06, $3e, $0f, $f2
+'-'     if_z    jmp     #p207       
+	byte	$30, $02, $90, $ad
+'-'             cmp     cn,#7 wz
+	byte	$07, $3e, $0f, $f2
+'-'     if_z    jmp     #p208       
+	byte	$84, $02, $90, $ad
+'-'            
+'-' '----------------------------------------------------------------------------------
+'-' '------------- Compute channel samples --------------------------------------------
+'-' '----------------------------------------------------------------------------------
+'-' 	
+'-' ' ------------  Channel 1
+'-'  
+'-' p201        mov     dt0,time1      ' compute the delta to add to the global time
+	byte	$96, $43, $03, $f6
+'-'             sub     dt0,time0
+	byte	$95, $43, $83, $f1
+'-'             add     time1,freq1    ' compute the next channel time	
+	byte	$53, $2d, $03, $f1
+'-' 	        
+'-'             add     p1,askip1      ' update the phase accumulator
+	byte	$54, $77, $02, $f1
+'-'             cmp     p1,lend1 wcz   ' substract the loop length if over the loop end
+	byte	$50, $77, $1a, $f2
+'-'     if_ge   sub     p1,lend1	        
+	byte	$50, $77, $82, $31
+'-'     if_ge   add     p1,lstart1       
+	byte	$4f, $77, $02, $31
+'-'             mov     qq,p1          ' compute the pointer to the next sample
+	byte	$3b, $87, $02, $f6
+'-'             add     qq,sstart1
+	byte	$4d, $87, $02, $f1
+'-'             
+'-'             cmp     type1,#0 wz    ' check the sample type
+	byte	$00, $9c, $0e, $f2
+'-'     if_nz   rdbyte  spl,qq         ' not zero=8 bit
+	byte	$43, $89, $c2, $5a
+'-'     if_nz   shl     spl,#8
+	byte	$08, $88, $66, $50
+'-'     if_z    rdword  spl,qq         ' zero=16 bit. TODO: more types? signed/unsigned, etc... 
+	byte	$43, $89, $e2, $aa
+'-' 
+'-'             scas    spl,vol1       ' apply the volume
+	byte	$51, $89, $32, $fa
+'-'             mov     spl,0-0
+	byte	$00, $88, $02, $f6
+'-' 
+'-'             scas    spl,apan1      ' apply the pan
+	byte	$52, $89, $32, $fa
+'-'             mov     ls1,0-0
+	byte	$00, $48, $03, $f6
+'-'             mov     qq,##16384
+	byte	$20, $00, $00, $ff, $00, $86, $06, $f6
+'-'             sub     qq,apan1
+	byte	$52, $87, $82, $f1
+'-'             scas    spl,qq
+	byte	$43, $89, $32, $fa
+'-'             mov     rs1,0-0
+	byte	$00, $4a, $03, $f6
+'-'             
+'-'             jmp     #p101              
+	byte	$84, $02, $90, $fd
+'-' 	    	
+'-' ' ------------  Channel 2
+'-'  
+'-' p202        mov     dt0,time2
+	byte	$97, $43, $03, $f6
+'-'             sub     dt0,time0
+	byte	$95, $43, $83, $f1
+'-'             add     time2,freq2  	
+	byte	$5c, $2f, $03, $f1
+'-' 	        
+'-'             add     p2,askip2
+	byte	$5d, $79, $02, $f1
+'-'             cmp     p2,lend2 wcz
+	byte	$59, $79, $1a, $f2
+'-'     if_ge   sub     p2,lend2	        
+	byte	$59, $79, $82, $31
+'-'     if_ge   add     p2,lstart2       
+	byte	$58, $79, $02, $31
+'-'             mov     qq,p2
+	byte	$3c, $87, $02, $f6
+'-'             add     qq,sstart2
+	byte	$56, $87, $02, $f1
+'-' 
+'-'             cmp     type2,#0 wz
+	byte	$00, $ae, $0e, $f2
+'-'     if_nz   rdbyte  spl,qq
+	byte	$43, $89, $c2, $5a
+'-'     if_nz   shl     spl,#8
+	byte	$08, $88, $66, $50
+'-'     if_z    rdword  spl,qq
+	byte	$43, $89, $e2, $aa
+'-' 
+'-'             scas    spl,vol2
+	byte	$5a, $89, $32, $fa
+'-'             mov     spl,0-0
+	byte	$00, $88, $02, $f6
+'-'             
+'-'             scas    spl,apan2
+	byte	$5b, $89, $32, $fa
+'-'             mov     ls2,0-0
+	byte	$00, $4c, $03, $f6
+'-'             mov     qq,##16384
+	byte	$20, $00, $00, $ff, $00, $86, $06, $f6
+'-'             sub     qq,apan2
+	byte	$5b, $87, $82, $f1
+'-'             scas    spl,qq
+	byte	$43, $89, $32, $fa
+'-'             mov     rs2,0-0
+	byte	$00, $4e, $03, $f6
+'-'             
+'-'             jmp     #p101
+	byte	$28, $02, $90, $fd
+'-' 
+'-' ' ------------  Channel 3
+'-'  
+'-' p203        mov     dt0,time3
+	byte	$98, $43, $03, $f6
+'-'             sub     dt0,time0
+	byte	$95, $43, $83, $f1
+'-'             add     time3,freq3  	
+	byte	$65, $31, $03, $f1
+'-' 	        
+'-'             add     p3,askip3
+	byte	$66, $7b, $02, $f1
+'-'             cmp     p3,lend3 wcz
+	byte	$62, $7b, $1a, $f2
+'-'     if_ge   sub     p3,lend3	        
+	byte	$62, $7b, $82, $31
+'-'     if_ge   add     p3,lstart3       
+	byte	$61, $7b, $02, $31
+'-'             mov     qq,p3
+	byte	$3d, $87, $02, $f6
+'-'             add     qq,sstart3
+	byte	$5f, $87, $02, $f1
+'-'             
+'-'             cmp     type3,#0 wz
+	byte	$00, $c0, $0e, $f2
+'-'     if_nz   rdbyte  spl,qq
+	byte	$43, $89, $c2, $5a
+'-'     if_nz   shl     spl,#8
+	byte	$08, $88, $66, $50
+'-'     if_z    rdword  spl,qq
+	byte	$43, $89, $e2, $aa
+'-' 
+'-'             scas    spl,vol3
+	byte	$63, $89, $32, $fa
+'-'             mov     spl,0-0
+	byte	$00, $88, $02, $f6
+'-'     	
+'-'             scas    spl,apan3
+	byte	$64, $89, $32, $fa
+'-'             mov     ls3,0-0
+	byte	$00, $50, $03, $f6
+'-'             
+'-'             mov     qq,##16384
+	byte	$20, $00, $00, $ff, $00, $86, $06, $f6
+'-'             sub     qq,apan3
+	byte	$64, $87, $82, $f1
+'-'             scas    spl,qq
+	byte	$43, $89, $32, $fa
+'-'             mov     rs3,0-0
+	byte	$00, $52, $03, $f6
+'-' 
+'-'             jmp     #p101
+	byte	$cc, $01, $90, $fd
+'-'             
+'-' ' ------------  Channel 4
+'-'  
+'-' p204        mov     dt0,time4
+	byte	$99, $43, $03, $f6
+'-'             sub     dt0,time0
+	byte	$95, $43, $83, $f1
+'-'             add     time4,freq4  	
+	byte	$6e, $33, $03, $f1
+'-' 
+'-' 	        
+'-'             add     p4,askip4
+	byte	$6f, $7d, $02, $f1
+'-'             cmp     p4,lend4 wcz
+	byte	$6b, $7d, $1a, $f2
+'-'     if_ge   sub     p4,lend4	        
+	byte	$6b, $7d, $82, $31
+'-'     if_ge   add     p4,lstart4       
+	byte	$6a, $7d, $02, $31
+'-'             mov     qq,p4
+	byte	$3e, $87, $02, $f6
+'-'             add     qq,sstart4
+	byte	$68, $87, $02, $f1
+'-'             
+'-'             cmp     type4,#0 wz
+	byte	$00, $d2, $0e, $f2
+'-'     if_nz   rdbyte  spl,qq
+	byte	$43, $89, $c2, $5a
+'-'     if_nz   shl     spl,#8
+	byte	$08, $88, $66, $50
+'-'     if_z    rdword  spl,qq
+	byte	$43, $89, $e2, $aa
+'-' 
+'-'             scas    spl,vol4
+	byte	$6c, $89, $32, $fa
+'-'             mov     spl,0-0
+	byte	$00, $88, $02, $f6
+'-'     	
+'-'             scas    spl,apan4
+	byte	$6d, $89, $32, $fa
+'-'             mov     ls4,0-0
+	byte	$00, $56, $03, $f6
+'-'             
+'-'             mov     qq,##16384
+	byte	$20, $00, $00, $ff, $00, $86, $06, $f6
+'-'             sub     qq,apan4
+	byte	$6d, $87, $82, $f1
+'-'             scas    spl,qq
+	byte	$43, $89, $32, $fa
+'-'             mov     rs4,0-0
+	byte	$00, $54, $03, $f6
+'-' 
+'-'             jmp     #p101
+	byte	$70, $01, $90, $fd
+'-'             
+'-' ' ------------  Channel 5
+'-'  
+'-' p205        mov     dt0,time5
+	byte	$9a, $43, $03, $f6
+'-'             sub     dt0,time0
+	byte	$95, $43, $83, $f1
+'-'             add     time5,freq5  	
+	byte	$77, $35, $03, $f1
+'-' 
+'-' 	        
+'-'             add     p5,askip5
+	byte	$78, $7f, $02, $f1
+'-'             cmp     p5,lend5 wcz
+	byte	$74, $7f, $1a, $f2
+'-'     if_ge   sub     p5,lend5	        
+	byte	$74, $7f, $82, $31
+'-'     if_ge   add     p5,lstart5       
+	byte	$73, $7f, $02, $31
+'-'             mov     qq,p5
+	byte	$3f, $87, $02, $f6
+'-'             add     qq,sstart5
+	byte	$71, $87, $02, $f1
+'-'             
+'-'             cmp     type5,#0 wz
+	byte	$00, $e4, $0e, $f2
+'-'     if_nz   rdbyte  spl,qq
+	byte	$43, $89, $c2, $5a
+'-'     if_nz   shl     spl,#8
+	byte	$08, $88, $66, $50
+'-'     if_z    rdword  spl,qq
+	byte	$43, $89, $e2, $aa
+'-' 
+'-'             scas    spl,vol5
+	byte	$75, $89, $32, $fa
+'-'             mov     spl,0-0
+	byte	$00, $88, $02, $f6
+'-'     	
+'-'             scas    spl,apan5
+	byte	$76, $89, $32, $fa
+'-'             mov     ls5,0-0
+	byte	$00, $5a, $03, $f6
+'-'             
+'-'             mov     qq,##16384
+	byte	$20, $00, $00, $ff, $00, $86, $06, $f6
+'-'             sub     qq,apan5
+	byte	$76, $87, $82, $f1
+'-'             scas    spl,qq
+	byte	$43, $89, $32, $fa
+'-'             mov     rs5,0-0
+	byte	$00, $58, $03, $f6
+'-' 
+'-'             jmp     #p101
+	byte	$14, $01, $90, $fd
+'-'   
+'-' ' ------------  Channel 6
+'-'  
+'-' p206        mov     dt0,time6
+	byte	$9b, $43, $03, $f6
+'-'             sub     dt0,time0
+	byte	$95, $43, $83, $f1
+'-'             add     time6,freq6  	
+	byte	$80, $37, $03, $f1
+'-' 
+'-' 	        
+'-'             add     p6,askip6
+	byte	$81, $81, $02, $f1
+'-'             cmp     p6,lend6 wcz
+	byte	$7d, $81, $1a, $f2
+'-'     if_ge   sub     p6,lend6	        
+	byte	$7d, $81, $82, $31
+'-'     if_ge   add     p6,lstart6       
+	byte	$7c, $81, $02, $31
+'-'             mov     qq,p6
+	byte	$40, $87, $02, $f6
+'-'             add     qq,sstart6
+	byte	$7a, $87, $02, $f1
+'-'             
+'-'             cmp     type6,#0 wz
+	byte	$00, $f6, $0e, $f2
+'-'     if_nz   rdbyte  spl,qq
+	byte	$43, $89, $c2, $5a
+'-'     if_nz   shl     spl,#8
+	byte	$08, $88, $66, $50
+'-'     if_z    rdword  spl,qq
+	byte	$43, $89, $e2, $aa
+'-' 
+'-'             scas    spl,vol6
+	byte	$7e, $89, $32, $fa
+'-'             mov     spl,0-0
+	byte	$00, $88, $02, $f6
+'-'     	
+'-'             scas    spl,apan6
+	byte	$7f, $89, $32, $fa
+'-'             mov     ls6,0-0
+	byte	$00, $5e, $03, $f6
+'-'             
+'-'             mov     qq,##16384
+	byte	$20, $00, $00, $ff, $00, $86, $06, $f6
+'-'             sub     qq,apan6
+	byte	$7f, $87, $82, $f1
+'-'             scas    spl,qq
+	byte	$43, $89, $32, $fa
+'-'             mov     rs6,0-0
+	byte	$00, $5c, $03, $f6
+'-' 
+'-'             jmp     #p101
+	byte	$b8, $00, $90, $fd
+'-'             
+'-' ' ------------  Channel 7
+'-'  
+'-' p207        mov     dt0,time7
+	byte	$9c, $43, $03, $f6
+'-'             sub     dt0,time0
+	byte	$95, $43, $83, $f1
+'-'             add     time7,freq7  	
+	byte	$89, $39, $03, $f1
+'-' 
+'-' 	        
+'-'             add     p7,askip7
+	byte	$8a, $83, $02, $f1
+'-'             cmp     p7,lend7 wcz
+	byte	$86, $83, $1a, $f2
+'-'     if_ge   sub     p7,lend7	        
+	byte	$86, $83, $82, $31
+'-'     if_ge   add     p7,lstart7       
+	byte	$85, $83, $02, $31
+'-'             mov     qq,p7
+	byte	$41, $87, $02, $f6
+'-'             add     qq,sstart7
+	byte	$83, $87, $02, $f1
+'-'             
+'-'             cmp     type7,#0 wz
+	byte	$00, $08, $0f, $f2
+'-'     if_nz   rdbyte  spl,qq
+	byte	$43, $89, $c2, $5a
+'-'     if_nz   shl     spl,#8
+	byte	$08, $88, $66, $50
+'-'     if_z    rdword  spl,qq
+	byte	$43, $89, $e2, $aa
+'-' 
+'-'             scas    spl,vol7
+	byte	$87, $89, $32, $fa
+'-'             mov     spl,0-0
+	byte	$00, $88, $02, $f6
+'-'     	
+'-'             scas    spl,apan7
+	byte	$88, $89, $32, $fa
+'-'             mov     ls7,0-0
+	byte	$00, $62, $03, $f6
+'-'             
+'-'             mov     qq,##16384
+	byte	$20, $00, $00, $ff, $00, $86, $06, $f6
+'-'             sub     qq,apan7
+	byte	$88, $87, $82, $f1
+'-'             scas    spl,qq
+	byte	$43, $89, $32, $fa
+'-'             mov     rs7,0-0
+	byte	$00, $60, $03, $f6
+'-' 
+'-'             jmp     #p101     
+	byte	$5c, $00, $90, $fd
+'-'                    
+'-' ' ------------  Channel 8
+'-'  
+'-' p208        mov     dt0,time8
+	byte	$9d, $43, $03, $f6
+'-'             sub     dt0,time0
+	byte	$95, $43, $83, $f1
+'-'             add     time8,freq8  	
+	byte	$92, $3b, $03, $f1
+'-' 
+'-' 	        
+'-'             add     p8,askip8
+	byte	$93, $85, $02, $f1
+'-'             cmp     p8,lend8 wcz
+	byte	$8f, $85, $1a, $f2
+'-'     if_ge   sub     p8,lend8	        
+	byte	$8f, $85, $82, $31
+'-'     if_ge   add     p8,lstart8       
+	byte	$8e, $85, $02, $31
+'-'             mov     qq,p8
+	byte	$42, $87, $02, $f6
+'-'             add     qq,sstart8
+	byte	$8c, $87, $02, $f1
+'-'             
+'-'             cmp     type8,#0 wz
+	byte	$00, $1a, $0f, $f2
+'-'     if_nz   rdbyte  spl,qq
+	byte	$43, $89, $c2, $5a
+'-'     if_nz   shl     spl,#8
+	byte	$08, $88, $66, $50
+'-'     if_z    rdword  spl,qq
+	byte	$43, $89, $e2, $aa
+'-' 
+'-'             scas    spl,vol8
+	byte	$90, $89, $32, $fa
+'-'             mov     spl,0-0
+	byte	$00, $88, $02, $f6
+'-'     	
+'-'             scas    spl,apan8
+	byte	$91, $89, $32, $fa
+'-'             mov     ls8,0-0
+	byte	$00, $66, $03, $f6
+'-'             
+'-'             mov     qq,##16384
+	byte	$20, $00, $00, $ff, $00, $86, $06, $f6
+'-'             sub     qq,apan8
+	byte	$91, $87, $82, $f1
+'-'             scas    spl,qq
+	byte	$43, $89, $32, $fa
+'-'             mov     rs8,0-0
+	byte	$00, $64, $03, $f6
+'-' 
+'-'             jmp     #p101            
+	byte	$00, $00, $90, $fd
+'-'             
+'-' '------------------------ Channels end here --------------------       
+'-' 
+'-' ' Now add all channels and put the sample to the buffer    
+'-' 
+'-' 
+'-' p101        cmp     oldt0,time0 wz   ' There must not be 2 entries with the same time
+	byte	$95, $3d, $0b, $f2
+'-'     if_z    sub     front,#2         ' 
+	byte	$02, $8a, $86, $a1
+'-'     if_z    and     front,#511     
+	byte	$ff, $8b, $06, $a5
+'-'   
+'-'             mov     rs,#0            ' Mix all channels to rs and ls
+	byte	$00, $46, $07, $f6
+'-'             mov     ls,#0
+	byte	$00, $44, $07, $f6
+'-'             add     rs,rs1
+	byte	$a5, $47, $03, $f1
+'-'             add     rs,rs2
+	byte	$a7, $47, $03, $f1
+'-'             add     rs,rs3
+	byte	$a9, $47, $03, $f1
+'-'             add     rs,rs4
+	byte	$aa, $47, $03, $f1
+'-'             add     rs,rs5
+	byte	$ac, $47, $03, $f1
+'-'             add     rs,rs6
+	byte	$ae, $47, $03, $f1
+'-'             add     rs,rs7
+	byte	$b0, $47, $03, $f1
+'-'             add     rs,rs8
+	byte	$b2, $47, $03, $f1
+'-'             
+'-'             add     ls,ls1
+	byte	$a4, $45, $03, $f1
+'-'             add     ls,ls2
+	byte	$a6, $45, $03, $f1
+'-'             add     ls,ls3
+	byte	$a8, $45, $03, $f1
+'-'             add     ls,ls4
+	byte	$ab, $45, $03, $f1
+'-'             add     ls,ls5
+	byte	$ad, $45, $03, $f1
+'-'             add     ls,ls6
+	byte	$af, $45, $03, $f1
+'-'             add     ls,ls7
+	byte	$b1, $45, $03, $f1
+'-'             add     ls,ls8
+	byte	$b3, $45, $03, $f1
+'-'  		
+'-'             bitnot  ls,#15            ' convert to unsigned. TODO: compute and apply the gain for samples to not exceed 16 bit range
+	byte	$0f, $44, $e7, $f4
+'-'             bitnot  rs,#15		
+	byte	$0f, $46, $e7, $f4
+'-' 		
+'-'             setword rs,ls,#1         ' Pack L and R to one long    		
+	byte	$a2, $47, $2b, $f9
+'-'             wrlut   rs,front         ' and write it to LUT
+	byte	$45, $47, $33, $fc
+'-'             add     front,#1         ' Write the sample time
+	byte	$01, $8a, $06, $f1
+'-'             wrlut   time0,front
+	byte	$45, $2b, $33, $fc
+'-' 
+'-'             add     front,#1         ' move the front pointer
+	byte	$01, $8a, $06, $f1
+'-'             and     front,#511       ' and loop at #512
+	byte	$ff, $8b, $06, $f5
+'-'             mov     oldt0,time0      ' update global time
+	byte	$95, $3d, $03, $f6
+'-'             add     time0,dt0        
+	byte	$a1, $2b, $03, $f1
+'-'             jmp     #loop            'loop
+	byte	$88, $fb, $9f, $fd
+'-' 
+'-' '-------------------------------------------------------------------------
+'-' '------------------ This is the end of the main loop ---------------------
+'-' '-------------------------------------------------------------------------
+'-' 
+'-' '--------------------------------------------------------------------------
+'-' '------ Interrupt service -------------------------------------------------
+'-' '------ Output the sample, get the next one if exists ---------------------
+'-' '--------------------------------------------------------------------------
+'-' 
+'-' isr1        nop
+	byte	$00, $00, $00, $00
+'-' nop
+	byte	$00, $00, $00, $00
+'-' 
+'-'  
+'-' 
+'-'             wypin   lsample,#left        '2     The sample has to be outputted every 90 cycles     
+	byte	$0e, $90, $26, $fc
+'-'             wypin   rsample,#right       '4
+	byte	$0f, $92, $26, $fc
+'-' 
+'-'             add     counter,#1           '6     Increment the counter
+	byte	$01, $8e, $06, $f1
+'-'             cmp     counter,irqtime wcz  '8     Check if it is time for the next sample
+	byte	$4c, $8f, $1a, $f2
+'-'     if_ne   reti1                        '10/12 If not, do nothing
+	byte	$f5, $ff, $3b, $5b
+'-' 		
+'-'             mov     lsample,lsnext       '12    Prepare the next sample to output
+	byte	$4a, $91, $02, $f6
+'-'             mov     rsample,rsnext       '14
+	byte	$4b, $93, $02, $f6
+'-' 		        
+'-'             cmp     tail,front wcz       '16    If the buffer is empty, do nothing 
+	byte	$45, $8d, $1a, $f2
+'-'             if_e    reti1                '18/20 
+	byte	$f5, $ff, $3b, $ab
+'-' 
+'-'             rdlut   lsnext,tail          '21    else read the sample and its time from LUT
+	byte	$46, $95, $a2, $fa
+'-'             getword rsnext,lsnext,#1     '23    Split for left and right
+	byte	$4a, $97, $3a, $f9
+'-'             getword lsnext,lsnext,#0     '25
+	byte	$4a, $95, $32, $f9
+'-'             add    tail, #1              '27
+	byte	$01, $8c, $06, $f1
+'-'             rdlut  irqtime,tail          '30    Read the time for this sample
+	byte	$46, $99, $a2, $fa
+'-'             add    tail,#1               '32    Go to the next entry
+	byte	$01, $8c, $06, $f1
+'-'             and    tail,#511             '34
+	byte	$ff, $8d, $06, $f5
+'-'             reti1                        '38
+	byte	$f5, $ff, $3b, $fb
+'-' 
+'-' '---------------------------------------------------------------------------
+'-' '-------- End of interrupt -------------------------------------------------
+'-' '---------------------------------------------------------------------------    
+'-' 
+'-' '---------------------------------------------------------------------------
+'-' '------- Variables ---------------------------------------------------------
+'-' '---------------------------------------------------------------------------
+'-' 
+'-' ' phase accumulators
+'-' 
+'-' p1          long 0
+	byte	$00, $00, $00, $00
+'-' p2          long 0
+	byte	$00, $00, $00, $00
+'-' p3          long 0
+	byte	$00, $00, $00, $00
+'-' p4          long 0
+	byte	$00, $00, $00, $00
+'-' p5          long 0
+	byte	$00, $00, $00, $00
+'-' p6          long 0
+	byte	$00, $00, $00, $00
+'-' p7          long 0
+	byte	$00, $00, $00, $00
+'-' p8          long 0
+	byte	$00, $00, $00, $00
+'-' 
+'-' ' temporary variables 
+'-' 
+'-' qq          long 0
+	byte	$00, $00, $00, $00
+'-' spl         long 0
+	byte	$00, $00, $00, $00
+'-' 
+'-' ' circular buffer in LUT
+'-' 
+'-' front       long 0
+	byte	$00, $00, $00, $00
+'-' tail        long 0
+	byte	$00, $00, $00, $00
+'-' 
+'-' ' Interrupt ISR variables
+'-' 
+'-' counter     long $FFFFF800 ' this counter will overflow after 1210 seconds
+	byte	$00, $f8, $ff, $ff
+'-' lsample     long 0
+	byte	$00, $00, $00, $00
+'-' rsample     long 0
+	byte	$00, $00, $00, $00
+'-' lsnext      long 0
+	byte	$00, $00, $00, $00
+'-' rsnext      long 0 
+	byte	$00, $00, $00, $00
+'-' irqtime     long 0
+	byte	$00, $00, $00, $00
+'-' 
+'-' ' Channel 1 registers. TODO - optimize the memory usage
+'-' 
+'-' sstart1     long 0       ' Sample start pointer
+	byte	$00, $00, $00, $00
+'-' type1       long 0       ' type 0 16 bit, 1 8 bit
+	byte	$00, $00, $00, $00
+'-' lstart1     long 0       ' Loop start
+	byte	$00, $00, $00, $00
+'-' lend1       long 2       ' Loop end
+	byte	$02, $00, $00, $00
+'-' vol1        long 0       ' volume, 0..16384
+	byte	$00, $00, $00, $00
+'-' apan1       long 0       ' pan, 0..16384
+	byte	$00, $00, $00, $00
+'-' freq1       long 101     ' frequency divider
+	byte	$65, $00, $00, $00
+'-' askip1      long 2       ' skip between samples, 1 for 8 bit, 2 for 16 bit (or more for special effects)
+	byte	$02, $00, $00, $00
+'-' acmd1       long 0       ' command, 0 = reset the phase accumulator
+	byte	$00, $00, $00, $00
+'-' 
+'-' ' Channel 2 registers
+'-' 
+'-' sstart2     long 0
+	byte	$00, $00, $00, $00
+'-' type2       long 0
+	byte	$00, $00, $00, $00
+'-' lstart2     long 0
+	byte	$00, $00, $00, $00
+'-' lend2       long 2        		
+	byte	$02, $00, $00, $00
+'-' vol2        long 0
+	byte	$00, $00, $00, $00
+'-' apan2       long 0
+	byte	$00, $00, $00, $00
+'-' freq2       long 103
+	byte	$67, $00, $00, $00
+'-' askip2      long 2
+	byte	$02, $00, $00, $00
+'-' acmd2       long 0
+	byte	$00, $00, $00, $00
+'-' 
+'-' ' Channel 3 registers
+'-' 
+'-' sstart3     long 0
+	byte	$00, $00, $00, $00
+'-' type3       long 0
+	byte	$00, $00, $00, $00
+'-' lstart3     long 0
+	byte	$00, $00, $00, $00
+'-' lend3       long 2       		'
+	byte	$02, $00, $00, $00
+'-' vol3        long 0
+	byte	$00, $00, $00, $00
+'-' apan3       long 0
+	byte	$00, $00, $00, $00
+'-' freq3       long 107 '109 113 127 131 137 ...
+	byte	$6b, $00, $00, $00
+'-' askip3      long 2
+	byte	$02, $00, $00, $00
+'-' acmd3       long 0
+	byte	$00, $00, $00, $00
+'-' 
+'-' ' Channel 4 registers
+'-' 
+'-' sstart4     long 0
+	byte	$00, $00, $00, $00
+'-' type4       long 0
+	byte	$00, $00, $00, $00
+'-' lstart4     long 0
+	byte	$00, $00, $00, $00
+'-' lend4       long 2       		'
+	byte	$02, $00, $00, $00
+'-' vol4        long 0
+	byte	$00, $00, $00, $00
+'-' apan4       long 0
+	byte	$00, $00, $00, $00
+'-' freq4       long 109 '109 113 127 131 137 ...
+	byte	$6d, $00, $00, $00
+'-' askip4      long 2
+	byte	$02, $00, $00, $00
+'-' acmd4       long 0
+	byte	$00, $00, $00, $00
+'-' 
+'-' ' Channel 5 registers
+'-' 
+'-' sstart5     long 0
+	byte	$00, $00, $00, $00
+'-' type5       long 0
+	byte	$00, $00, $00, $00
+'-' lstart5     long 0
+	byte	$00, $00, $00, $00
+'-' lend5       long 2       		'
+	byte	$02, $00, $00, $00
+'-' vol5        long 0
+	byte	$00, $00, $00, $00
+'-' apan5       long 0
+	byte	$00, $00, $00, $00
+'-' freq5       long 113 '109 113 127 131 137 ...
+	byte	$71, $00, $00, $00
+'-' askip5      long 2
+	byte	$02, $00, $00, $00
+'-' acmd5       long 0
+	byte	$00, $00, $00, $00
+'-' 
+'-' ' Channel 6 registers
+'-' 
+'-' sstart6     long 0
+	byte	$00, $00, $00, $00
+'-' type6       long 0
+	byte	$00, $00, $00, $00
+'-' lstart6     long 0
+	byte	$00, $00, $00, $00
+'-' lend6       long 2       		'
+	byte	$02, $00, $00, $00
+'-' vol6        long 0
+	byte	$00, $00, $00, $00
+'-' apan6       long 0
+	byte	$00, $00, $00, $00
+'-' freq6       long 127 '109 113 127 131 137 ...
+	byte	$7f, $00, $00, $00
+'-' askip6      long 2
+	byte	$02, $00, $00, $00
+'-' acmd6       long 0
+	byte	$00, $00, $00, $00
+'-' 
+'-' ' Channel 7 registers
+'-' 
+'-' sstart7     long 0
+	byte	$00, $00, $00, $00
+'-' type7       long 0
+	byte	$00, $00, $00, $00
+'-' lstart7     long 0
+	byte	$00, $00, $00, $00
+'-' lend7       long 2       		'
+	byte	$02, $00, $00, $00
+'-' vol7        long 0
+	byte	$00, $00, $00, $00
+'-' apan7       long 0
+	byte	$00, $00, $00, $00
+'-' freq7       long 131 '109 113 127 131 137 ...
+	byte	$83, $00, $00, $00
+'-' askip7      long 2
+	byte	$02, $00, $00, $00
+'-' acmd7       long 0
+	byte	$00, $00, $00, $00
+'-' 
+'-' ' Channel 8 registers
+'-' 
+'-' sstart8     long 0
+	byte	$00, $00, $00, $00
+'-' type8       long 0
+	byte	$00, $00, $00, $00
+'-' lstart8     long 0
+	byte	$00, $00, $00, $00
+'-' lend8       long 2       		'
+	byte	$02, $00, $00, $00
+'-' vol8        long 0
+	byte	$00, $00, $00, $00
+'-' apan8       long 0
+	byte	$00, $00, $00, $00
+'-' freq8       long 131 '109 113 127 131 137 ...
+	byte	$83, $00, $00, $00
+'-' askip8      long 2
+	byte	$02, $00, $00, $00
+'-' acmd8       long 0
+	byte	$00, $00, $00, $00
+'-' 
+'-' ' Time variables
+'-' 
+'-' time0       long 0    ' Global sample computing time
+	byte	$00, $00, $00, $00
+'-' time1       long 1    ' Local channels time
+	byte	$01, $00, $00, $00
+'-' time2       long 2
+	byte	$02, $00, $00, $00
+'-' time3       long 3
+	byte	$03, $00, $00, $00
+'-' time4       long 4
+	byte	$04, $00, $00, $00
+'-' time5       long 5
+	byte	$05, $00, $00, $00
+'-' time6       long 6
+	byte	$06, $00, $00, $00
+'-' time7       long 7
+	byte	$07, $00, $00, $00
+'-' time8       long 8
+	byte	$08, $00, $00, $00
+'-' 
+'-' oldt0       long 0    'Temporary time variables
+	byte	$00, $00, $00, $00
+'-' cn          long 0
+	byte	$00, $00, $00, $00
+'-' ct          long 0
+	byte	$00, $00, $00, $00
+'-' dt0         long 0
+	byte	$00, $00, $00, $00
+'-' 
+'-' ' Samples
+'-' 
+'-' ls          long 0    ' Global sample variable
+	byte	$00, $00, $00, $00
+'-' rs          long 0
+	byte	$00, $00, $00, $00
+'-' 
+'-' ls1         long 0    ' Channel samples
+	byte	$00, $00, $00, $00
+'-' rs1         long 0
+	byte	$00, $00, $00, $00
+'-' ls2         long 0
+	byte	$00, $00, $00, $00
+'-' rs2         long 0
+	byte	$00, $00, $00, $00
+'-' ls3         long 0
+	byte	$00, $00, $00, $00
+'-' rs3         long 0
+	byte	$00, $00, $00, $00
+'-' rs4         long 0
+	byte	$00, $00, $00, $00
+'-' ls4         long 0
+	byte	$00, $00, $00, $00
+'-' rs5         long 0
+	byte	$00, $00, $00, $00
+'-' ls5         long 0
+	byte	$00, $00, $00, $00
+'-' rs6         long 0
+	byte	$00, $00, $00, $00
+'-' ls6         long 0
+	byte	$00, $00, $00, $00
+'-' rs7         long 0
+	byte	$00, $00, $00, $00
+'-' ls7         long 0
+	byte	$00, $00, $00, $00
+'-' rs8         long 0
+	byte	$00, $00, $00, $00
+'-' ls8         long 0
+	byte	$00, $00, $00, $00
+'-' 
+'-' dac         long %10111_00000000_01_00010_0     'random dither, as 90 cycles period needed
+	byte	$44, $00, $17, $00
+'-' 
+'-' null  			long 	0,0           ' for channel reset
+	byte	$00, $00, $00, $00, $00, $00, $00, $00
+'-' sinewave 		file 	"sinus.s2"    ' for testing
+	byte	$73, $32, $00, $04, $00, $00, $10, $00, $00, $00, $00, $00, $00, $00, $00, $00
+	byte	$00, $00, $c9, $00, $92, $01, $5b, $02, $24, $03, $ed, $03, $b6, $04, $7f, $05
+	byte	$48, $06, $11, $07, $d9, $07, $a2, $08, $6a, $09, $33, $0a, $fb, $0a, $c4, $0b
+	byte	$8c, $0c, $54, $0d, $1c, $0e, $e3, $0e, $ab, $0f, $72, $10, $3a, $11, $01, $12
+	byte	$c8, $12, $8f, $13, $55, $14, $1c, $15, $e2, $15, $a8, $16, $6e, $17, $33, $18
+	byte	$f9, $18, $be, $19, $82, $1a, $47, $1b, $0b, $1c, $cf, $1c, $93, $1d, $57, $1e
+	byte	$1a, $1f, $dd, $1f, $9f, $20, $61, $21, $23, $22, $e5, $22, $a6, $23, $67, $24
+	byte	$28, $25, $e8, $25, $a8, $26, $67, $27, $26, $28, $e5, $28, $a3, $29, $61, $2a
+	byte	$1f, $2b, $dc, $2b, $99, $2c, $55, $2d, $11, $2e, $cc, $2e, $87, $2f, $41, $30
+	byte	$fb, $30, $b5, $31, $6e, $32, $26, $33, $df, $33, $96, $34, $4d, $35, $04, $36
+	byte	$ba, $36, $6f, $37, $24, $38, $d9, $38, $8c, $39, $40, $3a, $f2, $3a, $a5, $3b
+	byte	$56, $3c, $07, $3d, $b8, $3d, $68, $3e, $17, $3f, $c5, $3f, $73, $40, $21, $41
+	byte	$ce, $41, $7a, $42, $25, $43, $d0, $43, $7a, $44, $24, $45, $cd, $45, $75, $46
+	byte	$1c, $47, $c3, $47, $69, $48, $0f, $49, $b4, $49, $58, $4a, $fb, $4a, $9d, $4b
+	byte	$3f, $4c, $e0, $4c, $81, $4d, $20, $4e, $bf, $4e, $5d, $4f, $fb, $4f, $97, $50
+	byte	$33, $51, $ce, $51, $68, $52, $02, $53, $9b, $53, $32, $54, $c9, $54, $60, $55
+	byte	$f5, $55, $8a, $56, $1d, $57, $b0, $57, $42, $58, $d3, $58, $64, $59, $f3, $59
+	byte	$82, $5a, $0f, $5b, $9c, $5b, $28, $5c, $b3, $5c, $3e, $5d, $c7, $5d, $4f, $5e
+	byte	$d7, $5e, $5d, $5f, $e3, $5f, $68, $60, $eb, $60, $6e, $61, $f0, $61, $71, $62
+	byte	$f1, $62, $70, $63, $ee, $63, $6c, $64, $e8, $64, $63, $65, $dd, $65, $56, $66
+	byte	$cf, $66, $46, $67, $bc, $67, $32, $68, $a6, $68, $19, $69, $8b, $69, $fd, $69
+	byte	$6d, $6a, $dc, $6a, $4a, $6b, $b7, $6b, $23, $6c, $8e, $6c, $f8, $6c, $61, $6d
+	byte	$c9, $6d, $30, $6e, $96, $6e, $fb, $6e, $5e, $6f, $c1, $6f, $22, $70, $83, $70
+	byte	$e2, $70, $40, $71, $9d, $71, $f9, $71, $54, $72, $ae, $72, $07, $73, $5e, $73
+	byte	$b5, $73, $0a, $74, $5f, $74, $b2, $74, $04, $75, $55, $75, $a5, $75, $f3, $75
+	byte	$41, $76, $8d, $76, $d8, $76, $22, $77, $6b, $77, $b3, $77, $fa, $77, $3f, $78
+	byte	$84, $78, $c7, $78, $09, $79, $4a, $79, $89, $79, $c8, $79, $05, $7a, $41, $7a
+	byte	$7c, $7a, $b6, $7a, $ee, $7a, $26, $7b, $5c, $7b, $91, $7b, $c5, $7b, $f8, $7b
+	byte	$29, $7c, $59, $7c, $88, $7c, $b6, $7c, $e3, $7c, $0e, $7d, $39, $7d, $62, $7d
+	byte	$89, $7d, $b0, $7d, $d5, $7d, $fa, $7d, $1d, $7e, $3e, $7e, $5f, $7e, $7e, $7e
+	byte	$9c, $7e, $b9, $7e, $d5, $7e, $ef, $7e, $09, $7f, $21, $7f, $37, $7f, $4d, $7f
+	byte	$61, $7f, $74, $7f, $86, $7f, $97, $7f, $a6, $7f, $b4, $7f, $c1, $7f, $cd, $7f
+	byte	$d8, $7f, $e1, $7f, $e9, $7f, $f0, $7f, $f5, $7f, $f9, $7f, $fd, $7f, $fe, $7f
+	byte	$ff, $7f, $fe, $7f, $fd, $7f, $f9, $7f, $f5, $7f, $f0, $7f, $e9, $7f, $e1, $7f
+	byte	$d8, $7f, $cd, $7f, $c1, $7f, $b4, $7f, $a6, $7f, $97, $7f, $86, $7f, $74, $7f
+	byte	$61, $7f, $4d, $7f, $37, $7f, $21, $7f, $09, $7f, $ef, $7e, $d5, $7e, $b9, $7e
+	byte	$9c, $7e, $7e, $7e, $5f, $7e, $3e, $7e, $1d, $7e, $fa, $7d, $d5, $7d, $b0, $7d
+	byte	$89, $7d, $62, $7d, $39, $7d, $0e, $7d, $e3, $7c, $b6, $7c, $88, $7c, $59, $7c
+	byte	$29, $7c, $f8, $7b, $c5, $7b, $91, $7b, $5c, $7b, $26, $7b, $ee, $7a, $b6, $7a
+	byte	$7c, $7a, $41, $7a, $05, $7a, $c8, $79, $89, $79, $4a, $79, $09, $79, $c7, $78
+	byte	$84, $78, $3f, $78, $fa, $77, $b3, $77, $6b, $77, $22, $77, $d8, $76, $8d, $76
+	byte	$41, $76, $f3, $75, $a5, $75, $55, $75, $04, $75, $b2, $74, $5f, $74, $0a, $74
+	byte	$b5, $73, $5e, $73, $07, $73, $ae, $72, $54, $72, $f9, $71, $9d, $71, $40, $71
+	byte	$e2, $70, $83, $70, $22, $70, $c1, $6f, $5e, $6f, $fb, $6e, $96, $6e, $30, $6e
+	byte	$c9, $6d, $61, $6d, $f8, $6c, $8e, $6c, $23, $6c, $b7, $6b, $4a, $6b, $dc, $6a
+	byte	$6d, $6a, $fd, $69, $8b, $69, $19, $69, $a6, $68, $32, $68, $bc, $67, $46, $67
+	byte	$cf, $66, $56, $66, $dd, $65, $63, $65, $e8, $64, $6c, $64, $ee, $63, $70, $63
+	byte	$f1, $62, $71, $62, $f0, $61, $6e, $61, $eb, $60, $68, $60, $e3, $5f, $5d, $5f
+	byte	$d7, $5e, $4f, $5e, $c7, $5d, $3e, $5d, $b3, $5c, $28, $5c, $9c, $5b, $0f, $5b
+	byte	$82, $5a, $f3, $59, $64, $59, $d3, $58, $42, $58, $b0, $57, $1d, $57, $8a, $56
+	byte	$f5, $55, $60, $55, $c9, $54, $32, $54, $9b, $53, $02, $53, $68, $52, $ce, $51
+	byte	$33, $51, $97, $50, $fb, $4f, $5d, $4f, $bf, $4e, $20, $4e, $81, $4d, $e0, $4c
+	byte	$3f, $4c, $9d, $4b, $fb, $4a, $58, $4a, $b4, $49, $0f, $49, $69, $48, $c3, $47
+	byte	$1c, $47, $75, $46, $cd, $45, $24, $45, $7a, $44, $d0, $43, $25, $43, $7a, $42
+	byte	$ce, $41, $21, $41, $73, $40, $c5, $3f, $17, $3f, $68, $3e, $b8, $3d, $07, $3d
+	byte	$56, $3c, $a5, $3b, $f2, $3a, $40, $3a, $8c, $39, $d9, $38, $24, $38, $6f, $37
+	byte	$ba, $36, $04, $36, $4d, $35, $96, $34, $df, $33, $26, $33, $6e, $32, $b5, $31
+	byte	$fb, $30, $41, $30, $87, $2f, $cc, $2e, $11, $2e, $55, $2d, $99, $2c, $dc, $2b
+	byte	$1f, $2b, $61, $2a, $a3, $29, $e5, $28, $26, $28, $67, $27, $a8, $26, $e8, $25
+	byte	$28, $25, $67, $24, $a6, $23, $e5, $22, $23, $22, $61, $21, $9f, $20, $dd, $1f
+	byte	$1a, $1f, $57, $1e, $93, $1d, $cf, $1c, $0b, $1c, $47, $1b, $82, $1a, $be, $19
+	byte	$f9, $18, $33, $18, $6e, $17, $a8, $16, $e2, $15, $1c, $15, $55, $14, $8f, $13
+	byte	$c8, $12, $01, $12, $3a, $11, $72, $10, $ab, $0f, $e3, $0e, $1c, $0e, $54, $0d
+	byte	$8c, $0c, $c4, $0b, $fb, $0a, $33, $0a, $6a, $09, $a2, $08, $d9, $07, $11, $07
+	byte	$48, $06, $7f, $05, $b6, $04, $ed, $03, $24, $03, $5b, $02, $92, $01, $c9, $00
+	byte	$00, $00, $37, $ff, $6e, $fe, $a5, $fd, $dc, $fc, $13, $fc, $4a, $fb, $81, $fa
+	byte	$b8, $f9, $ef, $f8, $27, $f8, $5e, $f7, $96, $f6, $cd, $f5, $05, $f5, $3c, $f4
+	byte	$74, $f3, $ac, $f2, $e4, $f1, $1d, $f1, $55, $f0, $8e, $ef, $c6, $ee, $ff, $ed
+	byte	$38, $ed, $71, $ec, $ab, $eb, $e4, $ea, $1e, $ea, $58, $e9, $92, $e8, $cd, $e7
+	byte	$07, $e7, $42, $e6, $7e, $e5, $b9, $e4, $f5, $e3, $31, $e3, $6d, $e2, $a9, $e1
+	byte	$e6, $e0, $23, $e0, $61, $df, $9f, $de, $dd, $dd, $1b, $dd, $5a, $dc, $99, $db
+	byte	$d8, $da, $18, $da, $58, $d9, $99, $d8, $da, $d7, $1b, $d7, $5d, $d6, $9f, $d5
+	byte	$e1, $d4, $24, $d4, $67, $d3, $ab, $d2, $ef, $d1, $34, $d1, $79, $d0, $bf, $cf
+	byte	$05, $cf, $4b, $ce, $92, $cd, $da, $cc, $21, $cc, $6a, $cb, $b3, $ca, $fc, $c9
+	byte	$46, $c9, $91, $c8, $dc, $c7, $27, $c7, $74, $c6, $c0, $c5, $0e, $c5, $5b, $c4
+	byte	$aa, $c3, $f9, $c2, $48, $c2, $98, $c1, $e9, $c0, $3b, $c0, $8d, $bf, $df, $be
+	byte	$32, $be, $86, $bd, $db, $bc, $30, $bc, $86, $bb, $dc, $ba, $33, $ba, $8b, $b9
+	byte	$e4, $b8, $3d, $b8, $97, $b7, $f1, $b6, $4c, $b6, $a8, $b5, $05, $b5, $63, $b4
+	byte	$c1, $b3, $20, $b3, $7f, $b2, $e0, $b1, $41, $b1, $a3, $b0, $05, $b0, $69, $af
+	byte	$cd, $ae, $32, $ae, $98, $ad, $fe, $ac, $65, $ac, $ce, $ab, $37, $ab, $a0, $aa
+	byte	$0b, $aa, $76, $a9, $e3, $a8, $50, $a8, $be, $a7, $2d, $a7, $9c, $a6, $0d, $a6
+	byte	$7e, $a5, $f1, $a4, $64, $a4, $d8, $a3, $4d, $a3, $c2, $a2, $39, $a2, $b1, $a1
+	byte	$29, $a1, $a3, $a0, $1d, $a0, $98, $9f, $15, $9f, $92, $9e, $10, $9e, $8f, $9d
+	byte	$0f, $9d, $90, $9c, $12, $9c, $94, $9b, $18, $9b, $9d, $9a, $23, $9a, $aa, $99
+	byte	$31, $99, $ba, $98, $44, $98, $ce, $97, $5a, $97, $e7, $96, $75, $96, $03, $96
+	byte	$93, $95, $24, $95, $b6, $94, $49, $94, $dd, $93, $72, $93, $08, $93, $9f, $92
+	byte	$37, $92, $d0, $91, $6a, $91, $05, $91, $a2, $90, $3f, $90, $de, $8f, $7d, $8f
+	byte	$1e, $8f, $c0, $8e, $63, $8e, $07, $8e, $ac, $8d, $52, $8d, $f9, $8c, $a2, $8c
+	byte	$4b, $8c, $f6, $8b, $a1, $8b, $4e, $8b, $fc, $8a, $ab, $8a, $5b, $8a, $0d, $8a
+	byte	$bf, $89, $73, $89, $28, $89, $de, $88, $95, $88, $4d, $88, $06, $88, $c1, $87
+	byte	$7c, $87, $39, $87, $f7, $86, $b6, $86, $77, $86, $38, $86, $fb, $85, $bf, $85
+	byte	$84, $85, $4a, $85, $12, $85, $da, $84, $a4, $84, $6f, $84, $3b, $84, $08, $84
+	byte	$d7, $83, $a7, $83, $78, $83, $4a, $83, $1d, $83, $f2, $82, $c7, $82, $9e, $82
+	byte	$77, $82, $50, $82, $2b, $82, $06, $82, $e3, $81, $c2, $81, $a1, $81, $82, $81
+	byte	$64, $81, $47, $81, $2b, $81, $11, $81, $f7, $80, $df, $80, $c9, $80, $b3, $80
+	byte	$9f, $80, $8c, $80, $7a, $80, $69, $80, $5a, $80, $4c, $80, $3f, $80, $33, $80
+	byte	$28, $80, $1f, $80, $17, $80, $10, $80, $0b, $80, $07, $80, $03, $80, $02, $80
+	byte	$01, $80, $02, $80, $03, $80, $07, $80, $0b, $80, $10, $80, $17, $80, $1f, $80
+	byte	$28, $80, $33, $80, $3f, $80, $4c, $80, $5a, $80, $69, $80, $7a, $80, $8c, $80
+	byte	$9f, $80, $b3, $80, $c9, $80, $df, $80, $f7, $80, $11, $81, $2b, $81, $47, $81
+	byte	$64, $81, $82, $81, $a1, $81, $c2, $81, $e3, $81, $06, $82, $2b, $82, $50, $82
+	byte	$77, $82, $9e, $82, $c7, $82, $f2, $82, $1d, $83, $4a, $83, $78, $83, $a7, $83
+	byte	$d7, $83, $08, $84, $3b, $84, $6f, $84, $a4, $84, $da, $84, $12, $85, $4a, $85
+	byte	$84, $85, $bf, $85, $fb, $85, $38, $86, $77, $86, $b6, $86, $f7, $86, $39, $87
+	byte	$7c, $87, $c1, $87, $06, $88, $4d, $88, $95, $88, $de, $88, $28, $89, $73, $89
+	byte	$bf, $89, $0d, $8a, $5b, $8a, $ab, $8a, $fc, $8a, $4e, $8b, $a1, $8b, $f6, $8b
+	byte	$4b, $8c, $a2, $8c, $f9, $8c, $52, $8d, $ac, $8d, $07, $8e, $63, $8e, $c0, $8e
+	byte	$1e, $8f, $7d, $8f, $de, $8f, $3f, $90, $a2, $90, $05, $91, $6a, $91, $d0, $91
+	byte	$37, $92, $9f, $92, $08, $93, $72, $93, $dd, $93, $49, $94, $b6, $94, $24, $95
+	byte	$93, $95, $03, $96, $75, $96, $e7, $96, $5a, $97, $ce, $97, $44, $98, $ba, $98
+	byte	$31, $99, $aa, $99, $23, $9a, $9d, $9a, $18, $9b, $94, $9b, $12, $9c, $90, $9c
+	byte	$0f, $9d, $8f, $9d, $10, $9e, $92, $9e, $15, $9f, $98, $9f, $1d, $a0, $a3, $a0
+	byte	$29, $a1, $b1, $a1, $39, $a2, $c2, $a2, $4d, $a3, $d8, $a3, $64, $a4, $f1, $a4
+	byte	$7e, $a5, $0d, $a6, $9c, $a6, $2d, $a7, $be, $a7, $50, $a8, $e3, $a8, $76, $a9
+	byte	$0b, $aa, $a0, $aa, $37, $ab, $ce, $ab, $65, $ac, $fe, $ac, $98, $ad, $32, $ae
+	byte	$cd, $ae, $69, $af, $05, $b0, $a3, $b0, $41, $b1, $e0, $b1, $7f, $b2, $20, $b3
+	byte	$c1, $b3, $63, $b4, $05, $b5, $a8, $b5, $4c, $b6, $f1, $b6, $97, $b7, $3d, $b8
+	byte	$e4, $b8, $8b, $b9, $33, $ba, $dc, $ba, $86, $bb, $30, $bc, $db, $bc, $86, $bd
+	byte	$32, $be, $df, $be, $8d, $bf, $3b, $c0, $e9, $c0, $98, $c1, $48, $c2, $f9, $c2
+	byte	$aa, $c3, $5b, $c4, $0e, $c5, $c0, $c5, $74, $c6, $27, $c7, $dc, $c7, $91, $c8
+	byte	$46, $c9, $fc, $c9, $b3, $ca, $6a, $cb, $21, $cc, $da, $cc, $92, $cd, $4b, $ce
+	byte	$05, $cf, $bf, $cf, $79, $d0, $34, $d1, $ef, $d1, $ab, $d2, $67, $d3, $24, $d4
+	byte	$e1, $d4, $9f, $d5, $5d, $d6, $1b, $d7, $da, $d7, $99, $d8, $58, $d9, $18, $da
+	byte	$d8, $da, $99, $db, $5a, $dc, $1b, $dd, $dd, $dd, $9f, $de, $61, $df, $23, $e0
+	byte	$e6, $e0, $a9, $e1, $6d, $e2, $31, $e3, $f5, $e3, $b9, $e4, $7e, $e5, $42, $e6
+	byte	$07, $e7, $cd, $e7, $92, $e8, $58, $e9, $1e, $ea, $e4, $ea, $ab, $eb, $71, $ec
+	byte	$38, $ed, $ff, $ed, $c6, $ee, $8e, $ef, $55, $f0, $1d, $f1, $e4, $f1, $ac, $f2
+	byte	$74, $f3, $3c, $f4, $05, $f5, $cd, $f5, $96, $f6, $5e, $f7, $27, $f8, $ef, $f8
+	byte	$b8, $f9, $81, $fa, $4a, $fb, $13, $fc, $dc, $fc, $a5, $fd, $6e, $fe, $37, $ff
+	alignl
+__system__dat_
+	byte	$00[8]
+	byte	$03, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
+objmem
+	long	0[1]
+	org	COG_BSS_START
+arg01
+	res	1
+arg02
+	res	1
+arg03
+	res	1
+arg04
+	res	1
+local01
+	res	1
+local02
+	res	1
+local03
+	res	1
+local04
+	res	1
+local05
+	res	1
+local06
+	res	1
+local07
+	res	1
+local08
+	res	1
+local09
+	res	1
+local10
+	res	1
+local11
+	res	1
+muldiva_
+	res	1
+muldivb_
+	res	1
+	fit	480

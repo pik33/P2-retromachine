@@ -15,7 +15,7 @@ paula.start
 old1=0 : old2=0 :old3=0 : old4=0
 old11=0 : old12=0 :old13=0 : old14=0
 do
-    v030.waitvbl(1)
+  v030.waitvbl(1)
   tracker.tick
    
 
@@ -31,7 +31,7 @@ do
 	paula.channel1(2)=tracker.currsamplelength(0)-tracker.currrepeatLength(0)
 	paula.channel1(3)=tracker.currsamplelength(0)
 	paula.channel1(4)=tracker.currVolume(0)*128
-	paula.channel1(5)=4096
+	paula.channel1(5)=4096+2048
 	paula.channel1(6)=tracker.currPeriod(0)
 	paula.channel1(7)=1
 '     if paula.channel1(0) <> old11 then paula.channel1(8)=0 :waitus(100) : paula.channel1(8)=1
@@ -43,7 +43,7 @@ do
 	paula.channel2(2)=tracker.currSampleLength(1)-tracker.currrepeatLength(1)
 	paula.channel2(3)=tracker.currSampleLength(1)
 	paula.channel2(4)=tracker.currVolume(1)*128
-	paula.channel2(5)=8192+4096
+	paula.channel2(5)=8192+2048
 	paula.channel2(6)=tracker.currPeriod(1)
 	paula.channel2(7)=1
  '    if paula.channel2(0) <> old12 then paula.channel2(8)=0 :waitus(100) : paula.channel2(8)=1
@@ -55,7 +55,7 @@ do
 	paula.channel3(2)=tracker.currSampleLength(2)-tracker.currrepeatLength(2)
 	paula.channel3(3)=tracker.currSampleLength(2)
 	paula.channel3(4)=tracker.currVolume(2)*128
-	paula.channel3(5)=8192+4096
+	paula.channel3(5)=8192+2048
 	paula.channel3(6)=tracker.currPeriod(2)
 	paula.channel3(7)=1
  '    if paula.channel3(0) <> old13 then paula.channel3(8)=0 :waitus(100) : paula.channel3	(8)=1
@@ -67,7 +67,7 @@ do
 	paula.channel4(2)=tracker.currSampleLength(3)-tracker.currrepeatLength(3)
 	paula.channel4(3)=tracker.currSampleLength(3)
 	paula.channel4(4)=tracker.currVolume(3)*128
-	paula.channel4(5)=4096
+	paula.channel4(5)=4096+2048
 	paula.channel4(6)=tracker.currPeriod(3)
 	paula.channel4(7)=1
  '   if paula.channel4(0) <> old14 then paula.channel4(8)=0 :waitus(100) : paula.channel4	(8)=1
@@ -88,5 +88,5 @@ loop
 '8 - cmd 
 
 asm shared
-module file "aurora.mod"
+module file "jamaja.mod"
 end asm
