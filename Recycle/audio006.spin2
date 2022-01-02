@@ -1,0 +1,526 @@
+_clkfreq=319220550 ' 90*3546895 
+
+con left=14
+    right=15
+
+
+c4=262
+d4=294
+e4=330
+f4=349
+g4=392
+a4=440
+h4=494
+
+
+var
+
+long samplestart
+long sampletype
+long loopstart
+long loopend         'loopstart==loopend=no loop
+long volume
+long pan
+long synthfreq
+long skip
+long cmd
+
+long samplestart2
+long sampletype2
+long loopstart2
+long loopend2         'loopstart==loopend=no loop
+long volume2
+long pan2
+long synthfreq2
+long skip2
+long cmd2
+
+long samplestart3
+long sampletype3
+long loopstart3
+long loopend3         'loopstart==loopend=no loop
+long volume3
+long pan3
+long synthfreq3
+long skip3
+long cmd3
+
+
+pub test
+
+start()
+waitms(500)
+repeat
+ play(c4)
+ waitms(500)
+ play(d4)
+ waitms(500)
+ play(e4)
+ waitms(500)
+ play(f4)
+ waitms(500)
+ play(g4)
+ waitms(500)
+ play(a4)
+ waitms(500)
+ play(h4)
+ waitms(500)
+ play(2*c4)
+ waitms(500)
+ play(5)
+ waitms(500)
+ play(2*c4)
+ waitms(500)
+ play(h4)
+ waitms(500)
+ play(a4)
+ waitms(500)
+ play(g4)
+ waitms(500)
+ play(f4)
+ waitms(500)
+ play(e4)
+ waitms(500)
+ play(d4)
+ waitms(500)
+ play(c4)
+ waitms(500)
+ play(5)
+ waitms(500)
+pub play(ff) |ilss,ss,ssf
+
+'keep ssf over 50
+
+ilss:=40000/ff
+ss:=2*(1024/ilss)
+if ss<2
+  ss:=2
+ssf:=(ss*3568945)/(ff*2048)
+debug(udec(ssf))
+'debug(udec(ilss))
+'debug(udec(ss))
+
+samplestart3:=@zacke
+sampletype3:=0
+loopstart3:=16
+loopend3:=2048+16
+volume3:=16384
+pan3:=8192
+synthfreq3:= ssf
+skip3:= ss
+
+cmd3:=0
+waitus(10)
+cmd3:=1
+
+
+
+
+pub start()
+
+samplestart:=@null
+sampletype:=0
+loopstart:=0
+loopend:=2
+volume:=0
+pan:=8192
+synthfreq:= 101
+skip:= 2
+
+
+samplestart2:=@null
+sampletype2:=0
+loopstart2:=0
+loopend2:=2
+volume2:=0
+pan2:=8192
+synthfreq2:= 103
+skip2:= 2
+
+samplestart3:=@null
+sampletype3:=0
+loopstart3:=0
+loopend3:=2
+volume3:=0
+pan3:=8192
+synthfreq3:= 107 '
+skip3:= 1
+
+coginit(16,@audio,@samplestart)
+
+
+ 
+
+dat
+
+audio   org
+		dirh #56
+		outh #56
+        setq #17 ' chn#*9-1
+        rdlong sstart1,ptra
+        
+        wrpin   dac,#left
+        wxpin   ##90,#left
+
+        wrpin   dac,#right
+        wxpin   ##90,#right
+
+        dirh    #left addpins 1
+
+        setse1  #%001<<6 + left
+        
+        mov ijmp1,#isr1       
+        setint1 #4 
+        
+
+loop        
+            setq #8
+            rdlong sstart1,ptra++
+            setq #8
+            rdlong sstart2,ptra++
+            setq #8
+            rdlong sstart3,ptra++
+
+            sub ptra,#9*4*3
+    
+            cmp acmd1,#0 wz
+	if_e 	mov p1,#0
+           	cmp acmd2,#0 wz
+	if_e 	mov p2,#0
+           	cmp acmd3,#0 wz
+	if_e 	mov p3,#0
+         
+         	mov qq,tail   
+        	sub qq,#2
+        	and qq,#511
+        	cmp qq,front wcz
+	if_e    jmp #loop           ' buffer full               
+         
+      
+           	mov cn,#0
+           	mov ct,time1
+           	fle ct,time2 wcz
+	if_c	mov cn,#1
+            fle ct,time3 wcz
+    if_c    mov cn,#2        
+ 	
+	        cmp cn,#0 wz'
+	if_z 	jmp #p201       
+         	cmp cn,#1 wz
+	if_z 	jmp #p202       
+         	cmp cn,#2 wz
+	if_z 	jmp #p203       
+           
+	
+'----1	
+	
+ 
+p201 		mov dt0,time1
+			sub dt0,time0
+            add time1,freq1  	
+	        
+            add p1,askip1
+            cmp p1,lend1 wcz
+    if_ge   sub p1,lend1	        
+    if_ge   add p1,lstart1       
+
+            mov qq,p1
+            add qq,sstart1
+            cmp type1,#0 wz
+            
+	if_nz	rdbyte spl,qq
+	if_nz	shl spl,#8
+	if_z 	rdword spl,qq
+
+         	scas spl,vol1
+         	mov spl,0-0
+
+	    	scas spl,apan1
+	    	mov ls1,0-0
+
+	    	mov qq,##16384
+	    	sub qq,apan1
+	    	scas spl,qq
+	    	mov rs1,0-0
+
+
+	    	jmp #p101
+	    	
+
+''=-------------2
+ 
+p202 	 	mov dt0,time2
+			sub dt0,time0
+            add time2,freq2  	
+	        
+            add p2,askip2
+            cmp p2,lend2 wcz
+    if_ge   sub p2,lend2	        
+    if_ge   add p2,lstart2       
+
+            mov qq,p2
+            add qq,sstart2
+            cmp type2,#0 wz
+            
+	if_nz	rdbyte spl,qq
+	if_nz	shl spl,#8
+	if_z 	rdword spl,qq
+
+         	scas spl,vol2
+         	mov spl,0-0
+    	
+	    	scas spl,apan2
+	    	mov ls2,0-0
+
+	    	mov qq,##16384
+	    	sub qq,apan2
+	    	scas spl,qq
+	    	mov rs2,0-0
+
+
+	    	jmp #p101
+
+''=-------------3
+ 
+p203 	 	mov dt0,time3
+			sub dt0,time0
+            add time3,freq3  	
+	        
+            add p3,askip3
+            cmp p3,lend3 wcz
+    if_ge   sub p3,lend3	        
+    if_ge   add p3,lstart3       
+
+            mov qq,p3
+            add qq,sstart3
+            cmp type3,#0 wz
+            
+	if_nz	rdbyte spl,qq
+	if_nz	shl spl,#8
+	if_z 	rdword spl,qq
+
+         	scas spl,vol3
+         	mov spl,0-0
+    	
+	    	scas spl,apan3
+	    	mov ls3,0-0
+
+	    	mov qq,##16384
+	    	sub qq,apan3
+	    	scas spl,qq
+	    	mov rs3,0-0
+
+
+	    	jmp #p101
+p101      
+	        	    		  
+
+            cmp oldt0,time0 wz
+   if_z		sub front,#2
+   if_z     and front,#511     
+  
+           	mov rs,#0
+           	mov ls,#0
+			add rs,rs1
+			add rs,rs2
+			add rs,rs3
+			add ls,ls1
+			add ls,ls2
+			add ls,ls3
+ 		
+            bitnot ls,#15
+ 	    	bitnot rs,#15		
+		
+	    	setword rs,ls,#1 		
+            wrlut rs,front
+            add front,#1
+            wrlut time0,front
+
+            add front,#1
+            and front,#511
+            mov oldt0,time0
+            add time0,dt0
+            jmp     #loop          'loop
+
+{{
+'--------------------------------------------------------------------------
+'------ Interrupt service -------------------------------------------------
+'------ Output the sample, get the next one if exists ---------------------
+'--------------------------------------------------------------------------
+
+isr1			wypin 	lsample,#left  				'2     The sample has to be outputted every 90 cycles     
+		    	wypin 	rsample,#right 				'4
+
+				add 	counter,#1        			'6     Increment the counter
+				cmp 	counter,irqtime wcz  		'8     Check if it is time for the next sample
+		if_ne	reti1			      				'10/12 If not, do nothing
+		
+            	cmp 	tail,front wcz    			'12    If the buffer is empty, do nothing 
+				if_e	reti1                 		'14/16 
+
+            	rdlut 	lsample,tail    			'17    Read the sample from LUT
+            	getword	rsample,lsample,#1 			'19    Split for left and right
+            	getword lsample,lsample,#0 			'21
+            	add tail, #1                		'23
+            	rdlut irqtime,tail             		'26    Read the time for this sample
+            	add tail,#1                 		'28    Go to the next entry
+            	and tail,#511               		'30
+
+            	reti1                       		'34
+
+'---------------------------------------------------------------------------
+'-------- End of interrupt -------------------------------------------------
+'---------------------------------------------------------------------------        
+}}
+
+'--------------------------------------------------------------------------
+'------ Interrupt service -------------------------------------------------
+'------ Output the sample, get the next one if exists ---------------------
+'--------------------------------------------------------------------------
+
+isr1			wypin 	lsample,#left  				'2     The sample has to be outputted every 90 cycles     
+		    	wypin 	rsample,#right 				'4
+
+				add 	counter,#1        			'6     Increment the counter
+				cmp 	counter,irqtime wcz  		'8     Check if it is time for the next sample
+		if_ne	reti1			      				'10/12 If not, do nothing
+		
+		        mov     lsample, lsnext
+		        mov     rsample,rsnext
+            	cmp 	tail,front wcz    			'12    If the buffer is empty, do nothing 
+				if_e	reti1                 		'14/16 
+
+            	rdlut 	lsnext,tail    			'17    Read the sample from LUT
+            	getword	rsnext,lsnext,#1 			'19    Split for left and right
+            	getword lsnext,lsnext,#0 			'21
+            	add tail, #1                		'23
+            	rdlut irqtime,tail             		'26    Read the time for this sample
+            	add tail,#1                 		'28    Go to the next entry
+            	and tail,#511               		'30
+
+            	reti1                       		'34
+
+'---------------------------------------------------------------------------
+'-------- End of interrupt -------------------------------------------------
+'---------------------------------------------------------------------------    
+
+
+' phase accumulators
+
+p1      		long 0
+p2      		long 0
+p3 				long 0
+
+
+' temporary variables 
+
+qq 				long 0
+spl 			long 0
+
+' circular buffer in LUT
+
+front 			long 0
+tail 			long 0
+
+' Interrupt ISR variables
+
+
+counter 		long $FFFFFFF0       ' this counter will overflow after 1210 seconds
+lsample 		long 0
+rsample 		long 0
+lsnext			long 0
+rsnext			long 0 
+
+sstart1 		long 0
+type1			long 0
+lstart1			long 0
+lend1     		long 2                'loopstart==loopend=no loop
+vol1      		long 0
+apan1			long 0
+freq1			long 101
+askip1			long 2
+acmd1			long 0
+
+sstart2     	long 0
+type2	   	 	long 0
+lstart2	    	long 0
+lend2       	long 2                'loopstart==loopend=no loop
+vol2        	long 0
+apan2	    	long 0
+freq2	    	long 103
+askip2			long 2
+acmd2	    	long 0
+
+sstart3     	long 0
+type3	    	long 0
+lstart3	    	long 0
+lend3       	long 2                'loopstart==loopend=no loop
+vol3        	long 0
+apan3	    	long 0
+freq3	    	long 107 				'109 113 127 131 137
+askip3			long 2
+acmd3	    	long 0
+
+
+
+
+time0 long 0
+time1 long 1
+time2 long 2
+time3 long 3
+
+
+oldt0 long 0
+cn long 0
+ct long 0
+
+rs long 0
+ls long 0
+rs1 long 0
+ls1 long 0
+
+ls2 long 0
+rs2 long 0
+ls3 long 0
+rs3 long 0
+
+irqtime long 0
+
+dac    long    %10111_00000000_01_00010_0      'random dither (noisier, needs no period)
+'dac     long    %10111_00000000_01_00011_0      'pwm (quieter, needs 256N period)    
+
+dt0 long 0
+dat 
+null  long 0,0
+sinewave file "C:\s\sinus.s2"
+zacke file "C:\s\zacke.s2"
+synvox file "c:\xi\test.pcm"
+aurora file "aurora.mod"
+
+{{
+start mov ijmp1,#isr1 'set int1 vector 
+setint1 #1 'set int1 for ct-passed-ct1 event 
+getct ct1 'set initial ct1 target 
+addct1 ct1,#50 'main program, gets interrupted 
+loop drvnot #0 'toggle p0 
+jmp #loop 'loop 'int1 isr, runs once every 50 clocks 
+isr1 drvnot #1 'toggle p1 
+addct1 ct1,#50 'update ct1 target 
+reti1 'return to main program 
+ct1 res 'reserve long for ct1
+interrupt
+add cnt,1
+cmp cnt, time
+
+if_eq wypin sample
+if eq add tail,1
+ifeq rdlut next time, nneext sample
+iret
+
+Program
+find nearest time
+compute sample
+put to lut sample, time
+get new time for this channel
+wait until free place in lut
+}}

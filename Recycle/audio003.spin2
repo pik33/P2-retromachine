@@ -1,14 +1,7 @@
 ' Paula-like audiodriver v. 0.02 - 20211107
 
 con
-
-_clkfreq        =      283_751_600   ' 160x PAL  - real settings: 64,908-> 283_750_000 - 0.9999944 - mode 128
-
-  SF_CS  = 61  { O }                                            ' serial flash
-  SF_SCK = 60  { O }
-  SF_SDO = 59  { O }
-  SF_SDI = 58  { I }
-  RD_DATA      = $03
+_clkfreq=90*3546895
 
 
 c4=262
@@ -29,6 +22,24 @@ long loopend         'loopstart==loopend=no loop
 long volume
 long synthfreq
 long cmd
+long samplestart2
+long loopstart2
+long loopend2        'loopstart==loopend=no loop
+long volume2
+long synthfreq2
+long cmd2
+long samplestart3
+long loopstart3
+long loopend3         'loopstart==loopend=no loop
+long volume3
+long synthfreq3
+long cmd3
+long samplestart4
+long loopstart4
+long loopend4         'loopstart==loopend=no loop
+long volume4
+long synthfreq4
+long cmd4
 
 
 long pin
@@ -37,55 +48,36 @@ long pin
 
 pub test() |q
 
-start(18)
+start(14)
 
-sawbeep(c4,1024,500)
-sawbeep(d4,1024,500)
-sawbeep(e4,1024,500)
-sawbeep(f4,1024,500)
-sawbeep(g4,1024,500)
-sawbeep(a4,1024,500)
-sawbeep(h4,1024,500)
-sawbeep(2*c4,1024,500)
-
-waitms(500)
-
-beep(523,1024,500)
-beep(494,1024,500)
-beep(440,1024,500)
-beep(392,1024,500)
-beep(349,1024,500)
-beep(330,1024,500)
-beep(294,1024,500)
-beep(261,1024,500)
+repeat
+  sawbeep(c4,16384,500)
+  sawbeep(d4,16384,500)
+  sawbeep(e4,16384,500)
+  sawbeep(f4,16384,500)
+  sawbeep(g4,16384,500)
+  sawbeep(a4,16384,500)
+  sawbeep(h4,16384,500)
+  sawbeep(2*c4,16384,500)
 
 
+  beep(2*c4,16384,500)
+  beep(h4,16384,500)
+  beep(a4,16384,500)
+  beep(g4,16384,500)
+  beep(f4,16384,500)
+  beep(e4,16384,500)
+  beep(d4,16384,500)
+  beep(c4,16384,500)
 
-pub say(sample,vol) |f,b,f1,b1
-
-repeat f from $50000 to $5FFFF
-  byte[f]:=0
-  
-volume:=0
-  
-b:=$50000
-repeat 256
-f:=$F00000+$10000*(sample-1)
-repeat 256
-  f1:=f
-  b1:=b
-  rd_block(f1, 256, b1)
-  b+=256
-  f+=256
-  
-loopstart:=long[$50000]-4
-samplestart:=$50004  
-loopend:=loopstart
-synthfreq:=308
-volume:=vol
-cmd:=1
-waitus(1)
-cmd:=0  
+  sinebeep(c4>>2,16384,500)
+  sinebeep(d4>>2,16384,500)
+  sinebeep(e4,16384,500)
+  sinebeep(f4,16384,500)
+  sinebeep(g4,16384,500)
+  sinebeep(a4,16384,500)
+  sinebeep(h4,16384,500)
+  sinebeep(2*c4,16384,500)
 
 
 pub beep(freq,vol,time)
@@ -109,12 +101,26 @@ debug(udec(synthfreq))
 volume:=vol
 samplestart:=@saw
 loopstart:=0
-loopend:=18
+loopend:=16
 cmd:=1
 waitus(1)
 cmd:=0
 waitms(time)
 volume:=0    
+
+pub sinebeep(freq,vol,time)
+
+synthfreq:=3546895/(24*freq)
+debug(udec(synthfreq))
+volume:=vol
+samplestart:=@sine
+loopstart:=0
+loopend:=46
+cmd:=1
+waitus(1)
+cmd:=0
+waitms(time)
+volume:=0   
   
 pub beep2(freq,vol)
 
@@ -142,74 +148,69 @@ volume:=$4000
 synthfreq:=0
 cmd:=0
 pin:=thepin
+'pinstart(pin ,(P_DAC_DITHER_RND | P_DAC_75R_2V | P_OE),90,0)
 coginit(2,@driver,@samplestart)
 waitms(10)
 
-''--------------------------------------------------------------------------
-''-------------------------------- Read from flash -------------------------
-''--------------------------------------------------------------------------
-
-
-pub rd_block(addr, n, p_dest) | x
-
-'' Read n bytes from address in flash
-'' -- output is to buffer at p_dest
-
-  org
-                setbyte   addr, #RD_DATA, #3                    ' add command to address
-                rev       addr                                  ' reverse for S/P LSBFIRST output
-
-                drvl      #SF_CS                                ' select flash
-                nop
-
-.set_addr       wxpin     #%1_11111, #SF_SDO                    ' 32 bit output
-                wypin     addr, #SF_SDO                         ' set address for read
-                drvl      #SF_SDO                               ' arm SPI TX
-                wypin     #32, #SF_SCK                          ' clock 32 bits out
-                nop                                             ' give clock time to start
-                testp     #SF_SCK                       wc      ' wait for clocking to finish
-    if_nc       jmp       #$-1
-                fltl      #SF_SDO                               ' disable SPI TX
-
-.get_byte       fltl      #SF_SDI                               ' reset/clear SDI
-                wxpin     #(8-1), #SF_SDI                       ' read 8 bits
-                drvl      #SF_SDI                               ' arm SPI RX
-                wypin     #8, #SF_SCK                           ' clock 8 bits in
-                nop                                             ' give clock time to start
-                testp     #SF_SCK                       wc      ' wait for clocking to finish
-    if_nc       jmp       #$-1
-                rdpin     x, #SF_SDI                            ' get the value
-                rev       x                                     ' restore MSBFIRST order
-                zerox     x, #7                                 ' clean up (redundant?)
-                wrbyte    x, p_dest                             ' write to hub
-                add       p_dest, #1                            ' bump hub pointer
-                djnz      n, #.get_byte                         ' continue until done
-
-    _ret_       drvh      #SF_CS                                ' done, deselect
-  end
-
+'
 dat     
 
 driver 			org 0
 
-        		setq #6
+        		setq #24
         		rdlong  sstart,ptra 
-        		mov spin2,spin
-        		add spin2,#1
-        		add spin,#%1_000000
-        		fltl spin  
+        		
+             	mov spin2,spin
+         		add spin2,#1
+
+        		fltl spin 
+        		fltl spin2
         		
         		wrpin ##(P_DAC_DITHER_RND | P_DAC_75R_2V | P_OE), spin 
-          		wxpin #80, spin 
-       		
-        		dirh spin
+          		wxpin #90, spin 
+       	    	wrpin ##(P_DAC_DITHER_RND | P_DAC_75R_2V | P_OE), spin2 
+          		wxpin #90, spin2
+       		 
+        		dirh spin 
+       	        dirh spin2
+       	    
+           		add spin,#%1_000000
         		setse1 spin
-loop    		waitse1
-                							
+        		sub spin,#%1_000000
+        		
+        		mov ptra2,ptra
+        		add ptra2,#0
+        		mov ptra3,ptra
+        		add ptra3,#0
+        		mov ptra4,ptra
+        		add ptra4,#0
+        		
+        		
+loop            skipf skippattern
+			
                 setq #5
-        		rdlong  sstart,ptra 
+        		rdlong sstart,ptra
+                rdfast d31,ptr	
+                mov skippattern,skip2
+                
+                nop
+         		nop
+                rdfast d31,ptr	
+                mov skippattern,skip3
 
-        		cmp command,#0 wz
+                nop
+        		nop
+                rdfast d31,ptr	
+                mov skippattern,skip4
+
+                nop
+        		nop
+                rdfast d31,ptr	
+                mov skippattern,skip1
+                
+                
+
+        		cmp command,#0 wz   '17 nops left
         if_nz	mov ptr,sstart
                 add lstart,sstart
                 add lend,sstart
@@ -220,7 +221,7 @@ loop    		waitse1
 		if_ge   mov counter,#0
 		if_lt   jmp #p111
 
-p101          	rdword x,ptr
+p101         	rfword x ',ptr
 				
      			scas x,vol
 			    mov x,0-0
@@ -230,7 +231,9 @@ p101          	rdword x,ptr
  		if_nz	add ptr,#2
  		if_z    mov ptr,lstart             '~~61 clocks
 
- p111          	wypin x,spin 
+ p111          	waitse1
+                wypin x,spin 
+                wypin x,spin2 
 		
 				jmp #loop
 
@@ -241,21 +244,49 @@ lend		long 	0
 vol			long 	0
 freq		long 	0
 command     long 	0
+sstart2   	long 	0
+lstart2		long 	0
+lend2		long 	0
+vol2		long 	0
+freq2		long 	0
+command2    long 	0
+sstart3   	long 	0
+lstart3		long 	0
+lend3		long 	0
+vol3		long 	0
+freq3		long 	0
+command3    long 	0
+sstart4   	long 	0
+lstart4		long 	0
+lend4		long 	0
+vol4		long 	0
+freq4		long 	0
+command4    long 	0
 spin        long 	0
 ptr			long 	0
+ptr2 long 0
+ptr3 long 0
+ptr4 long 0
 x       	long    0
 counter 	long 	0
 a8000		long 	$8000
 spin2       long    0
+counter2 long 4
+d31 long $80000000
+ptra2 long 0
+ptra3 long 0
+ptra4 long 0
+
+skippattern long %111111111110000
+skip1 long %1111111111110000
+skip2 long %1111111100001111
+skip3 long %1111000011111111
+skip4 long %0000111111111111
+
+
 
 
 DAT
 saw     word  -32000, -24000, -16000, -8000, 0, 8000, 16000, 24000, 32000
 square  word  -32000, 32000
-{{
-audio1 file "gotowy.pcm"      '31060
-audio2 file "przeszkoda.pcm"  '50950
-audio3 file "pilot.pcm"       '29548
-audio4 file "bateria.pcm"     '22270
-audio5 file "operator.pcm"    '44100
-}}
+sine    word 0,8282,16000, 22627, 27713, 30910, 32000,30710,27713,22627,16000,8282,0,-8282,-16000,-22627,-27713,-30910,-32000,-30910,-27713,-22627,-16000,-8282

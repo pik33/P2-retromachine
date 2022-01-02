@@ -1,0 +1,26 @@
+_clkfreq=319220550 
+
+
+
+pub play(ff) |ilss,ss,ssf
+
+ilss:=ff
+debug(udec(ilss))
+
+
+pub play(ff) |ilss,ss,ssf
+
+ilss:=20000/ff
+ss:=2*(1024/ilss)
+ssf:=3568945/((ff*1024)/ss)
+debug(udec(ssf))
+debug(udec(ilss))
+
+samplestart:=@sinewave+16
+sampletype:=0
+loopstart:=0
+loopend:=2048
+volume:=16384
+pan:=8192
+synthfreq:=348
+skip:=45
