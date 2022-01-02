@@ -355,7 +355,7 @@ VAR
   byte cmdE6_counter[NR_CHANNELS]
   byte cmdE6_updatePosition[NR_CHANNELS]
   byte cmdE6_updatePositionCommon
-
+  byte trigger[NR_CHANNELS]
 
 PRI noteToFreq(noteNumber) : r | index
 
@@ -432,7 +432,7 @@ PRI triggerNote(channel)
   currSampleLength[channel] := lastSetSampleLength[channel]
   currRepeatLength[channel] := lastSetRepeatLength[channel]
   currRepeatPoint[channel]  := lastSetRepeatPoint[channel]
-
+  trigger[channel]+=1
 
 PRI processChannel(channel, sampleNumber, period, effect) | sampleLength, volume, repeatPoint, repeatLength, samplePtr
 
