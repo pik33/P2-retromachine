@@ -2,7 +2,7 @@ const _clkfreq = 319_215_686  'PAL*90
 option implicit
 dim v030 as class using "hng030rm"
 dim rm as class using "retrocog"
- 
+
 
 sub cls(fg=154,bg=147)
 v030.cls(fg,bg)
@@ -12,6 +12,11 @@ function startvideo(mode=64, pin=0) 'todo return a cog#
 v030.start(mode,pin)
 v030.setbordercolor(0,0,0)
 open SendRecvDevice(@v030.putchar, nil, nil) as #0
+end function
+
+function startmachine()' todo return a cog
+c=rm.start()
+return c
 end function
 
 sub putpixel(x,y,c)
@@ -58,6 +63,15 @@ sub lpoke(addr as ulong,value as ulong)
 asm
 wrlong value, addr
 end asm
+end sub
+
+function addr(byref v as any)
+
+return(cast(ulong,@v))
+end function
+
+sub position(x,y)
+v030.setcursorpos(x,y)
 end sub
 
 sub waitvbl

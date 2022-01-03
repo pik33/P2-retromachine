@@ -192,17 +192,7 @@ PUB tick() | channel, sampleNumber, period, effect, i
     patternDelay := 0
 
 
-' "Convert" the internal "Amiga sample format" to something that reSounds understands
-'
-    ' @channelNumber - The internal amiga channel to convert and get data from
-    ' @samplePtr     - Returns a pointer to a specific sample in hub memory that currently plays
-    ' @sampleLength  - Returns the length of the sample
-    ' @loopSize      - Returns the loop size of the sample
-    ' @freq          - Returns the frequency that the sample should be played at
-    ' @vol           - Returns the volume that the sample should be played at
-    ' @pan           - Returns the panning value that should be used when playing the sample
-    ' @filter        - Returns the state of the "Amiga sound filter", on/off
-'
+
 PUB getChannelParameters(channelNumber, samplePtr, sampleLength, loopSize, freq, vol, pan, filter) | tempVolume
 
   channelNumber &= 3
@@ -405,7 +395,7 @@ PRI triggerNote(channel)
   currSampleLength[channel] := lastSetSampleLength[channel]
   currRepeatLength[channel] := lastSetRepeatLength[channel]
   currRepeatPoint[channel]  := lastSetRepeatPoint[channel]
-  trigger[channel]+=1
+  trigger[channel]+=1                                                 ' @pik33 _ I have to know when the note is started
 
 PRI processChannel(channel, sampleNumber, period, effect) | sampleLength, volume, repeatPoint, repeatLength, samplePtr
 
@@ -443,7 +433,6 @@ PRI processChannel(channel, sampleNumber, period, effect) | sampleLength, volume
 
       retunePeriod(@period, fineTune)
       currFineTune[channel]        := fineTune
-      currPanning[channel]         := panningLut[channel]
       lastSetPeriod[channel]       := period
       lastSetRepeatLength[channel] := repeatLength
       lastSetRepeatPoint[channel]  := repeatPoint
@@ -710,22 +699,6 @@ PRI doVolumeSlide(channel)
     currVolume[channel] -= y
 
 
-PRI calculateAccumulatorFrequency(mixingFrequency, amigaPeriod) : r | upper, lower
-
-  'R = (65536 * 3546894) / amigaPeriod / mixingFrequency
-  org
-    qmul    ##65536, ##3546894
-    getqx   lower
-    getqy   upper
-    setq    upper
-    qdiv    lower, amigaPeriod
-    getqx   lower
-    qdiv    lower, mixingFrequency
-    getqx   lower
-  end
-
-  return lower
-
 
 ' Tables and data
 '
@@ -733,9 +706,6 @@ DAT orgh
 
 null             long  0
 frequencyLut     long  $51_45_52_46[VALUES_IN_PERIOD_TABLE] ' This table is runtime calculated to match any possible sys clock and mixing frequency combination [1024]
-panningLut       word  0[NR_CHANNELS]
-
-'instrPanningLut  word  32768[NR_SAMPLES]
 
 vibratoWaveform  long  0,    24,   49,   74,   97,   120,  141,  161
                  long  180,  197,  212,  224,  235,  244,  250,  253
