@@ -2,6 +2,9 @@
 ################################################################################################################################
 #                   Parallax Propeller 2 protracker replay routine - v1.0    (C) 2020 Johannes Ahlebrand                       #
 ################################################################################################################################
+#                             							   v.1.01P                                                             #
+#               This version stripped and modified for Paula type audio synthesizer - 20220102 pik33@o2.pl                     # 
+################################################################################################################################
 #                                    TERMS OF USE: Parallax Object Exchange License                                            #
 ################################################################################################################################
 #Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation    #
@@ -18,37 +21,7 @@
 ################################################################################################################################
 }
 
-' Initialize the tracker player object
-'
-    ' @sysClock         - The Parallax P2 system clock in Hz
-    ' @mixingFrequency  - The mixing frequency that the reSound sound driver runs at
-    ' @stereoSeparation - Sets the stereo separation. 32768 = mono, 0 = maximum
-    ' @mVolume          - The initial volume to use. Should be a value from 0 to 256
-'
-PUB init(sysClock, mixingFrequency, reSoundHqMode, stereoSeparation, mVolume) | i
 
-  systemClock := sysClock
-  mainVolume  := mVolume
-
-  if reSoundHqMode
-    mixingFrequency := systemClock / ((systemClock / mixingFrequency) & $FF00)
-
-  ' Calculate LUTs according to the parameters given
-  repeat i from MINIMUM_PERIOD to MAXIMUM_PERIOD
-    frequencyLut[i - MINIMUM_PERIOD] := calculateAccumulatorFrequency(mixingFrequency, i)
-
-  panningLut[0]  :=   stereoSeparation
-  panningLut[1]  := -(stereoSeparation + 1)
-  panningLut[2]  := -(stereoSeparation + 1)
-  panningLut[3]  :=   stereoSeparation
-
-  ticksPerMinute := 50 * 60
-  cyclesToWait   := systemClock / 50
-
-' "Loads" (initialize) a module in hub memory
-'
-    ' @hubPtr - A pointer to hub memory where the tracker module is located
-'
 PUB initModule(hubPtr, startPattern) | i, tmpPtr, samLength, d1, d2, d3, d4, d5
 
   ' Set some data pointers
@@ -391,7 +364,7 @@ PRI retunePeriod(period, fTune) | noteNumber
     word[period] := word[@periodTable + (fTune * BYTES_IN_PERIOD_TABLE)][noteNumber]
 
 
-PRI getSampleInfo(sampleNumber, samplePtr, sampleLength, fTune, volume, repeatPoint, repeatLength) | sampleInfoPtr
+pub getSampleInfo(sampleNumber, samplePtr, sampleLength, fTune, volume, repeatPoint, repeatLength) | sampleInfoPtr
 
   if sampleNumber == 0 or sampleNumber > LAST_SAMPLE_NUMBER ' Can't go beyond sample 31
     long[samplePtr] := 0

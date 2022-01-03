@@ -59,3 +59,7 @@ asm
 wrlong value, addr
 end asm
 end sub
+
+sub waitvbl
+  v030.waitvbl(1)
+end sub

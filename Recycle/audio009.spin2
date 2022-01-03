@@ -289,11 +289,8 @@ return cog
 
 dat
 
-audio       org
-  
-            setq    #26             ' Init cog channel variables from the hub, channel#*9 longs
-            rdlong  sstart1,ptra
-        
+audio       org     0
+
             wrpin   dac,#left       ' Noise dither DACs at clk/90
             wxpin   #90,#left
 
@@ -327,7 +324,27 @@ loop        setq    #8              ' Read channel regs from the hub
             setq    #8
             rdlong  sstart8,ptra++
 
-            sub ptra,#9*4*8    
+            sub     ptra,#9*4*8    
+            
+            cmp time1,a80000000 wc
+     if_nc  cmp time2,a80000000 wc     
+     if_nc  cmp time3,a80000000 wc     
+     if_nc  cmp time4,a80000000 wc     
+     if_nc  cmp time5,a80000000 wc     
+     if_nc  cmp time6,a80000000 wc     
+     if_nc  cmp time7,a80000000 wc     
+     if_nc  cmp time8,a80000000 wc    
+     if_nc  sub time1,a80000000
+     if_nc  sub time2,a80000000
+     if_nc  sub time3,a80000000
+     if_nc  sub time4,a80000000
+     if_nc  sub time5,a80000000
+     if_nc  sub time6,a80000000
+     if_nc  sub time7,a80000000
+     if_nc  sub time8,a80000000
+    if_nc  sub time0,a80000000
+
+       
     
             cmp     acmd1,#0 wz     ' if cmd=0, zero the phase accumulator
     if_e    mov     p1,#0
@@ -370,24 +387,7 @@ loop        setq    #8              ' Read channel regs from the hub
     if_c    mov     cn,#p208 
  
             jmp     cn
-  {{          
-            cmp     cn,#0 wz'
-    if_z    jmp     #p201       
-            cmp     cn,#1 wz
-    if_z    jmp     #p202       
-            cmp     cn,#2 wz
-    if_z    jmp     #p203       
-            cmp     cn,#3 wz
-    if_z    jmp     #p204       
-            cmp     cn,#4 wz
-    if_z    jmp     #p205       
-            cmp     cn,#5 wz
-    if_z    jmp     #p206       
-            cmp     cn,#6 wz
-    if_z    jmp     #p207       
-            cmp     cn,#7 wz
-    if_z    jmp     #p208       
-    }}       
+   
 '----------------------------------------------------------------------------------
 '------------- Compute channel samples --------------------------------------------
 '----------------------------------------------------------------------------------
@@ -678,7 +678,10 @@ p101        cmp     oldt0,time0 wz   ' There must not be 2 entries with the same
             setword rs,ls,#1         ' Pack L and R to one long    		
             wrlut   rs,front         ' and write it to LUT
             add     front,#1         ' Write the sample time
-            wrlut   time0,front
+            mov qq,time0
+            and qq,a7fffffff
+            wrlut   qq,front
+            wrlong qq,#$80
 
             add     front,#1         ' move the front pointer
             and     front,#511       ' and loop at #512
@@ -697,26 +700,26 @@ p101        cmp     oldt0,time0 wz   ' There must not be 2 entries with the same
 
 isr1        wypin   lsample,#left        '2     The sample has to be outputted every 90 cycles     
             wypin   rsample,#right       '4
-
+										
             add     counter,#1           '6     Increment the counter
+            and     counter,a7fffffff
             cmp     counter,irqtime wcz  '8     Check if it is time for the next sample
     if_ne   reti1                        '10/12 If not, do nothing
 		
-            mov     lsample,lsnext       '12    Prepare the next sample to output
-            mov     rsample,rsnext       '14
-		        
+          	getword rsample,lsnext,#1    '12
+          	getword lsample,lsnext,#0    '14
             cmp     tail,front wcz       '16    If the buffer is empty, do nothing 
-            if_e    reti1                '18/20 
+            if_e    reti1                '18/20
 
             rdlut   lsnext,tail          '21    else read the sample and its time from LUT
-            getword rsnext,lsnext,#1     '23    Split for left and right
-            getword lsnext,lsnext,#0     '25
-            add    tail, #1              '27
-            rdlut  irqtime,tail          '30    Read the time for this sample
-            add    tail,#1               '32    Go to the next entry
-            and    tail,#511             '34
-            reti1                        '38
-
+            add     tail, #1             '23
+            rdlut   irqtime,tail         '26    Read the time for this sample
+            add     tail,#1              '28    Go to the next entry
+            and     tail,#511            '30
+            reti1                        '34 
+            
+         '' 3 nops left    
+          
 '---------------------------------------------------------------------------
 '-------- End of interrupt -------------------------------------------------
 '---------------------------------------------------------------------------    
@@ -724,6 +727,9 @@ isr1        wypin   lsample,#left        '2     The sample has to be outputted e
 '---------------------------------------------------------------------------
 '------- Variables ---------------------------------------------------------
 '---------------------------------------------------------------------------
+
+a7fffffff long $7fffffff
+a80000000 long $80000000
 
 ' phase accumulators
 

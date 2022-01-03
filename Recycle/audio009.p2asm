@@ -192,7 +192,7 @@ hubentry
 _test
 ' 
 ' start()
-	add	ptr__dat__, ##1740
+	add	ptr__dat__, ##1756
 ' 
 ' 
 ' channel1[0]:=@null
@@ -424,7 +424,7 @@ _test
 	sub	objptr, #284
 ' 
 ' cog:=coginit(16,@audio,@channel1)
-	sub	ptr__dat__, ##1740
+	sub	ptr__dat__, ##1756
 	mov	arg02, ptr__dat__
 	mov	arg03, objptr
 	mov	arg01, #16
@@ -569,7 +569,7 @@ _play
 	call	#divide_
 ' ssf:=(ss*3568945)/(ff*2048)
 	mov	local03, muldivb_
-	add	ptr__dat__, ##1748
+	add	ptr__dat__, ##1764
 	mov	local04, ptr__dat__
 ' 
 ' channel1[0]:=@sinewave
@@ -610,7 +610,7 @@ _play
 	wrlong	##2064, objptr
 	abs	local05, arg03 wc
 	shr	local05, #1
-	sub	ptr__dat__, ##1748
+	sub	ptr__dat__, ##1764
  if_b	neg	local05, local05
 ' channel2[4]:=vol/2
 	add	objptr, #4
@@ -943,20 +943,15 @@ __system___waitus_ret
 	alignl
 _dat_
 '-' 
-'-' audio       org
-'-'   
-'-'             setq    #26             ' Init cog channel variables from the hub, channel#*9 longs
-	byte	$28, $34, $64, $fd
-'-'             rdlong  sstart1,ptra
-	byte	$00, $97, $06, $fb
-'-'         
+'-' audio       org     0
+'-' 
 '-'             wrpin   dac,#left       ' Noise dither DACs at clk/90
-	byte	$0e, $64, $07, $fc
+	byte	$0e, $6c, $07, $fc
 '-'             wxpin   #90,#left
 	byte	$0e, $b4, $1c, $fc
 '-' 
 '-'             wrpin   dac,#right
-	byte	$0f, $64, $07, $fc
+	byte	$0f, $6c, $07, $fc
 '-'             wxpin   #90,#right
 	byte	$0f, $b4, $1c, $fc
 '-' 
@@ -966,7 +961,7 @@ _dat_
 '-'             setse1  #%001<<6 + left ' Set the event - DAC empty
 	byte	$20, $9c, $64, $fd
 '-'             mov     ijmp1,#isr1     ' Init the interrupt
-	byte	$28, $e9, $07, $f6
+	byte	$2b, $e9, $07, $f6
 '-'             setint1 #4              ' Interrupt from DAC empty event
 	byte	$25, $08, $64, $fd
 '-'             
@@ -977,149 +972,156 @@ _dat_
 '-' loop        setq    #8              ' Read channel regs from the hub
 	byte	$28, $10, $64, $fd
 '-'             rdlong  sstart1,ptra++
-	byte	$61, $97, $06, $fb
+	byte	$61, $9f, $06, $fb
 '-'             setq    #8              ' Cannot do one big setq+rdlong as it interferes with interrupts
 	byte	$28, $10, $64, $fd
 '-'             rdlong  sstart2,ptra++
-	byte	$61, $a9, $06, $fb
+	byte	$61, $b1, $06, $fb
 '-'             setq    #8
 	byte	$28, $10, $64, $fd
 '-'             rdlong  sstart3,ptra++
-	byte	$61, $bb, $06, $fb
+	byte	$61, $c3, $06, $fb
 '-'             setq    #8
 	byte	$28, $10, $64, $fd
 '-'             rdlong  sstart4,ptra++
-	byte	$61, $cd, $06, $fb
+	byte	$61, $d5, $06, $fb
 '-'             setq    #8
 	byte	$28, $10, $64, $fd
 '-'             rdlong  sstart5,ptra++
-	byte	$61, $df, $06, $fb
+	byte	$61, $e7, $06, $fb
 '-'             setq    #8
 	byte	$28, $10, $64, $fd
 '-'             rdlong  sstart6,ptra++
-	byte	$61, $f1, $06, $fb
+	byte	$61, $f9, $06, $fb
 '-'             setq    #8
 	byte	$28, $10, $64, $fd
 '-'             rdlong  sstart7,ptra++
-	byte	$61, $03, $07, $fb
+	byte	$61, $0b, $07, $fb
 '-'             setq    #8
 	byte	$28, $10, $64, $fd
 '-'             rdlong  sstart8,ptra++
-	byte	$61, $15, $07, $fb
+	byte	$61, $1d, $07, $fb
 '-' 
-'-'             sub ptra,#9*4*8    
+'-'             sub     ptra,#9*4*8    
 	byte	$20, $f1, $87, $f1
+'-'             
+'-'             cmp time1,a80000000 wc
+	byte	$3c, $31, $13, $f2
+'-'      if_nc  cmp time2,a80000000 wc     
+	byte	$3c, $33, $13, $32
+'-'      if_nc  cmp time3,a80000000 wc     
+	byte	$3c, $35, $13, $32
+'-'      if_nc  cmp time4,a80000000 wc     
+	byte	$3c, $37, $13, $32
+'-'      if_nc  cmp time5,a80000000 wc     
+	byte	$3c, $39, $13, $32
+'-'      if_nc  cmp time6,a80000000 wc     
+	byte	$3c, $3b, $13, $32
+'-'      if_nc  cmp time7,a80000000 wc     
+	byte	$3c, $3d, $13, $32
+'-'      if_nc  cmp time8,a80000000 wc    
+	byte	$3c, $3f, $13, $32
+'-'      if_nc  sub time1,a80000000
+	byte	$3c, $31, $83, $31
+'-'      if_nc  sub time2,a80000000
+	byte	$3c, $33, $83, $31
+'-'      if_nc  sub time3,a80000000
+	byte	$3c, $35, $83, $31
+'-'      if_nc  sub time4,a80000000
+	byte	$3c, $37, $83, $31
+'-'      if_nc  sub time5,a80000000
+	byte	$3c, $39, $83, $31
+'-'      if_nc  sub time6,a80000000
+	byte	$3c, $3b, $83, $31
+'-'      if_nc  sub time7,a80000000
+	byte	$3c, $3d, $83, $31
+'-'      if_nc  sub time8,a80000000
+	byte	$3c, $3f, $83, $31
+'-'     if_nc  sub time0,a80000000
+	byte	$3c, $2f, $83, $31
+'-' 
+'-'        
 '-'     
 '-'             cmp     acmd1,#0 wz     ' if cmd=0, zero the phase accumulator
-	byte	$00, $a6, $0e, $f2
+	byte	$00, $ae, $0e, $f2
 '-'     if_e    mov     p1,#0
-	byte	$00, $72, $06, $a6
-'-'             cmp     acmd2,#0 wz
-	byte	$00, $b8, $0e, $f2
-'-'     if_e    mov     p2,#0
-	byte	$00, $74, $06, $a6
-'-'             cmp     acmd3,#0 wz
-	byte	$00, $ca, $0e, $f2
-'-'     if_e    mov     p3,#0
-	byte	$00, $76, $06, $a6
-'-'             cmp     acmd4,#0 wz
-	byte	$00, $dc, $0e, $f2
-'-'     if_e    mov     p4,#0
-	byte	$00, $78, $06, $a6
-'-'             cmp     acmd5,#0 wz
-	byte	$00, $ee, $0e, $f2
-'-'     if_e    mov     p5,#0
 	byte	$00, $7a, $06, $a6
-'-'             cmp     acmd6,#0 wz
-	byte	$00, $00, $0f, $f2
-'-'     if_e    mov     p6,#0
+'-'             cmp     acmd2,#0 wz
+	byte	$00, $c0, $0e, $f2
+'-'     if_e    mov     p2,#0
 	byte	$00, $7c, $06, $a6
-'-'             cmp     acmd7,#0 wz
-	byte	$00, $12, $0f, $f2
-'-'     if_e    mov     p7,#0
+'-'             cmp     acmd3,#0 wz
+	byte	$00, $d2, $0e, $f2
+'-'     if_e    mov     p3,#0
 	byte	$00, $7e, $06, $a6
-'-'             cmp     acmd8,#0 wz
-	byte	$00, $24, $0f, $f2
-'-'     if_e    mov     p8,#0
+'-'             cmp     acmd4,#0 wz
+	byte	$00, $e4, $0e, $f2
+'-'     if_e    mov     p4,#0
 	byte	$00, $80, $06, $a6
+'-'             cmp     acmd5,#0 wz
+	byte	$00, $f6, $0e, $f2
+'-'     if_e    mov     p5,#0
+	byte	$00, $82, $06, $a6
+'-'             cmp     acmd6,#0 wz
+	byte	$00, $08, $0f, $f2
+'-'     if_e    mov     p6,#0
+	byte	$00, $84, $06, $a6
+'-'             cmp     acmd7,#0 wz
+	byte	$00, $1a, $0f, $f2
+'-'     if_e    mov     p7,#0
+	byte	$00, $86, $06, $a6
+'-'             cmp     acmd8,#0 wz
+	byte	$00, $2c, $0f, $f2
+'-'     if_e    mov     p8,#0
+	byte	$00, $88, $06, $a6
 '-'           
 '-'             mov     qq,tail         ' Check if the buffer is full	
-	byte	$44, $83, $02, $f6
+	byte	$48, $8b, $02, $f6
 '-'             sub     qq,#2
-	byte	$02, $82, $86, $f1
+	byte	$02, $8a, $86, $f1
 '-'             and     qq,#511
-	byte	$ff, $83, $06, $f5
+	byte	$ff, $8b, $06, $f5
 '-'             cmp     qq,front wcz
-	byte	$43, $83, $1a, $f2
+	byte	$47, $8b, $1a, $f2
 '-'     if_e    jmp     #loop           ' If the buffer is full, do nothing               
-	byte	$68, $ff, $9f, $ad
+	byte	$24, $ff, $9f, $ad
 '-'       
-'-'             mov     cn,#0           ' Find the channel to compute
-	byte	$00, $3a, $07, $f6
+'-'             mov     cn,#p201           ' Find the channel to compute
+	byte	$50, $42, $07, $f6
 '-'             mov     ct,time1        ' with the lowest next sample time
-	byte	$94, $3d, $03, $f6
+	byte	$98, $45, $03, $f6
 '-'             fle     ct,time2 wcz    ' TODO: THIS WILL FAIL AFTER 1210 (or 605? )seconds when overflow
-	byte	$95, $3d, $3b, $f3
-'-'     if_c    mov     cn,#1   
-	byte	$01, $3a, $07, $c6
+	byte	$99, $45, $3b, $f3
+'-'     if_c    mov     cn,#p202 
+	byte	$67, $42, $07, $c6
 '-'             fle     ct,time3 wcz
-	byte	$96, $3d, $3b, $f3
-'-'     if_c    mov     cn,#2        
-	byte	$02, $3a, $07, $c6
+	byte	$9a, $45, $3b, $f3
+'-'     if_c    mov     cn,#p203     
+	byte	$7e, $42, $07, $c6
 '-'             fle     ct,time4 wcz
-	byte	$97, $3d, $3b, $f3
-'-'     if_c    mov     cn,#3 
-	byte	$03, $3a, $07, $c6
+	byte	$9b, $45, $3b, $f3
+'-'     if_c    mov     cn,#p204
+	byte	$95, $42, $07, $c6
 '-'             fle     ct,time5 wcz
-	byte	$98, $3d, $3b, $f3
-'-'     if_c    mov     cn,#4 
-	byte	$04, $3a, $07, $c6
+	byte	$9c, $45, $3b, $f3
+'-'     if_c    mov     cn,#p205 
+	byte	$ac, $42, $07, $c6
 '-'             fle     ct,time6 wcz
-	byte	$99, $3d, $3b, $f3
-'-'     if_c    mov     cn,#5 
-	byte	$05, $3a, $07, $c6
+	byte	$9d, $45, $3b, $f3
+'-'     if_c    mov     cn,#p206
+	byte	$c3, $42, $07, $c6
 '-'             fle     ct,time7 wcz
-	byte	$9a, $3d, $3b, $f3
-'-'     if_c    mov     cn,#6 
-	byte	$06, $3a, $07, $c6
+	byte	$9e, $45, $3b, $f3
+'-'     if_c    mov     cn,#p207
+	byte	$da, $42, $07, $c6
 '-'             fle     ct,time8 wcz
-	byte	$9b, $3d, $3b, $f3
-'-'     if_c    mov     cn,#7 
-	byte	$07, $3a, $07, $c6
+	byte	$9f, $45, $3b, $f3
+'-'     if_c    mov     cn,#p208 
+	byte	$f1, $42, $07, $c6
 '-'  
-'-'             cmp     cn,#0 wz'
-	byte	$00, $3a, $0f, $f2
-'-'     if_z    jmp     #p201       
-	byte	$38, $00, $90, $ad
-'-'             cmp     cn,#1 wz
-	byte	$01, $3a, $0f, $f2
-'-'     if_z    jmp     #p202       
-	byte	$8c, $00, $90, $ad
-'-'             cmp     cn,#2 wz
-	byte	$02, $3a, $0f, $f2
-'-'     if_z    jmp     #p203       
-	byte	$e0, $00, $90, $ad
-'-'             cmp     cn,#3 wz
-	byte	$03, $3a, $0f, $f2
-'-'     if_z    jmp     #p204       
-	byte	$34, $01, $90, $ad
-'-'             cmp     cn,#4 wz
-	byte	$04, $3a, $0f, $f2
-'-'     if_z    jmp     #p205       
-	byte	$88, $01, $90, $ad
-'-'             cmp     cn,#5 wz
-	byte	$05, $3a, $0f, $f2
-'-'     if_z    jmp     #p206       
-	byte	$dc, $01, $90, $ad
-'-'             cmp     cn,#6 wz
-	byte	$06, $3a, $0f, $f2
-'-'     if_z    jmp     #p207       
-	byte	$30, $02, $90, $ad
-'-'             cmp     cn,#7 wz
-	byte	$07, $3a, $0f, $f2
-'-'     if_z    jmp     #p208       
-	byte	$84, $02, $90, $ad
-'-'            
+'-'             jmp     cn
+	byte	$2c, $42, $63, $fd
+'-'    
 '-' '----------------------------------------------------------------------------------
 '-' '------------- Compute channel samples --------------------------------------------
 '-' '----------------------------------------------------------------------------------
@@ -1127,51 +1129,51 @@ _dat_
 '-' ' ------------  Channel 1
 '-'  
 '-' p201        mov     dt0,time1      ' compute the delta to add to the global time
-	byte	$94, $3f, $03, $f6
+	byte	$98, $47, $03, $f6
 '-'             sub     dt0,time0
-	byte	$93, $3f, $83, $f1
+	byte	$97, $47, $83, $f1
 '-'             add     time1,freq1    ' compute the next channel time	
-	byte	$51, $29, $03, $f1
+	byte	$55, $31, $03, $f1
 '-' 	        
 '-'             add     p1,askip1      ' update the phase accumulator
-	byte	$52, $73, $02, $f1
+	byte	$56, $7b, $02, $f1
 '-'             cmp     p1,lend1 wcz   ' substract the loop length if over the loop end
-	byte	$4e, $73, $1a, $f2
+	byte	$52, $7b, $1a, $f2
 '-'     if_ge   sub     p1,lend1	        
-	byte	$4e, $73, $82, $31
+	byte	$52, $7b, $82, $31
 '-'     if_ge   add     p1,lstart1       
-	byte	$4d, $73, $02, $31
+	byte	$51, $7b, $02, $31
 '-'             mov     qq,p1          ' compute the pointer to the next sample
-	byte	$39, $83, $02, $f6
+	byte	$3d, $8b, $02, $f6
 '-'             add     qq,sstart1
-	byte	$4b, $83, $02, $f1
+	byte	$4f, $8b, $02, $f1
 '-'             
 '-'             cmp     type1,#0 wz    ' check the sample type
-	byte	$00, $98, $0e, $f2
+	byte	$00, $a0, $0e, $f2
 '-'     if_nz   rdbyte  spl,qq         ' not zero=8 bit
-	byte	$41, $85, $c2, $5a
+	byte	$45, $8d, $c2, $5a
 '-'     if_nz   shl     spl,#8
-	byte	$08, $84, $66, $50
+	byte	$08, $8c, $66, $50
 '-'     if_z    rdword  spl,qq         ' zero=16 bit. TODO: more types? signed/unsigned, etc... 
-	byte	$41, $85, $e2, $aa
+	byte	$45, $8d, $e2, $aa
 '-' 
 '-'             scas    spl,vol1       ' apply the volume
-	byte	$4f, $85, $32, $fa
+	byte	$53, $8d, $32, $fa
 '-'             mov     spl,0-0
-	byte	$00, $84, $02, $f6
+	byte	$00, $8c, $02, $f6
 '-' 
 '-'             scas    spl,apan1      ' apply the pan
-	byte	$50, $85, $32, $fa
+	byte	$54, $8d, $32, $fa
 '-'             mov     ls1,0-0
-	byte	$00, $44, $03, $f6
+	byte	$00, $4c, $03, $f6
 '-'             mov     qq,##16384
-	byte	$20, $00, $00, $ff, $00, $82, $06, $f6
+	byte	$20, $00, $00, $ff, $00, $8a, $06, $f6
 '-'             sub     qq,apan1
-	byte	$50, $83, $82, $f1
+	byte	$54, $8b, $82, $f1
 '-'             scas    spl,qq
-	byte	$41, $85, $32, $fa
+	byte	$45, $8d, $32, $fa
 '-'             mov     rs1,0-0
-	byte	$00, $46, $03, $f6
+	byte	$00, $4e, $03, $f6
 '-'             
 '-'             jmp     #p101              
 	byte	$84, $02, $90, $fd
@@ -1179,51 +1181,51 @@ _dat_
 '-' ' ------------  Channel 2
 '-'  
 '-' p202        mov     dt0,time2
-	byte	$95, $3f, $03, $f6
+	byte	$99, $47, $03, $f6
 '-'             sub     dt0,time0
-	byte	$93, $3f, $83, $f1
+	byte	$97, $47, $83, $f1
 '-'             add     time2,freq2  	
-	byte	$5a, $2b, $03, $f1
+	byte	$5e, $33, $03, $f1
 '-' 	        
 '-'             add     p2,askip2
-	byte	$5b, $75, $02, $f1
+	byte	$5f, $7d, $02, $f1
 '-'             cmp     p2,lend2 wcz
-	byte	$57, $75, $1a, $f2
+	byte	$5b, $7d, $1a, $f2
 '-'     if_ge   sub     p2,lend2	        
-	byte	$57, $75, $82, $31
+	byte	$5b, $7d, $82, $31
 '-'     if_ge   add     p2,lstart2       
-	byte	$56, $75, $02, $31
+	byte	$5a, $7d, $02, $31
 '-'             mov     qq,p2
-	byte	$3a, $83, $02, $f6
+	byte	$3e, $8b, $02, $f6
 '-'             add     qq,sstart2
-	byte	$54, $83, $02, $f1
+	byte	$58, $8b, $02, $f1
 '-' 
 '-'             cmp     type2,#0 wz
-	byte	$00, $aa, $0e, $f2
+	byte	$00, $b2, $0e, $f2
 '-'     if_nz   rdbyte  spl,qq
-	byte	$41, $85, $c2, $5a
+	byte	$45, $8d, $c2, $5a
 '-'     if_nz   shl     spl,#8
-	byte	$08, $84, $66, $50
+	byte	$08, $8c, $66, $50
 '-'     if_z    rdword  spl,qq
-	byte	$41, $85, $e2, $aa
+	byte	$45, $8d, $e2, $aa
 '-' 
 '-'             scas    spl,vol2
-	byte	$58, $85, $32, $fa
+	byte	$5c, $8d, $32, $fa
 '-'             mov     spl,0-0
-	byte	$00, $84, $02, $f6
+	byte	$00, $8c, $02, $f6
 '-'             
 '-'             scas    spl,apan2
-	byte	$59, $85, $32, $fa
+	byte	$5d, $8d, $32, $fa
 '-'             mov     ls2,0-0
-	byte	$00, $48, $03, $f6
+	byte	$00, $50, $03, $f6
 '-'             mov     qq,##16384
-	byte	$20, $00, $00, $ff, $00, $82, $06, $f6
+	byte	$20, $00, $00, $ff, $00, $8a, $06, $f6
 '-'             sub     qq,apan2
-	byte	$59, $83, $82, $f1
+	byte	$5d, $8b, $82, $f1
 '-'             scas    spl,qq
-	byte	$41, $85, $32, $fa
+	byte	$45, $8d, $32, $fa
 '-'             mov     rs2,0-0
-	byte	$00, $4a, $03, $f6
+	byte	$00, $52, $03, $f6
 '-'             
 '-'             jmp     #p101
 	byte	$28, $02, $90, $fd
@@ -1231,52 +1233,52 @@ _dat_
 '-' ' ------------  Channel 3
 '-'  
 '-' p203        mov     dt0,time3
-	byte	$96, $3f, $03, $f6
+	byte	$9a, $47, $03, $f6
 '-'             sub     dt0,time0
-	byte	$93, $3f, $83, $f1
+	byte	$97, $47, $83, $f1
 '-'             add     time3,freq3  	
-	byte	$63, $2d, $03, $f1
+	byte	$67, $35, $03, $f1
 '-' 	        
 '-'             add     p3,askip3
-	byte	$64, $77, $02, $f1
+	byte	$68, $7f, $02, $f1
 '-'             cmp     p3,lend3 wcz
-	byte	$60, $77, $1a, $f2
+	byte	$64, $7f, $1a, $f2
 '-'     if_ge   sub     p3,lend3	        
-	byte	$60, $77, $82, $31
+	byte	$64, $7f, $82, $31
 '-'     if_ge   add     p3,lstart3       
-	byte	$5f, $77, $02, $31
+	byte	$63, $7f, $02, $31
 '-'             mov     qq,p3
-	byte	$3b, $83, $02, $f6
+	byte	$3f, $8b, $02, $f6
 '-'             add     qq,sstart3
-	byte	$5d, $83, $02, $f1
+	byte	$61, $8b, $02, $f1
 '-'             
 '-'             cmp     type3,#0 wz
-	byte	$00, $bc, $0e, $f2
+	byte	$00, $c4, $0e, $f2
 '-'     if_nz   rdbyte  spl,qq
-	byte	$41, $85, $c2, $5a
+	byte	$45, $8d, $c2, $5a
 '-'     if_nz   shl     spl,#8
-	byte	$08, $84, $66, $50
+	byte	$08, $8c, $66, $50
 '-'     if_z    rdword  spl,qq
-	byte	$41, $85, $e2, $aa
+	byte	$45, $8d, $e2, $aa
 '-' 
 '-'             scas    spl,vol3
-	byte	$61, $85, $32, $fa
+	byte	$65, $8d, $32, $fa
 '-'             mov     spl,0-0
-	byte	$00, $84, $02, $f6
+	byte	$00, $8c, $02, $f6
 '-'     	
 '-'             scas    spl,apan3
-	byte	$62, $85, $32, $fa
+	byte	$66, $8d, $32, $fa
 '-'             mov     ls3,0-0
-	byte	$00, $4c, $03, $f6
+	byte	$00, $54, $03, $f6
 '-'             
 '-'             mov     qq,##16384
-	byte	$20, $00, $00, $ff, $00, $82, $06, $f6
+	byte	$20, $00, $00, $ff, $00, $8a, $06, $f6
 '-'             sub     qq,apan3
-	byte	$62, $83, $82, $f1
+	byte	$66, $8b, $82, $f1
 '-'             scas    spl,qq
-	byte	$41, $85, $32, $fa
+	byte	$45, $8d, $32, $fa
 '-'             mov     rs3,0-0
-	byte	$00, $4e, $03, $f6
+	byte	$00, $56, $03, $f6
 '-' 
 '-'             jmp     #p101
 	byte	$cc, $01, $90, $fd
@@ -1284,53 +1286,53 @@ _dat_
 '-' ' ------------  Channel 4
 '-'  
 '-' p204        mov     dt0,time4
-	byte	$97, $3f, $03, $f6
+	byte	$9b, $47, $03, $f6
 '-'             sub     dt0,time0
-	byte	$93, $3f, $83, $f1
+	byte	$97, $47, $83, $f1
 '-'             add     time4,freq4  	
-	byte	$6c, $2f, $03, $f1
+	byte	$70, $37, $03, $f1
 '-' 
 '-' 	        
 '-'             add     p4,askip4
-	byte	$6d, $79, $02, $f1
+	byte	$71, $81, $02, $f1
 '-'             cmp     p4,lend4 wcz
-	byte	$69, $79, $1a, $f2
+	byte	$6d, $81, $1a, $f2
 '-'     if_ge   sub     p4,lend4	        
-	byte	$69, $79, $82, $31
+	byte	$6d, $81, $82, $31
 '-'     if_ge   add     p4,lstart4       
-	byte	$68, $79, $02, $31
+	byte	$6c, $81, $02, $31
 '-'             mov     qq,p4
-	byte	$3c, $83, $02, $f6
+	byte	$40, $8b, $02, $f6
 '-'             add     qq,sstart4
-	byte	$66, $83, $02, $f1
+	byte	$6a, $8b, $02, $f1
 '-'             
 '-'             cmp     type4,#0 wz
-	byte	$00, $ce, $0e, $f2
+	byte	$00, $d6, $0e, $f2
 '-'     if_nz   rdbyte  spl,qq
-	byte	$41, $85, $c2, $5a
+	byte	$45, $8d, $c2, $5a
 '-'     if_nz   shl     spl,#8
-	byte	$08, $84, $66, $50
+	byte	$08, $8c, $66, $50
 '-'     if_z    rdword  spl,qq
-	byte	$41, $85, $e2, $aa
+	byte	$45, $8d, $e2, $aa
 '-' 
 '-'             scas    spl,vol4
-	byte	$6a, $85, $32, $fa
+	byte	$6e, $8d, $32, $fa
 '-'             mov     spl,0-0
-	byte	$00, $84, $02, $f6
+	byte	$00, $8c, $02, $f6
 '-'     	
 '-'             scas    spl,apan4
-	byte	$6b, $85, $32, $fa
+	byte	$6f, $8d, $32, $fa
 '-'             mov     ls4,0-0
-	byte	$00, $52, $03, $f6
+	byte	$00, $5a, $03, $f6
 '-'             
 '-'             mov     qq,##16384
-	byte	$20, $00, $00, $ff, $00, $82, $06, $f6
+	byte	$20, $00, $00, $ff, $00, $8a, $06, $f6
 '-'             sub     qq,apan4
-	byte	$6b, $83, $82, $f1
+	byte	$6f, $8b, $82, $f1
 '-'             scas    spl,qq
-	byte	$41, $85, $32, $fa
+	byte	$45, $8d, $32, $fa
 '-'             mov     rs4,0-0
-	byte	$00, $50, $03, $f6
+	byte	$00, $58, $03, $f6
 '-' 
 '-'             jmp     #p101
 	byte	$70, $01, $90, $fd
@@ -1338,53 +1340,53 @@ _dat_
 '-' ' ------------  Channel 5
 '-'  
 '-' p205        mov     dt0,time5
-	byte	$98, $3f, $03, $f6
+	byte	$9c, $47, $03, $f6
 '-'             sub     dt0,time0
-	byte	$93, $3f, $83, $f1
+	byte	$97, $47, $83, $f1
 '-'             add     time5,freq5  	
-	byte	$75, $31, $03, $f1
+	byte	$79, $39, $03, $f1
 '-' 
 '-' 	        
 '-'             add     p5,askip5
-	byte	$76, $7b, $02, $f1
+	byte	$7a, $83, $02, $f1
 '-'             cmp     p5,lend5 wcz
-	byte	$72, $7b, $1a, $f2
+	byte	$76, $83, $1a, $f2
 '-'     if_ge   sub     p5,lend5	        
-	byte	$72, $7b, $82, $31
+	byte	$76, $83, $82, $31
 '-'     if_ge   add     p5,lstart5       
-	byte	$71, $7b, $02, $31
+	byte	$75, $83, $02, $31
 '-'             mov     qq,p5
-	byte	$3d, $83, $02, $f6
+	byte	$41, $8b, $02, $f6
 '-'             add     qq,sstart5
-	byte	$6f, $83, $02, $f1
+	byte	$73, $8b, $02, $f1
 '-'             
 '-'             cmp     type5,#0 wz
-	byte	$00, $e0, $0e, $f2
+	byte	$00, $e8, $0e, $f2
 '-'     if_nz   rdbyte  spl,qq
-	byte	$41, $85, $c2, $5a
+	byte	$45, $8d, $c2, $5a
 '-'     if_nz   shl     spl,#8
-	byte	$08, $84, $66, $50
+	byte	$08, $8c, $66, $50
 '-'     if_z    rdword  spl,qq
-	byte	$41, $85, $e2, $aa
+	byte	$45, $8d, $e2, $aa
 '-' 
 '-'             scas    spl,vol5
-	byte	$73, $85, $32, $fa
+	byte	$77, $8d, $32, $fa
 '-'             mov     spl,0-0
-	byte	$00, $84, $02, $f6
+	byte	$00, $8c, $02, $f6
 '-'     	
 '-'             scas    spl,apan5
-	byte	$74, $85, $32, $fa
+	byte	$78, $8d, $32, $fa
 '-'             mov     ls5,0-0
-	byte	$00, $56, $03, $f6
+	byte	$00, $5e, $03, $f6
 '-'             
 '-'             mov     qq,##16384
-	byte	$20, $00, $00, $ff, $00, $82, $06, $f6
+	byte	$20, $00, $00, $ff, $00, $8a, $06, $f6
 '-'             sub     qq,apan5
-	byte	$74, $83, $82, $f1
+	byte	$78, $8b, $82, $f1
 '-'             scas    spl,qq
-	byte	$41, $85, $32, $fa
+	byte	$45, $8d, $32, $fa
 '-'             mov     rs5,0-0
-	byte	$00, $54, $03, $f6
+	byte	$00, $5c, $03, $f6
 '-' 
 '-'             jmp     #p101
 	byte	$14, $01, $90, $fd
@@ -1392,53 +1394,53 @@ _dat_
 '-' ' ------------  Channel 6
 '-'  
 '-' p206        mov     dt0,time6
-	byte	$99, $3f, $03, $f6
+	byte	$9d, $47, $03, $f6
 '-'             sub     dt0,time0
-	byte	$93, $3f, $83, $f1
+	byte	$97, $47, $83, $f1
 '-'             add     time6,freq6  	
-	byte	$7e, $33, $03, $f1
+	byte	$82, $3b, $03, $f1
 '-' 
 '-' 	        
 '-'             add     p6,askip6
-	byte	$7f, $7d, $02, $f1
+	byte	$83, $85, $02, $f1
 '-'             cmp     p6,lend6 wcz
-	byte	$7b, $7d, $1a, $f2
+	byte	$7f, $85, $1a, $f2
 '-'     if_ge   sub     p6,lend6	        
-	byte	$7b, $7d, $82, $31
+	byte	$7f, $85, $82, $31
 '-'     if_ge   add     p6,lstart6       
-	byte	$7a, $7d, $02, $31
+	byte	$7e, $85, $02, $31
 '-'             mov     qq,p6
-	byte	$3e, $83, $02, $f6
+	byte	$42, $8b, $02, $f6
 '-'             add     qq,sstart6
-	byte	$78, $83, $02, $f1
+	byte	$7c, $8b, $02, $f1
 '-'             
 '-'             cmp     type6,#0 wz
-	byte	$00, $f2, $0e, $f2
+	byte	$00, $fa, $0e, $f2
 '-'     if_nz   rdbyte  spl,qq
-	byte	$41, $85, $c2, $5a
+	byte	$45, $8d, $c2, $5a
 '-'     if_nz   shl     spl,#8
-	byte	$08, $84, $66, $50
+	byte	$08, $8c, $66, $50
 '-'     if_z    rdword  spl,qq
-	byte	$41, $85, $e2, $aa
+	byte	$45, $8d, $e2, $aa
 '-' 
 '-'             scas    spl,vol6
-	byte	$7c, $85, $32, $fa
+	byte	$80, $8d, $32, $fa
 '-'             mov     spl,0-0
-	byte	$00, $84, $02, $f6
+	byte	$00, $8c, $02, $f6
 '-'     	
 '-'             scas    spl,apan6
-	byte	$7d, $85, $32, $fa
+	byte	$81, $8d, $32, $fa
 '-'             mov     ls6,0-0
-	byte	$00, $5a, $03, $f6
+	byte	$00, $62, $03, $f6
 '-'             
 '-'             mov     qq,##16384
-	byte	$20, $00, $00, $ff, $00, $82, $06, $f6
+	byte	$20, $00, $00, $ff, $00, $8a, $06, $f6
 '-'             sub     qq,apan6
-	byte	$7d, $83, $82, $f1
+	byte	$81, $8b, $82, $f1
 '-'             scas    spl,qq
-	byte	$41, $85, $32, $fa
+	byte	$45, $8d, $32, $fa
 '-'             mov     rs6,0-0
-	byte	$00, $58, $03, $f6
+	byte	$00, $60, $03, $f6
 '-' 
 '-'             jmp     #p101
 	byte	$b8, $00, $90, $fd
@@ -1446,53 +1448,53 @@ _dat_
 '-' ' ------------  Channel 7
 '-'  
 '-' p207        mov     dt0,time7
-	byte	$9a, $3f, $03, $f6
+	byte	$9e, $47, $03, $f6
 '-'             sub     dt0,time0
-	byte	$93, $3f, $83, $f1
+	byte	$97, $47, $83, $f1
 '-'             add     time7,freq7  	
-	byte	$87, $35, $03, $f1
+	byte	$8b, $3d, $03, $f1
 '-' 
 '-' 	        
 '-'             add     p7,askip7
-	byte	$88, $7f, $02, $f1
+	byte	$8c, $87, $02, $f1
 '-'             cmp     p7,lend7 wcz
-	byte	$84, $7f, $1a, $f2
+	byte	$88, $87, $1a, $f2
 '-'     if_ge   sub     p7,lend7	        
-	byte	$84, $7f, $82, $31
+	byte	$88, $87, $82, $31
 '-'     if_ge   add     p7,lstart7       
-	byte	$83, $7f, $02, $31
+	byte	$87, $87, $02, $31
 '-'             mov     qq,p7
-	byte	$3f, $83, $02, $f6
+	byte	$43, $8b, $02, $f6
 '-'             add     qq,sstart7
-	byte	$81, $83, $02, $f1
+	byte	$85, $8b, $02, $f1
 '-'             
 '-'             cmp     type7,#0 wz
-	byte	$00, $04, $0f, $f2
+	byte	$00, $0c, $0f, $f2
 '-'     if_nz   rdbyte  spl,qq
-	byte	$41, $85, $c2, $5a
+	byte	$45, $8d, $c2, $5a
 '-'     if_nz   shl     spl,#8
-	byte	$08, $84, $66, $50
+	byte	$08, $8c, $66, $50
 '-'     if_z    rdword  spl,qq
-	byte	$41, $85, $e2, $aa
+	byte	$45, $8d, $e2, $aa
 '-' 
 '-'             scas    spl,vol7
-	byte	$85, $85, $32, $fa
+	byte	$89, $8d, $32, $fa
 '-'             mov     spl,0-0
-	byte	$00, $84, $02, $f6
+	byte	$00, $8c, $02, $f6
 '-'     	
 '-'             scas    spl,apan7
-	byte	$86, $85, $32, $fa
+	byte	$8a, $8d, $32, $fa
 '-'             mov     ls7,0-0
-	byte	$00, $5e, $03, $f6
+	byte	$00, $66, $03, $f6
 '-'             
 '-'             mov     qq,##16384
-	byte	$20, $00, $00, $ff, $00, $82, $06, $f6
+	byte	$20, $00, $00, $ff, $00, $8a, $06, $f6
 '-'             sub     qq,apan7
-	byte	$86, $83, $82, $f1
+	byte	$8a, $8b, $82, $f1
 '-'             scas    spl,qq
-	byte	$41, $85, $32, $fa
+	byte	$45, $8d, $32, $fa
 '-'             mov     rs7,0-0
-	byte	$00, $5c, $03, $f6
+	byte	$00, $64, $03, $f6
 '-' 
 '-'             jmp     #p101     
 	byte	$5c, $00, $90, $fd
@@ -1500,53 +1502,53 @@ _dat_
 '-' ' ------------  Channel 8
 '-'  
 '-' p208        mov     dt0,time8
-	byte	$9b, $3f, $03, $f6
+	byte	$9f, $47, $03, $f6
 '-'             sub     dt0,time0
-	byte	$93, $3f, $83, $f1
+	byte	$97, $47, $83, $f1
 '-'             add     time8,freq8  	
-	byte	$90, $37, $03, $f1
+	byte	$94, $3f, $03, $f1
 '-' 
 '-' 	        
 '-'             add     p8,askip8
-	byte	$91, $81, $02, $f1
+	byte	$95, $89, $02, $f1
 '-'             cmp     p8,lend8 wcz
-	byte	$8d, $81, $1a, $f2
+	byte	$91, $89, $1a, $f2
 '-'     if_ge   sub     p8,lend8	        
-	byte	$8d, $81, $82, $31
+	byte	$91, $89, $82, $31
 '-'     if_ge   add     p8,lstart8       
-	byte	$8c, $81, $02, $31
+	byte	$90, $89, $02, $31
 '-'             mov     qq,p8
-	byte	$40, $83, $02, $f6
+	byte	$44, $8b, $02, $f6
 '-'             add     qq,sstart8
-	byte	$8a, $83, $02, $f1
+	byte	$8e, $8b, $02, $f1
 '-'             
 '-'             cmp     type8,#0 wz
-	byte	$00, $16, $0f, $f2
+	byte	$00, $1e, $0f, $f2
 '-'     if_nz   rdbyte  spl,qq
-	byte	$41, $85, $c2, $5a
+	byte	$45, $8d, $c2, $5a
 '-'     if_nz   shl     spl,#8
-	byte	$08, $84, $66, $50
+	byte	$08, $8c, $66, $50
 '-'     if_z    rdword  spl,qq
-	byte	$41, $85, $e2, $aa
+	byte	$45, $8d, $e2, $aa
 '-' 
 '-'             scas    spl,vol8
-	byte	$8e, $85, $32, $fa
+	byte	$92, $8d, $32, $fa
 '-'             mov     spl,0-0
-	byte	$00, $84, $02, $f6
+	byte	$00, $8c, $02, $f6
 '-'     	
 '-'             scas    spl,apan8
-	byte	$8f, $85, $32, $fa
+	byte	$93, $8d, $32, $fa
 '-'             mov     ls8,0-0
-	byte	$00, $62, $03, $f6
+	byte	$00, $6a, $03, $f6
 '-'             
 '-'             mov     qq,##16384
-	byte	$20, $00, $00, $ff, $00, $82, $06, $f6
+	byte	$20, $00, $00, $ff, $00, $8a, $06, $f6
 '-'             sub     qq,apan8
-	byte	$8f, $83, $82, $f1
+	byte	$93, $8b, $82, $f1
 '-'             scas    spl,qq
-	byte	$41, $85, $32, $fa
+	byte	$45, $8d, $32, $fa
 '-'             mov     rs8,0-0
-	byte	$00, $60, $03, $f6
+	byte	$00, $68, $03, $f6
 '-' 
 '-'             jmp     #p101            
 	byte	$00, $00, $90, $fd
@@ -1557,74 +1559,80 @@ _dat_
 '-' 
 '-' 
 '-' p101        cmp     oldt0,time0 wz   ' There must not be 2 entries with the same time
-	byte	$93, $39, $0b, $f2
+	byte	$97, $41, $0b, $f2
 '-'     if_z    sub     front,#2         ' 
-	byte	$02, $86, $86, $a1
+	byte	$02, $8e, $86, $a1
 '-'     if_z    and     front,#511     
-	byte	$ff, $87, $06, $a5
+	byte	$ff, $8f, $06, $a5
 '-'   
 '-'             mov     rs,#0            ' Mix all channels to rs and ls
-	byte	$00, $42, $07, $f6
+	byte	$00, $4a, $07, $f6
 '-'             mov     ls,#0
-	byte	$00, $40, $07, $f6
+	byte	$00, $48, $07, $f6
 '-'             add     rs,rs1
-	byte	$a3, $43, $03, $f1
+	byte	$a7, $4b, $03, $f1
 '-'             add     rs,rs2
-	byte	$a5, $43, $03, $f1
+	byte	$a9, $4b, $03, $f1
 '-'             add     rs,rs3
-	byte	$a7, $43, $03, $f1
+	byte	$ab, $4b, $03, $f1
 '-'             add     rs,rs4
-	byte	$a8, $43, $03, $f1
+	byte	$ac, $4b, $03, $f1
 '-'             add     rs,rs5
-	byte	$aa, $43, $03, $f1
+	byte	$ae, $4b, $03, $f1
 '-'             add     rs,rs6
-	byte	$ac, $43, $03, $f1
+	byte	$b0, $4b, $03, $f1
 '-'             add     rs,rs7
-	byte	$ae, $43, $03, $f1
+	byte	$b2, $4b, $03, $f1
 '-'             add     rs,rs8
-	byte	$b0, $43, $03, $f1
+	byte	$b4, $4b, $03, $f1
 '-'             
 '-'             add     ls,ls1
-	byte	$a2, $41, $03, $f1
+	byte	$a6, $49, $03, $f1
 '-'             add     ls,ls2
-	byte	$a4, $41, $03, $f1
+	byte	$a8, $49, $03, $f1
 '-'             add     ls,ls3
-	byte	$a6, $41, $03, $f1
+	byte	$aa, $49, $03, $f1
 '-'             add     ls,ls4
-	byte	$a9, $41, $03, $f1
+	byte	$ad, $49, $03, $f1
 '-'             add     ls,ls5
-	byte	$ab, $41, $03, $f1
+	byte	$af, $49, $03, $f1
 '-'             add     ls,ls6
-	byte	$ad, $41, $03, $f1
+	byte	$b1, $49, $03, $f1
 '-'             add     ls,ls7
-	byte	$af, $41, $03, $f1
+	byte	$b3, $49, $03, $f1
 '-'             add     ls,ls8
-	byte	$b1, $41, $03, $f1
+	byte	$b5, $49, $03, $f1
 '-'  		
 '-'             bitnot  ls,#15            ' convert to unsigned. TODO: compute and apply the gain for samples to not exceed 16 bit range
-	byte	$0f, $40, $e7, $f4
+	byte	$0f, $48, $e7, $f4
 '-'             bitnot  rs,#15		
-	byte	$0f, $42, $e7, $f4
+	byte	$0f, $4a, $e7, $f4
 '-' 		
 '-'             setword rs,ls,#1         ' Pack L and R to one long    		
-	byte	$a0, $43, $2b, $f9
+	byte	$a4, $4b, $2b, $f9
 '-'             wrlut   rs,front         ' and write it to LUT
-	byte	$43, $43, $33, $fc
+	byte	$47, $4b, $33, $fc
 '-'             add     front,#1         ' Write the sample time
-	byte	$01, $86, $06, $f1
-'-'             wrlut   time0,front
-	byte	$43, $27, $33, $fc
+	byte	$01, $8e, $06, $f1
+'-'             mov qq,time0
+	byte	$97, $8b, $02, $f6
+'-'             and qq,a7fffffff
+	byte	$3b, $8b, $02, $f5
+'-'             wrlut   qq,front
+	byte	$47, $8b, $32, $fc
+'-'             wrlong qq,#$80
+	byte	$80, $8a, $66, $fc
 '-' 
 '-'             add     front,#1         ' move the front pointer
-	byte	$01, $86, $06, $f1
+	byte	$01, $8e, $06, $f1
 '-'             and     front,#511       ' and loop at #512
-	byte	$ff, $87, $06, $f5
+	byte	$ff, $8f, $06, $f5
 '-'             mov     oldt0,time0      ' update global time
-	byte	$93, $39, $03, $f6
+	byte	$97, $41, $03, $f6
 '-'             add     time0,dt0        
-	byte	$9f, $27, $03, $f1
+	byte	$a3, $2f, $03, $f1
 '-'             jmp     #loop            'loop
-	byte	$88, $fb, $9f, $fd
+	byte	$74, $fb, $9f, $fd
 '-' 
 '-' '-------------------------------------------------------------------------
 '-' '------------------ This is the end of the main loop ---------------------
@@ -1636,44 +1644,43 @@ _dat_
 '-' '--------------------------------------------------------------------------
 '-' 
 '-' isr1        wypin   lsample,#left        '2     The sample has to be outputted every 90 cycles     
-	byte	$0e, $8c, $26, $fc
+	byte	$0e, $94, $26, $fc
 '-'             wypin   rsample,#right       '4
-	byte	$0f, $8e, $26, $fc
-'-' 
+	byte	$0f, $96, $26, $fc
+'-' 										
 '-'             add     counter,#1           '6     Increment the counter
-	byte	$01, $8a, $06, $f1
+	byte	$01, $92, $06, $f1
+'-'             and     counter,a7fffffff
+	byte	$3b, $93, $02, $f5
 '-'             cmp     counter,irqtime wcz  '8     Check if it is time for the next sample
-	byte	$4a, $8b, $1a, $f2
+	byte	$4e, $93, $1a, $f2
 '-'     if_ne   reti1                        '10/12 If not, do nothing
 	byte	$f5, $ff, $3b, $5b
 '-' 		
-'-'             mov     lsample,lsnext       '12    Prepare the next sample to output
-	byte	$48, $8d, $02, $f6
-'-'             mov     rsample,rsnext       '14
-	byte	$49, $8f, $02, $f6
-'-' 		        
+'-'           	getword rsample,lsnext,#1    '12
+	byte	$4c, $97, $3a, $f9
+'-'           	getword lsample,lsnext,#0    '14
+	byte	$4c, $95, $32, $f9
 '-'             cmp     tail,front wcz       '16    If the buffer is empty, do nothing 
-	byte	$43, $89, $1a, $f2
-'-'             if_e    reti1                '18/20 
+	byte	$47, $91, $1a, $f2
+'-'             if_e    reti1                '18/20
 	byte	$f5, $ff, $3b, $ab
 '-' 
 '-'             rdlut   lsnext,tail          '21    else read the sample and its time from LUT
-	byte	$44, $91, $a2, $fa
-'-'             getword rsnext,lsnext,#1     '23    Split for left and right
-	byte	$48, $93, $3a, $f9
-'-'             getword lsnext,lsnext,#0     '25
-	byte	$48, $91, $32, $f9
-'-'             add    tail, #1              '27
-	byte	$01, $88, $06, $f1
-'-'             rdlut  irqtime,tail          '30    Read the time for this sample
-	byte	$44, $95, $a2, $fa
-'-'             add    tail,#1               '32    Go to the next entry
-	byte	$01, $88, $06, $f1
-'-'             and    tail,#511             '34
-	byte	$ff, $89, $06, $f5
-'-'             reti1                        '38
+	byte	$48, $99, $a2, $fa
+'-'             add     tail, #1             '23
+	byte	$01, $90, $06, $f1
+'-'             rdlut   irqtime,tail         '26    Read the time for this sample
+	byte	$48, $9d, $a2, $fa
+'-'             add     tail,#1              '28    Go to the next entry
+	byte	$01, $90, $06, $f1
+'-'             and     tail,#511            '30
+	byte	$ff, $91, $06, $f5
+'-'             reti1                        '34 
 	byte	$f5, $ff, $3b, $fb
-'-' 
+'-'             
+'-'          '' 3 nops left    
+'-'           
 '-' '---------------------------------------------------------------------------
 '-' '-------- End of interrupt -------------------------------------------------
 '-' '---------------------------------------------------------------------------    
@@ -1681,6 +1688,11 @@ _dat_
 '-' '---------------------------------------------------------------------------
 '-' '------- Variables ---------------------------------------------------------
 '-' '---------------------------------------------------------------------------
+'-' 
+'-' a7fffffff long $7fffffff
+	byte	$ff, $ff, $ff, $7f
+'-' a80000000 long $80000000
+	byte	$00, $00, $00, $80
 '-' 
 '-' ' phase accumulators
 '-' 
