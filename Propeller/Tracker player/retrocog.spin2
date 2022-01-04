@@ -33,7 +33,7 @@ pub dummy()
 repeat
 'this is the object and not a program
 
-pub start :cog
+pub start() :cog
 
 cog:=cogspin(16,serialcog(),@serialstack)
 return cog
