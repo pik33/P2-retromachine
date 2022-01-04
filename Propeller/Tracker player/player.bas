@@ -150,5 +150,5 @@ end sub
 
 
 asm shared
-module file "../../../mod/jungle.mod"
+module file "../../../mod/kadiharc.mod"
 end asm
