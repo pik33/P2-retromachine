@@ -1,5 +1,5 @@
 ' A Paula inspired sample based synthesizer/audio driver for a P2
-' v. 0.11 alpha - 20220103
+' v. 0.12 alpha - 20220104
 ' MIT license
 ' Piotr Kardasz pik33@o2.pl
 '-------------------------------------------------------------------
@@ -13,15 +13,6 @@ con
 left= 14
 right=15
 
-' 4th octave frequencies, rounded to integer
-
-c4=262
-d4=294
-e4=330
-f4=349
-g4=392
-a4=440
-h4=494
 
 var
 

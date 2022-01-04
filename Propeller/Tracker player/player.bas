@@ -7,7 +7,7 @@ cls
 
 
 dim tracker as class using "trackerplayer.spin2"
-dim paula as class using "audio010.spin2"
+dim paula as class using "audio012.spin2"
 
 dim sn$(32)
 
@@ -100,7 +100,7 @@ sub test
     position 84,29 : v030.write(v030.inttostr2(tracker.currperiod(3)+tracker.deltaperiod(3),3))
     position 88,29:  v030.write(sn$(tracker.currsamplenr(3))) : v030.write(emptystr$)
     position 90,1: v030.write("Counter: ") : v030.write(v030.inttohex(lpeek($80),8))
-    kk=getcnt()-kk
+'    kk=getcnt()-kk
     
  '   position 51,30: v030.write(v030.inttostr(kk/320))  
       
@@ -150,5 +150,5 @@ end sub
 
 
 asm shared
-module file "../../../mod/luckyluk.mod"
+module file "../../../mod/jungle.mod"
 end asm
