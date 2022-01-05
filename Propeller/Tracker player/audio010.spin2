@@ -154,6 +154,8 @@ audio       org     0
 
             wrpin   dac,#right
             wxpin   #90,#right
+            
+            mov ptrb,#0
 
             dirh    #left addpins 1
 
@@ -224,7 +226,7 @@ loop        setq    #8              ' Read channel regs from the hub
             mov     qq,tail         ' Check if the buffer is full	
             sub     qq,#2
             and     qq,#511
-            cmp     qq,front wcz
+            cmp     qq,ptrb wcz
     if_e    jmp     #loop           ' If the buffer is full, do nothing               
       
             mov     cn,#p201           ' Find the channel to compute
@@ -576,14 +578,14 @@ isr1        wypin   lsample,#left        '2     The sample has to be outputted e
 		
           	getword rsample,lsnext,#1    '12
           	getword lsample,lsnext,#0    '14
-            cmp     tail,front wcz       '16    If the buffer is empty, do nothing 
+            cmp     ptrb,front wcz       '16    If the buffer is empty, do nothing 
             if_e    reti1                '18/20
 
-            rdlut   lsnext,tail          '21    else read the sample and its time from LUT
-            add     tail, #1             '23
-            rdlut   irqtime,tail         '26    Read the time for this sample
-            add     tail,#1              '28    Go to the next entry
-            and     tail,#511            '30
+            rdlut   lsnext,ptrb          '21    else read the sample and its time from LUT
+            add     ptrb, #1             '23
+            rdlut   irqtime,ptrb         '26    Read the time for this sample
+            add     ptrb,#1              '28    Go to the next entry
+            and     ptrb,#511            '30
             reti1                        '34 
             
          '' 3 nops left    

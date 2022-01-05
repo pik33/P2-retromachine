@@ -139,12 +139,12 @@ return cog
 dat
 
 audio       org     0
-
+			mov ptrb,#0
             wrpin   dac,#left       ' Noise dither DACs at clk/90
-            wxpin   #90,#left
+            wxpin   #100,#left
 
             wrpin   dac,#right
-            wxpin   #90,#right
+            wxpin   #100,#right
 
             dirh    #left addpins 1
 
@@ -212,7 +212,7 @@ loop        setq    #8              ' Read channel regs from the hub
             cmp     acmd8,#0 wz
     if_e    mov     p8,#0
           
-            mov     qq,tail         ' Check if the buffer is full	
+            mov     qq,ptrb         ' Check if the buffer is full	
             sub     qq,#2
             and     qq,#511
             cmp     qq,front wcz
@@ -559,25 +559,32 @@ p101        cmp     oldt0,time0 wz   ' There must not be 2 entries with the same
 
 isr1        wypin   lsample,#left        '2     The sample has to be outputted every 90 cycles     
             wypin   rsample,#right       '4
-										
-            add     counter,#1           '6     Increment the counter
-            and     counter,a1fffffff
+            
+	        incmod  counter,a20000000    '6	
             cmp     counter,irqtime wcz  '8     Check if it is time for the next sample
     if_ne   reti1                        '10/12 If not, do nothing
 		
-          	getword rsample,lsnext,#1    '12
-          	getword lsample,lsnext,#0    '14
-            cmp     tail,front wcz       '16    If the buffer is empty, do nothing 
-            if_e    reti1                '18/20
+	 	    mul rsample,#15
+	 	    mul lsample,#15
+		
+          	getword nrsample,lsnext,#1    '12
+          	getword nlsample,lsnext,#0    '14
+           	
+          	add rsample,nrsample
+           	add lsample,nlsample
+          	
+          	shr rsample,#4
+           	shr lsample,#4          	
+          	
+            cmp     ptrb,front wcz       '16    If the buffer is empty, do nothing 
+    if_e    reti1                        '18/20
 
-            rdlut   lsnext,tail          '21    else read the sample and its time from LUT
-            add     tail, #1             '23
-            rdlut   irqtime,tail         '26    Read the time for this sample
-            add     tail,#1              '28    Go to the next entry
-            and     tail,#511            '30
-            reti1                        '34 
+            rdlut   lsnext,ptrb++        '21    else read the sample and its time from LUT
+            rdlut   irqtime,ptrb++       '23    Read the time for this sample
+
+            reti1                        '27 
             
-         '' 3 nops left    
+         '' 11 nops left  at 354 MHz 
           
 '---------------------------------------------------------------------------
 '-------- End of interrupt -------------------------------------------------
@@ -591,7 +598,10 @@ isr1        wypin   lsample,#left        '2     The sample has to be outputted e
 
 a1fffffff long $1fffffff
 a20000000 long $20000000
-
+nrsample long 0
+nlsample long 0
+fl long 31
+fr long 31
 ' phase accumulators
 
 p1          long 0
@@ -611,7 +621,7 @@ spl         long 0
 ' circular buffer in LUT
 
 front       long 0
-tail        long 0
+'tail        long 0
 
 ' Interrupt ISR variables
 

@@ -150,5 +150,6 @@ end sub
 
 
 asm shared
-module file "../../../mod/kadiharc.mod"
+module file "../../../mod/gummis.mod"
+
 end asm
