@@ -150,6 +150,6 @@ end sub
 
 
 asm shared
-module file "../../../mod/gummis.mod"
+module file "../../../mod/2a.mod"
 
 end asm

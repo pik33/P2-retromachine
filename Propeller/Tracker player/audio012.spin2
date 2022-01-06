@@ -564,18 +564,9 @@ isr1        wypin   lsample,#left        '2     The sample has to be outputted e
             cmp     counter,irqtime wcz  '8     Check if it is time for the next sample
     if_ne   reti1                        '10/12 If not, do nothing
 		
-	 	    mul rsample,#15
-	 	    mul lsample,#15
-		
-          	getword nrsample,lsnext,#1    '12
-          	getword nlsample,lsnext,#0    '14
+          	getword rsample,lsnext,#1    '12
+          	getword lsample,lsnext,#0    '14
            	
-          	add rsample,nrsample
-           	add lsample,nlsample
-          	
-          	shr rsample,#4
-           	shr lsample,#4          	
-          	
             cmp     ptrb,front wcz       '16    If the buffer is empty, do nothing 
     if_e    reti1                        '18/20
 
