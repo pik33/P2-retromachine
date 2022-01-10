@@ -327,15 +327,8 @@ loop        setq    #8              ' Read channel regs from the hub
 
             sub     ptra,#9*4*8    
             
-            cmp     time0,a1FFFFFFF wc
-      if_nc  cmp     time1,a1FFFFFFF wc   ' Main counter overflow workaround
-     if_nc  cmp     time2,a1FFFFFFF wc   ' before the time is written to the buffer, it is ANDed with $1FFFFFFF  
-     if_nc  cmp     time3,a1FFFFFFF wc   ' Also, the interrupt procedure ands the counter  
-     if_nc  cmp     time4,a1FFFFFFF wc   ' So, if the counter is >=$20000000, the compare sequence still works  
-     if_nc  cmp     time5,a1FFFFFFF wc   ' and when all counters are >=$20000000, all of them are SUBed at the same time 
-     if_nc  cmp     time6,a1FFFFFFF wc   ' including time0 main counter  
-     if_nc  cmp     time7,a1FFFFFFF wc     
-     if_nc  cmp     time8,a1FFFFFFF wc   ' was 7FFFFFFF - reduced to make debugging easier 
+            cmp     time0,a21000000 wc
+
      if_nc  sub     time1,a20000000
      if_nc  sub     time2,a20000000
      if_nc  sub     time3,a20000000
@@ -348,7 +341,7 @@ loop        setq    #8              ' Read channel regs from the hub
 
        
     
-            cmp     acmd1,#0 wz     ' if cmd=0, zero the phase accumulator
+loop1           cmp     acmd1,#0 wz     ' if cmd=0, zero the phase accumulator
     if_e    mov     p1,#0
             cmp     acmd2,#0 wz
     if_e    mov     p2,#0
@@ -411,7 +404,7 @@ p201        mov     dt0,time1      ' compute the delta to add to the global time
     if_nz   rdbyte  spl,qq         ' not zero=8 bit
     if_nz   shl     spl,#8
     if_z    rdword  spl,qq         ' zero=16 bit. TODO: more types? signed/unsigned, etc... 
-
+            call    #delay
             scas    spl,vol1       ' apply the volume
             mov     spl,0-0
 
@@ -441,7 +434,7 @@ p202        mov     dt0,time2
     if_nz   rdbyte  spl,qq
     if_nz   shl     spl,#8
     if_z    rdword  spl,qq
-
+            call #delay
             scas    spl,vol2
             mov     spl,0-0
             
@@ -471,7 +464,7 @@ p203        mov     dt0,time3
     if_nz   rdbyte  spl,qq
     if_nz   shl     spl,#8
     if_z    rdword  spl,qq
-
+            call #delay
             scas    spl,vol3
             mov     spl,0-0
     	
@@ -503,7 +496,7 @@ p204        mov     dt0,time4
     if_nz   rdbyte  spl,qq
     if_nz   shl     spl,#8
     if_z    rdword  spl,qq
-
+           call #delay
             scas    spl,vol4
             mov     spl,0-0
     	
@@ -567,7 +560,7 @@ p206        mov     dt0,time6
     if_nz   rdbyte  spl,qq
     if_nz   shl     spl,#8
     if_z    rdword  spl,qq
-
+          
             scas    spl,vol6
             mov     spl,0-0
     	
@@ -676,27 +669,20 @@ p101        cmp     oldt0,time0 wz   ' There must not be 2 entries with the same
  		
             bitnot  ls,#15            ' convert to unsigned. TODO: compute and apply the gain for samples to not exceed 16 bit range
             bitnot  rs,#15		
-		
-            setword rs,ls,#1         ' Pack L and R to one long    		
-'            wrlut   rs,front         ' and write it to LUT
-'            mov     spl,front        ' avoid incrementing front 1 by 1 
-'            add     spl,#1           
+ 		    and ls,affff
+	 	    and rs,affff
+		    
+           setword rs,ls,#1         ' Pack L and R to one long    		
+'
+         mov newsample, rs
 
- '           mov     qq,time0
- '           and     qq,a1fffffff
- '           wrlut   qq,spl
- ' now don't wrlut here. Instead, save the sample
-            mov newsample, rs
 
-'            rep     #2, #1 
-'            add     front,#2         ' move the front pointer
-'            and     front,#511       ' and loop at #512
             mov     oldt0,time0      ' update global time
             add     time0,dt0     
             
   ' now push dt0 samples to the buffer
    cmp dt0,#0 wz
-  if_z jmp #loop
+  if_z jmp #loop1
   mov t1,dt0
   
 p301        mov     t2,ptrb         ' Check if the buffer is full	
@@ -704,16 +690,22 @@ p301        mov     t2,ptrb         ' Check if the buffer is full
             and     t2,#511
             cmp     t2,front wcz
     if_e    jmp     #p301    
+    
+ '            mul nl,#31
+  ''           mul nr,#031
+   '          add nl, ls
+    '         add nr,rs
+     '        shr nl,#5
+      '      shr nr,#5
+'
+     '       mov newsample,nr
+     '        setword newsample, nl,#1
+
             wrlut   newsample, front
             add     front,#1
             and     front,#511
             djnz t1,#p301
-               
-            wrlong  qq,#$80          'debug
-'               wrlong time1,#$84
-''               wrlong time2,#$88
-'               wrlong time3,#$8c
-'               wrlong time4,#$90
+
                
             jmp     #loop            'loop
 
@@ -743,6 +735,13 @@ isr1        wypin   lsample,#left        '2     The sample has to be outputted e
 '-------- End of interrupt -------------------------------------------------
 '---------------------------------------------------------------------------    
 
+
+delay   mov qq,##80
+p900    djnz qq,#p900
+
+
+        ret
+
 '---------------------------------------------------------------------------
 '------- Variables ---------------------------------------------------------
 '---------------------------------------------------------------------------
@@ -751,13 +750,18 @@ isr1        wypin   lsample,#left        '2     The sample has to be outputted e
 
 a1fffffff long $1fffffff
 a20000000 long $20000000
+a21000000 long $21000000
 newsample long 0
+affff long $ffff
 t1 long 0
 t2 long 0
+nl long 0
+nr long 0
 nrsample long 0
 nlsample long 0
 fl long 31
 fr long 31
+d long 0
 ' phase accumulators
 
 p1          long 0

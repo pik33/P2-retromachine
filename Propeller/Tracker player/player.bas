@@ -99,7 +99,7 @@ sub test
     position 56,29 : v030.write(v030.inttostr2(tracker.currperiod(2)+tracker.deltaperiod(2),3))
     position 84,29 : v030.write(v030.inttostr2(tracker.currperiod(3)+tracker.deltaperiod(3),3))
     position 88,29:  v030.write(sn$(tracker.currsamplenr(3))) : v030.write(emptystr$)
-    position 90,1: v030.write("Counter: ") : v030.write(v030.inttohex(lpeek($80),8))
+'    position 90,1: v030.write("Counter: ") : v030.write(v030.inttohex(lpeek($80),8))
 '    kk=getcnt()-kk
     
  '   position 51,30: v030.write(v030.inttostr(kk/320))  
@@ -150,6 +150,6 @@ end sub
 
 
 asm shared
-module file "../../../mod/blue.mod"
+module file "../../../mod/jungle.mod"
 
 end asm
