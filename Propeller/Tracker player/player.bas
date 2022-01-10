@@ -7,7 +7,7 @@ cls
 
 
 dim tracker as class using "trackerplayer.spin2"
-dim paula as class using "audio012.spin2"
+dim paula as class using "audio014.spin2"
 
 dim sn$(32)
 
@@ -38,7 +38,7 @@ do
 	paula.channel1(5)=8192-2048
 	paula.channel1(6)=tracker.currPeriod(0)+tracker.deltaperiod(0)
 	paula.channel1(7)=1
-    if tracker.trigger(0) <> old1 then paula.channel1(8)=0 :waitus 10 : paula.channel1(8)=1 :old1=tracker.trigger(0)
+    if tracker.trigger(0) <> old1 then paula.channel1(8)=0 :waitus 100 : paula.channel1(8)=1 :old1=tracker.trigger(0)
 
     old12=paula.channel2(0)
 	paula.channel2(0)=tracker.currSamplePtr(1)
@@ -49,7 +49,7 @@ do
 	paula.channel2(5)=8192+2048
 	paula.channel2(6)=tracker.currPeriod(1)+tracker.deltaperiod(1)
 	paula.channel2(7)=1
-    if tracker.trigger(1) <> old2 then paula.channel2(8)=0 :waitus 10 : paula.channel2(8)=1 :old2=tracker.trigger(1)
+    if tracker.trigger(1) <> old2 then paula.channel2(8)=0 :waitus 100 : paula.channel2(8)=1 :old2=tracker.trigger(1)
 
     old13=paula.channel3(0)
 	paula.channel3(0)=tracker.currSamplePtr(2)
@@ -60,7 +60,7 @@ do
 	paula.channel3(5)=8192+2048
 	paula.channel3(6)=tracker.currPeriod(2)+tracker.deltaperiod(2)
 	paula.channel3(7)=1
-    if tracker.trigger(2) <> old3 then paula.channel3(8)=0 :waitus 10 : paula.channel3(8)=1 :old3=tracker.trigger(2)
+    if tracker.trigger(2) <> old3 then paula.channel3(8)=0 :waitus 100 : paula.channel3(8)=1 :old3=tracker.trigger(2)
 
     old14=paula.channel4(0)    
 	paula.channel4(0)=tracker.currSamplePtr(3)
@@ -71,7 +71,7 @@ do
 	paula.channel4(5)=8192-2048
 	paula.channel4(6)=tracker.currPeriod(3)+tracker.deltaperiod(3)
 	paula.channel4(7)=1
-    if tracker.trigger(3) <> old4 then paula.channel4(8)=0 :waitus 10 : paula.channel4(8)=1 :old4=tracker.trigger(3)
+    if tracker.trigger(3) <> old4 then paula.channel4(8)=0 :waitus 100 : paula.channel4(8)=1 :old4=tracker.trigger(3)
     
     test
 
@@ -150,6 +150,6 @@ end sub
 
 
 asm shared
-module file "../../../mod/gummis.mod"
+module file "../../../mod/blue.mod"
 
 end asm
