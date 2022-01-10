@@ -4,7 +4,7 @@ startmachine
 startvideo
 
 cls
-
+mainvolume=32 '1..128..(255)
 
 dim tracker as class using "trackerplayer.spin2"
 dim paula as class using "audio014.spin2"
@@ -34,7 +34,7 @@ do
 	paula.channel1(1)=1
 	paula.channel1(2)=tracker.currsamplelength(0)-tracker.currrepeatLength(0)
 	paula.channel1(3)=tracker.currsamplelength(0)
-	paula.channel1(4)=(tracker.currVolume(0)+tracker.deltavolume(0))*128
+	paula.channel1(4)=(tracker.currVolume(0)+tracker.deltavolume(0))*mainvolume
 	paula.channel1(5)=8192-2048
 	paula.channel1(6)=tracker.currPeriod(0)+tracker.deltaperiod(0)
 	paula.channel1(7)=1
@@ -45,7 +45,7 @@ do
 	paula.channel2(1)=1
 	paula.channel2(2)=tracker.currSampleLength(1)-tracker.currrepeatLength(1)
 	paula.channel2(3)=tracker.currSampleLength(1)
-	paula.channel2(4)=(tracker.currVolume(1)+tracker.deltavolume(1))*128
+	paula.channel2(4)=(tracker.currVolume(1)+tracker.deltavolume(1))*mainvolume
 	paula.channel2(5)=8192+2048
 	paula.channel2(6)=tracker.currPeriod(1)+tracker.deltaperiod(1)
 	paula.channel2(7)=1
@@ -56,7 +56,7 @@ do
 	paula.channel3(1)=1
 	paula.channel3(2)=tracker.currSampleLength(2)-tracker.currrepeatLength(2)
 	paula.channel3(3)=tracker.currSampleLength(2)
-	paula.channel3(4)=(tracker.currVolume(2)+tracker.deltavolume(2))*128
+	paula.channel3(4)=(tracker.currVolume(2)+tracker.deltavolume(2))*mainvolume
 	paula.channel3(5)=8192+2048
 	paula.channel3(6)=tracker.currPeriod(2)+tracker.deltaperiod(2)
 	paula.channel3(7)=1
@@ -67,7 +67,7 @@ do
 	paula.channel4(1)=1
 	paula.channel4(2)=tracker.currSampleLength(3)-tracker.currrepeatLength(3)
 	paula.channel4(3)=tracker.currSampleLength(3)
-	paula.channel4(4)=(tracker.currVolume(3)+tracker.deltavolume(3))*128
+	paula.channel4(4)=(tracker.currVolume(3)+tracker.deltavolume(3))*mainvolume
 	paula.channel4(5)=8192-2048
 	paula.channel4(6)=tracker.currPeriod(3)+tracker.deltaperiod(3)
 	paula.channel4(7)=1

@@ -672,9 +672,9 @@ p101        cmp     oldt0,time0 wz   ' There must not be 2 entries with the same
  		    and ls,affff
 	 	    and rs,affff
 		    
-           setword rs,ls,#1         ' Pack L and R to one long    		
+  '         setword rs,ls,#1         ' Pack L and R to one long    		
 '
-         mov newsample, rs
+    '     mov newsample, rs
 
 
             mov     oldt0,time0      ' update global time
@@ -691,15 +691,15 @@ p301        mov     t2,ptrb         ' Check if the buffer is full
             cmp     t2,front wcz
     if_e    jmp     #p301    
     
- '            mul nl,#31
-  ''           mul nr,#031
-   '          add nl, ls
-    '         add nr,rs
-     '        shr nl,#5
-      '      shr nr,#5
+            mul nl,#31
+            mul nr,#31
+           add nl, ls
+            add nr,rs
+            shr nl,#5
+           shr nr,#5
 '
-     '       mov newsample,nr
-     '        setword newsample, nl,#1
+            mov newsample,nr
+            setword newsample, nl,#1
 
             wrlut   newsample, front
             add     front,#1
