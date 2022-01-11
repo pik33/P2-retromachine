@@ -414,7 +414,7 @@ _program
 	mov	arg01, #154
 	mov	arg02, #147
 	call	#_hng030rm_spin2_cls
-' #line 2 "D:/programowanie/20211226-P2-retromachine/Propeller/retromachine000.bas"
+' #line 2 "D:/Programowanie/P2-retromachine/Propeller/retromachine000.bas"
 ' 
 ' 'e=0 ' this strange thing makes the program run in full optimization
 ' 
@@ -3815,7 +3815,7 @@ __system___txraw
 	mov	local01, arg01
 	rdlong	local02, ptr___system__dat__ wz
  if_ne	jmp	#LR__0115
-	mov	arg01, ##230400
+	mov	arg01, ##2000000
 	call	#__system___setbaud
 LR__0115
 	wypin	local01, #62
@@ -3838,7 +3838,7 @@ __system___rxraw
 	mov	local01, arg01
 	rdlong	local02, ptr___system__dat__ wz
  if_ne	jmp	#LR__0118
-	mov	arg01, ##230400
+	mov	arg01, ##2000000
 	call	#__system___setbaud
 LR__0118
 	cmp	local01, #0 wz

@@ -1,5 +1,5 @@
 00000                 | 
-00000                 | #line 1 "D:/programowanie/20211226-P2-retromachine/Propeller/retromachine000.p2asm"
+00000                 | #line 1 "D:/Programowanie/P2-retromachine/Propeller/retromachine000.p2asm"
 00000                 | con
 00000                 | 	_clkfreq = 319215686
 00000                 | dat
@@ -439,7 +439,7 @@
 00a80     9A 4A 06 F6 | 	mov	arg01, #154
 00a84     93 4C 06 F6 | 	mov	arg02, #147
 00a88     A0 18 B0 FD | 	call	#_hng030rm_spin2_cls
-00a8c                 | ' #line 2 "D:/programowanie/20211226-P2-retromachine/Propeller/retromachine000.bas"
+00a8c                 | ' #line 2 "D:/Programowanie/P2-retromachine/Propeller/retromachine000.bas"
 00a8c                 | ' 
 00a8c                 | ' 'e=0 ' this strange thing makes the program run in full optimization
 00a8c                 | ' 
@@ -4000,8 +4000,8 @@
 037f8     25 55 02 F6 | 	mov	local01, arg01
 037fc     0A 57 0A FB | 	rdlong	local02, ptr___system__dat__ wz
 03800     0C 00 90 5D |  if_ne	jmp	#LR__0115
-03804     C2 01 00 FF 
-03808     00 4A 06 F6 | 	mov	arg01, ##230400
+03804     42 0F 00 FF 
+03808     80 4A 06 F6 | 	mov	arg01, ##2000000
 0380c     9C FF BF FD | 	call	#__system___setbaud
 03810                 | LR__0115
 03810     3E 54 26 FC | 	wypin	local01, #62
@@ -4024,8 +4024,8 @@
 03840     25 55 02 F6 | 	mov	local01, arg01
 03844     0A 57 0A FB | 	rdlong	local02, ptr___system__dat__ wz
 03848     0C 00 90 5D |  if_ne	jmp	#LR__0118
-0384c     C2 01 00 FF 
-03850     00 4A 06 F6 | 	mov	arg01, ##230400
+0384c     42 0F 00 FF 
+03850     80 4A 06 F6 | 	mov	arg01, ##2000000
 03854     54 FF BF FD | 	call	#__system___setbaud
 03858                 | LR__0118
 03858     00 54 0E F2 | 	cmp	local01, #0 wz
