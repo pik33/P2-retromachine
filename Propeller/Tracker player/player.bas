@@ -6,8 +6,14 @@ startvideo
 cls
 mainvolume=128 '1..128..(255)
 
+  SF_CS  = 61  '{ O }                                            ' serial flash
+  SF_SCK = 60  '{ O }
+  SF_SDO = 59  '{ O }
+  SF_SDI = 58  '{ I }
+  RD_DATA      = $03
+
 dim tracker as class using "trackerplayer.spin2"
-dim paula as class using "audio015.spin2"
+dim paula as class using "audio016.spin2"
 
 dim sn$(32)
 
@@ -38,7 +44,7 @@ do
 	paula.channel1(5)=8192-2048
 	paula.channel1(6)=tracker.currPeriod(0)+tracker.deltaperiod(0)
 	paula.channel1(7)=1
-    if tracker.trigger(0) <> old1 then paula.channel1(8)=0 :waitus 100 : paula.channel1(8)=$FFFFFFFF :old1=tracker.trigger(0)
+
 
     old12=paula.channel2(0)
 	paula.channel2(0)=tracker.currSamplePtr(1)
@@ -49,7 +55,7 @@ do
 	paula.channel2(5)=8192+2048
 	paula.channel2(6)=tracker.currPeriod(1)+tracker.deltaperiod(1)
 	paula.channel2(7)=1
-    if tracker.trigger(1) <> old2 then paula.channel2(8)=0 :waitus 100 : paula.channel2(8)=$FFFFFFFF :old2=tracker.trigger(1)
+
 
     old13=paula.channel3(0)
 	paula.channel3(0)=tracker.currSamplePtr(2)
@@ -60,7 +66,7 @@ do
 	paula.channel3(5)=8192+2048
 	paula.channel3(6)=tracker.currPeriod(2)+tracker.deltaperiod(2)
 	paula.channel3(7)=1
-    if tracker.trigger(2) <> old3 then paula.channel3(8)=0 :waitus 100 : paula.channel3(8)=$FFFFFFFF :old3=tracker.trigger(2)
+
 
     old14=paula.channel4(0)    
 	paula.channel4(0)=tracker.currSamplePtr(3)
@@ -71,7 +77,20 @@ do
 	paula.channel4(5)=8192-2048
 	paula.channel4(6)=tracker.currPeriod(3)+tracker.deltaperiod(3)
 	paula.channel4(7)=1
-    if tracker.trigger(3) <> old4 then paula.channel4(8)=0 :waitus 100 : paula.channel4(8)=$FFFFFFFF :old4=tracker.trigger(3)
+
+ 
+    if tracker.trigger(0) <> old1 then paula.channel1(8)=0 : old1=tracker.trigger(0)
+    if tracker.trigger(1) <> old2 then paula.channel2(8)=0 : old2=tracker.trigger(1)  
+    if tracker.trigger(2) <> old3 then paula.channel3(8)=0 : old3=tracker.trigger(2)  
+    if tracker.trigger(3) <> old4 then paula.channel4(8)=0 : old4=tracker.trigger(3) 
+    
+    waitus 300 
+       
+    paula.channel1(8)=$FFFFFFFF 
+    paula.channel2(8)=$FFFFFFFF 
+    paula.channel3(8)=$FFFFFFFF 
+    paula.channel4(8)=$FFFFFFFF 
+ 
     
     test
 
@@ -150,6 +169,6 @@ end sub
 
 
 asm shared
-module file "../../../mod/synth11.mod"
+module file "../../../mod/awaken.mod"
 
 end asm
