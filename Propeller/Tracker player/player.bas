@@ -169,6 +169,6 @@ end sub
 
 
 asm shared
-module file "../../../mod/awaken.mod"
+module file "../../../mod/atlantis.mod"
 
 end asm

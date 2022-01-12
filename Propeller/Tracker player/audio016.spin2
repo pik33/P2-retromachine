@@ -608,15 +608,15 @@ p208        add     ptra,#36*7
             rdlong  sstart8,ptra
             sub     ptra, #36*7
  
-            mov     dt0,time8
-            sub     dt0,time0
-            add     time8,freq8  	
+            mov     dt0,time8      '* time8
+            sub     dt0,time0      
+            add     time8,freq8    '* freq8	
 	        
-            add     p8,askip8
-            cmp     p8,lend8 wcz
+            add     p8,askip8      '* skip8 *p8
+            cmp     p8,lend8 wcz   '* lend8
     if_ge   sub     p8,lend8	        
-    if_ge   add     p8,lstart8       
-            mov     qq,p8
+    if_ge   add     p8,lstart8     '* lstart8  
+            mov     qq,p8    
             add     qq,sstart8
             
             cmp     type8,#0 wz
@@ -767,7 +767,13 @@ lsnext      long 0
 rsnext      long 0 
 irqtime     long 0
 
-' Channel 1 registers. TODO - optimize the memory usage
+' Channel 1 registers. TODO - optimize the memory usage   ''' optimization: start pointer, loop start loop end long type bit cmd bytevol pan wordskip byte cmd bit
+' sstart: long, 2 upper bits: type
+' lstart, long 
+' lend :long
+' vol+pan long
+' freq,skip :long    5 longs per chn instead of 9 = 80 longs for 16 chn + 16 PAs + 16 timers+ 32 samples = 144 longs
+' cmd: 1 long for all
 
 sstart1     long 0       ' Sample start pointer
 type1       long 0       ' type 0 16 bit, 1 8 bit
