@@ -314,20 +314,14 @@ loop        cmp     time0,a21000000 wc  ' time counter overflow protection
             sub     time2,a20000000
             sub     time3,a20000000
             sub     time4,a20000000
-            sub     time5,a20000000
-            sub     time6,a20000000
-            sub     time7,a20000000
-            sub     time8,a20000000
+
             sub     time0,a20000000
     
 loop1       and     p1,acmd1            ' cmd=0 resets the phase accumulator
             and     p2,acmd2
             and     p3,acmd3
             and     p4,acmd4
-            and     p5,acmd5
-            and     p6,acmd6
-            and     p7,acmd7
-            and     p8,acmd8
+
        
             mov     cn,#p201           ' Find the channel to compute
             mov     ct,time1           ' with the lowest next sample time
@@ -337,14 +331,8 @@ loop1       and     p1,acmd1            ' cmd=0 resets the phase accumulator
     if_c    mov     cn,#p203     
             fle     ct,time4 wcz
     if_c    mov     cn,#p204
-            fle     ct,time5 wcz
-    if_c    mov     cn,#p205 
-            fle     ct,time6 wcz
-    if_c    mov     cn,#p206
-            fle     ct,time7 wcz
-    if_c    mov     cn,#p207
-            fle     ct,time8 wcz
-    if_c    mov     cn,#p208 
+
+
  
             jmp     cn
    
@@ -492,150 +480,70 @@ p204        add     ptra,#36*3
 
             jmp     #p101
             
-' ------------  Channel 5
- 
-p205        add     ptra,#36*4
-            setq    #8               
-            rdlong  sstart5,ptra
-            sub     ptra, #36*4
-
-            mov     dt0,time5
-            sub     dt0,time0
-            add     time5,freq5  	
-
-	        
-            add     p5,askip5
-            cmp     p5,lend5 wcz
-    if_ge   sub     p5,lend5	        
-    if_ge   add     p5,lstart5       
-            mov     qq,p5
-            add     qq,sstart5
             
-            cmp     type5,#0 wz
+' new procedure
+
+'sstart0     long 0     ' start pointer and type at bit 31
+'lstart0     long 0
+'lend0       long 0
+'volpan0     long 0
+'freqskip0   long 0
+'pointer0    long 0
+'sample0     long 0
+
+p401        add     ptra,channeladd
+            setq    #5               
+            rdlong  sstart0,ptra
+
+
+'            mov     dt0,time4   '' this has to be executed before going to p401
+'            sub     dt0,time0
+'            add     time4,freq4  	
+	        getword askip0,freqskip0,#1
+            add     pointer0,askip0
+            cmp     pointer0,lend0 wcz
+    if_ge   sub     pointer0,lend0	        
+    if_ge   add     pointer0,lstart0       
+            mov     qq,pointer0
+            add     qq,sstart0
+            
+            testb   sstart0,#31 wz
     if_nz   rdbyte  spl,qq
     if_nz   shl     spl,#8
     if_z    rdword  spl,qq
 
-            scas    spl,vol5
+            getword avol0,volpan0,#0
+            scas    spl,avol0
             mov     spl,0-0
-    	
-            scas    spl,apan5
-            mov     ls5,0-0
+    	 
+    	    getword apan0,volpan0,#1
+            scas    spl,apan0
+            mov     sample0,0-0
+ 
+            altd    channel,#ls1
+            mov     0-0,ls0
             
             mov     qq,##16384
-            sub     qq,apan5
+            sub     qq,apan0
             scas    spl,qq
-            mov     rs5,0-0
-
-            jmp     #p101
-  
-' ------------  Channel 6
- 
-p206        add     ptra,#36*5
-            setq    #8              
-            rdlong  sstart6,ptra
-            sub     ptra, #36*5
-
-            mov       dt0,time6
-            sub     dt0,time0
-            add     time6,freq6  	
-	        
-            add     p6,askip6
-            cmp     p6,lend6 wcz
-    if_ge   sub     p6,lend6	        
-    if_ge   add     p6,lstart6       
-            mov     qq,p6
-            add     qq,sstart6
+            mov     rs0, 0-0
             
-            cmp     type6,#0 wz
-    if_nz   rdbyte  spl,qq
-    if_nz   shl     spl,#8
-    if_z    rdword  spl,qq
+            altd    channel,#ls1
+            mov     0-0,rs0
+            
+            setword sample0,0-0,#1
+            
+            altd    channel,#rs1
+            mov 0-0,sample0
+
+            setq #5
+            wrlong  sstart0,ptra
+            sub     ptra, channeladd
+            
+            jmp     #p101
+                       
+            
           
-            scas    spl,vol6
-            mov     spl,0-0
-    	
-            scas    spl,apan6
-            mov     ls6,0-0
-            
-            mov     qq,##16384
-            sub     qq,apan6
-            scas    spl,qq
-            mov     rs6,0-0
-
-            jmp     #p101
-            
-' ------------  Channel 7
- 
-p207        add     ptra,#36*6
-            setq    #8              ' 
-            rdlong  sstart7,ptra
-            sub     ptra, #36*6
-
-            mov     dt0,time7
-            sub     dt0,time0
-            add     time7,freq7  	
-	        
-            add     p7,askip7
-            cmp     p7,lend7 wcz
-    if_ge   sub     p7,lend7	        
-    if_ge   add     p7,lstart7       
-            mov     qq,p7
-            add     qq,sstart7
-            
-            cmp     type7,#0 wz
-    if_nz   rdbyte  spl,qq
-    if_nz   shl     spl,#8
-    if_z    rdword  spl,qq
-
-            scas    spl,vol7
-            mov     spl,0-0
-    	
-            scas    spl,apan7
-            mov     ls7,0-0
-            
-            mov     qq,##16384
-            sub     qq,apan7
-            scas    spl,qq
-            mov     rs7,0-0
-
-            jmp     #p101     
-                   
-' ------------  Channel 8
- 
-p208        add     ptra,#36*7
-            setq    #8              
-            rdlong  sstart8,ptra
-            sub     ptra, #36*7
- 
-            mov     dt0,time8      '* time8
-            sub     dt0,time0      
-            add     time8,freq8    '* freq8	
-	        
-            add     p8,askip8      '* skip8 *p8
-            cmp     p8,lend8 wcz   '* lend8
-    if_ge   sub     p8,lend8	        
-    if_ge   add     p8,lstart8     '* lstart8  
-            mov     qq,p8    
-            add     qq,sstart8
-            
-            cmp     type8,#0 wz
-    if_nz   rdbyte  spl,qq
-    if_nz   shl     spl,#8
-    if_z    rdword  spl,qq
-
-            scas    spl,vol8
-            mov     spl,0-0
-    	
-            scas    spl,apan8
-            mov     ls8,0-0
-            
-            mov     qq,##16384
-            sub     qq,apan8
-            scas    spl,qq
-            mov     rs8,0-0
-
-            jmp     #p101            
             
 '------------------------ Channels end here --------------------       
 
@@ -643,7 +551,7 @@ p208        add     ptra,#36*7
 
 
 p101        cmp     oldt0,time0 wz   ' There must not be 2 entries with the same time
-    if_z    sub     front,#1         ' 
+    if_z    sub     front,#2         ' 
     if_z    and     front,#511     
   
             mov     rs,#0            ' Mix all channels to rs and ls
@@ -652,19 +560,13 @@ p101        cmp     oldt0,time0 wz   ' There must not be 2 entries with the same
             add     rs,rs2
             add     rs,rs3
             add     rs,rs4
-            add     rs,rs5
-            add     rs,rs6
-            add     rs,rs7
-            add     rs,rs8
+
             
             add     ls,ls1
             add     ls,ls2
             add     ls,ls3
             add     ls,ls4
-            add     ls,ls5
-            add     ls,ls6
-            add     ls,ls7
-            add     ls,ls8
+
  		
             bitnot  ls,#15            ' convert to unsigned. TODO: compute and apply the gain for samples to not exceed 16 bit range
             bitnot  rs,#15		      ' and these with $FFFF if a filter should be applied
@@ -737,6 +639,7 @@ nlsample long 0
 fl long 31
 fr long 31
 d long 0
+channeladd long 0
 ' phase accumulators
 
 p1          long 0
@@ -766,6 +669,19 @@ rsample     long 0
 lsnext      long 0
 rsnext      long 0 
 irqtime     long 0
+
+
+sstart0     long 0     ' start pointer and type at bit 31
+lstart0     long 0
+lend0       long 0
+volpan0     long 0
+freqskip0   long 0
+pointer0    long 0
+sample0     long 0
+afreq0 long 0
+askip0 long 0
+avol0 long 0
+apan0 long 0
 
 ' Channel 1 registers. TODO - optimize the memory usage   ''' optimization: start pointer, loop start loop end long type bit cmd bytevol pan wordskip byte cmd bit
 ' sstart: long, 2 upper bits: type
@@ -887,7 +803,9 @@ ct          long 0
 dt0         long 0
 
 ' Samples
-
+ls0 long 0
+rs0 long 0
+channel long 0
 ls          long 0    ' Global sample variable
 rs          long 0
 

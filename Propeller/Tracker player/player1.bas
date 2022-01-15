@@ -13,10 +13,9 @@ mainvolume=128 '1..128..(255)
   RD_DATA      = $03
 
 dim tracker as class using "trackerplayer.spin2"
-dim paula as class using "audio018.spin2"
+dim paula as class using "audio016.spin2"
 
 dim sn$(32)
-dim cog,base as ulong
 
 emptystr$="                      "
 
@@ -28,61 +27,71 @@ samples=15: if peek(ma+1080)=asc("M") and peek(ma+1082)=asc("K") then samples=31
 position 1,2 : print samples;" ";"samples module"
 getinfo(ma,samples)
 
-cog,base=paula.start()
+paula.start
 
 old1=0 : old2=0 :old3=0 : old4=0
 
 do
-'channel+0  long current spl pointer 
-'channel+4  long sample
-'channel+8  long sample start - bit31=1 when 16 bit spl
-'channel+12 long loop start
-'channel+16 long loop end
-'channel+20 word volume
-'channel+22 word pan
-'channel+24 word synthfreq
-'channel+26 word skip
-'channel+28 long reserved
 
     waitvbl
     tracker.tick
     
-    lpoke base+8, tracker.currSamplePtr(0)
-    lpoke base+12,tracker.currsamplelength(0)-tracker.currrepeatLength(0)
-    lpoke base+16,tracker.currsamplelength(0)
-    dpoke base+20, (tracker.currVolume(0)+tracker.deltavolume(0))*mainvolume
-    dpoke base+22, 8192-2048
-    dpoke base+24, tracker.currPeriod(0)+tracker.deltaperiod(0)
-    dpoke base+26, 1
-    if tracker.trigger(0) <> old1 then lpoke base+0,  0: old1=tracker.trigger(0)
+	paula.channel1(0)=tracker.currSamplePtr(0) or $80000000
+'	position 1,26: print paula.channel1(0)
+	paula.channel1(1)=1
+	paula.channel1(2)=tracker.currsamplelength(0)-tracker.currrepeatLength(0)
+	paula.channel1(3)=tracker.currsamplelength(0)
+	paula.channel1(4)=(tracker.currVolume(0)+tracker.deltavolume(0))*mainvolume
+	paula.channel1(5)=8192-2048
+	paula.channel1(6)=tracker.currPeriod(0)+tracker.deltaperiod(0)
+	paula.channel1(7)=1
 
-    lpoke 32+base+8, tracker.currSamplePtr(1)
-    lpoke 32+base+12,tracker.currsamplelength(1)-tracker.currrepeatLength(1)
-    lpoke 32+base+16,tracker.currsamplelength(1)
-    dpoke 32+base+20, (tracker.currVolume(1)+tracker.deltavolume(1))*mainvolume
-    dpoke 32+base+22, 8192+2048
-    dpoke 32+base+24, tracker.currPeriod(1)+tracker.deltaperiod(1)
-    dpoke 32+base+26, 1
-    if tracker.trigger(1) <> old2 then lpoke base+32,  0: old2=tracker.trigger(1)
 
-    lpoke 64+base+8, tracker.currSamplePtr(2)
-    lpoke 64+base+12,tracker.currsamplelength(2)-tracker.currrepeatLength(2)
-    lpoke 64+base+16,tracker.currsamplelength(2)
-    dpoke 64+base+20, (tracker.currVolume(2)+tracker.deltavolume(2))*mainvolume
-    dpoke 64+base+22, 8192+2048
-    dpoke 64+base+24, tracker.currPeriod(2)+tracker.deltaperiod(2)
-    dpoke 64+base+26, 1
-    if tracker.trigger(2) <> old3 then lpoke base+64,  0: old3=tracker.trigger(2)
+    old12=paula.channel2(0) or $80000000
+	paula.channel2(0)=tracker.currSamplePtr(1)
+	paula.channel2(1)=1
+	paula.channel2(2)=tracker.currSampleLength(1)-tracker.currrepeatLength(1)
+	paula.channel2(3)=tracker.currSampleLength(1)
+	paula.channel2(4)=(tracker.currVolume(1)+tracker.deltavolume(1))*mainvolume
+	paula.channel2(5)=8192+2048
+	paula.channel2(6)=tracker.currPeriod(1)+tracker.deltaperiod(1)
+	paula.channel2(7)=1
 
-    lpoke 96+base+8, tracker.currSamplePtr(3)
-    lpoke 96+base+12,tracker.currsamplelength(3)-tracker.currrepeatLength(3)
-    lpoke 96+base+16,tracker.currsamplelength(3)
-    dpoke 96+base+20, (tracker.currVolume(3)+tracker.deltavolume(3))*mainvolume
-    dpoke 96+base+22, 8192-2048
-    dpoke 96+base+24, tracker.currPeriod(3)+tracker.deltaperiod(3)
-    dpoke 96+base+26, 1
-    if tracker.trigger(3) <> old4 then lpoke base+96, 0 : old4=tracker.trigger(3)
 
+    old13=paula.channel3(0)or $80000000
+	paula.channel3(0)=tracker.currSamplePtr(2)
+	paula.channel3(1)=1
+	paula.channel3(2)=tracker.currSampleLength(2)-tracker.currrepeatLength(2)
+	paula.channel3(3)=tracker.currSampleLength(2)
+	paula.channel3(4)=(tracker.currVolume(2)+tracker.deltavolume(2))*mainvolume
+	paula.channel3(5)=8192+2048
+	paula.channel3(6)=tracker.currPeriod(2)+tracker.deltaperiod(2)
+	paula.channel3(7)=1
+
+
+    old14=paula.channel4(0)   or $80000000 
+	paula.channel4(0)=tracker.currSamplePtr(3)
+	paula.channel4(1)=1
+	paula.channel4(2)=tracker.currSampleLength(3)-tracker.currrepeatLength(3)
+	paula.channel4(3)=tracker.currSampleLength(3)
+	paula.channel4(4)=(tracker.currVolume(3)+tracker.deltavolume(3))*mainvolume
+	paula.channel4(5)=8192-2048
+	paula.channel4(6)=tracker.currPeriod(3)+tracker.deltaperiod(3)
+	paula.channel4(7)=1
+
+ 
+    if tracker.trigger(0) <> old1 then paula.channel1(8)=0 : old1=tracker.trigger(0)
+    if tracker.trigger(1) <> old2 then paula.channel2(8)=0 : old2=tracker.trigger(1)  
+    if tracker.trigger(2) <> old3 then paula.channel3(8)=0 : old3=tracker.trigger(2)  
+    if tracker.trigger(3) <> old4 then paula.channel4(8)=0 : old4=tracker.trigger(3) 
+    
+    waitus 300 
+       
+    paula.channel1(8)=$FFFFFFFF 
+    paula.channel2(8)=$FFFFFFFF 
+    paula.channel3(8)=$FFFFFFFF 
+    paula.channel4(8)=$FFFFFFFF 
+ 
     
     test
 
@@ -161,6 +170,6 @@ end sub
 
 
 asm shared
-module file "../../../mod/jungle.mod"
+module file "../../../mod/enha.mod"
 
 end asm

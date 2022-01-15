@@ -1,0 +1,1498 @@
+00000                 | 
+00000                 | #line 1 "D:/programowanie/20211226-P2-retromachine/Propeller/Tracker player/audio018.p2asm"
+00000                 | ' 
+00000                 | ' '319220550    =3546895, change to NTSC freq if needed
+00000                 | ' '322159050 ' This is 90x Amiga NTSC = 3579545
+00000                 | ' _clkfreq = 354693878  ' This is 100x Amiga PAL
+00000                 | con
+00000                 | 	_clkfreq = 354693878
+00000                 | ' ' audio pins TODO: make a variable for start() instead of const
+00000                 | ' 
+00000                 | ' left= 14
+00000                 | 	left = 14
+00000                 | ' right=15
+00000                 | 	right = 15
+00000                 | ' 
+00000                 | ' 
+00000                 | ' c4=262
+00000                 | 	c4 = 262
+00000                 | ' d4=294
+00000                 | 	d4 = 294
+00000                 | ' e4=330
+00000                 | 	e4 = 330
+00000                 | ' f4=349
+00000                 | 	f4 = 349
+00000                 | ' g4=392
+00000                 | 	g4 = 392
+00000                 | ' a4=440
+00000                 | 	a4 = 440
+00000                 | ' h4=494
+00000                 | 	h4 = 494
+00000                 | dat
+00000 000 00 00 00 00 | 	nop
+00004 001 01 EC 63 FD | 	cogid	pa
+00008 002 02 00 00 FF 
+0000c 003 04 EC E7 FC | 	coginit	pa,##$404
+00010                 | 	orgh	$10
+00010     00 00 00 00 | 	long	0	'reserved
+00014     00 00 00 00 | 	long	0 ' clock frequency: will default to 354693647
+00018     00 00 00 00 | 	long	0 ' clock mode: will default to $1c364fb
+0001c     00 00 00 00 
+      ...             
+003f8     00 00 00 00 
+003fc     00 00 00 00 | 	orgh	$400
+00400     00 C0 05 06 |  _ret_	mov	result1, #0
+00404 000             | 	org	0
+00404 000             | entry
+00404 000 00 F0 0F F2 | 	cmp	ptra, #0 wz
+00408 001 0C 02 90 5D |  if_ne	jmp	#spininit
+0040c 002 DF F0 03 F6 | 	mov	ptra, ptr_stackspace_
+00410 003 14 EC 0F FB | 	rdlong	pa, #20 wz
+00414 004 EC 01 90 5D |  if_ne	jmp	#skip_clock_set_
+00418 005 00 00 64 FD | 	hubset	#0
+0041c 006 B2 E1 80 FF 
+00420 007 00 F0 65 FD | 	hubset	##29582584
+00424 008 86 01 80 FF 
+00428 009 1F 80 66 FD | 	waitx	##200000
+0042c 00a B2 E1 00 FF 
+00430 00b FB EC 07 F6 | 	mov	pa, ##29582587
+00434 00c 00 EC 63 FD | 	hubset	pa
+00438 00d 18 EC 67 FC | 	wrlong	pa, #24
+0043c 00e 19 92 8A FF 
+00440 00f 14 1E 6C FC | 	wrlong	##354693647, #20
+00444 010 BC 01 90 FD | 	jmp	#skip_clock_set_
+00448 011 00 00 00 00 
+      ...             
+005fc 07e 00 00 00 00 
+00600 07f 00 00 00 00 | 	orgf	128
+00604 080             | skip_clock_set_
+00604 080 8C 07 A0 FD | 	call	#_test
+00608 081             | cogexit
+00608 081 38 01 80 FF 
+0060c 082 1F 00 66 FD | 	waitx	##160000
+00610 083 01 C4 61 FD | 	cogid	arg01
+00614 084 03 C4 61 FD | 	cogstop	arg01
+00618 085             | spininit
+00618 085 00 B9 05 FB | 	rdlong	objptr, ptra
+0061c 086 04 F0 07 F1 | 	add	ptra, #4
+00620 087 00 C1 05 FB | 	rdlong	result1, ptra
+00624 088 04 F0 07 F1 | 	add	ptra, #4
+00628 089 00 C5 05 FB | 	rdlong	arg01, ptra
+0062c 08a 04 F0 07 F1 | 	add	ptra, #4
+00630 08b 00 C7 05 FB | 	rdlong	arg02, ptra
+00634 08c 04 F0 07 F1 | 	add	ptra, #4
+00638 08d 00 C9 05 FB | 	rdlong	arg03, ptra
+0063c 08e 04 F0 07 F1 | 	add	ptra, #4
+00640 08f 00 CB 05 FB | 	rdlong	arg04, ptra
+00644 090 10 F0 87 F1 | 	sub	ptra, #16
+00648 091 2D C0 61 FD | 	call	result1
+0064c 092 B8 FF 9F FD | 	jmp	#cogexit
+00650 093             | FCACHE_LOAD_
+00650 093 2B 3E 61 FD |     pop	fcache_tmpb_
+00654 094 F6 3F 01 F1 |     add	fcache_tmpb_, pa
+00658 095 2A 3E 61 FD |     push	fcache_tmpb_
+0065c 096 F6 3F 81 F1 |     sub	fcache_tmpb_, pa
+00660 097 02 EC 47 F0 |     shr	pa, #2
+00664 098 00 EC 8F F9 |     altd	pa
+00668 099 9E 00 00 F6 |     mov	 0-0, ret_instr_
+0066c 09a 01 EC 87 F1 |     sub	pa, #1
+00670 09b 28 EC 63 FD |     setq	pa
+00674 09c 9F 00 00 FB |     rdlong	$0, fcache_tmpb_
+00678 09d 00 00 80 FD |     jmp	#\$0 ' jmp to cache
+0067c 09e             | ret_instr_
+0067c 09e 2D 00 64 FD |     ret
+00680 09f             | fcache_tmpb_
+00680 09f 00 00 00 00 |     long 0
+00684 0a0             | builtin_bytefill_
+00684 0a0 01 C8 55 F0 |         shr	arg03, #1 wc
+00688 0a1 E2 C6 41 CC |  if_c   wrbyte	arg02, arg01
+0068c 0a2 01 C4 05 C1 |  if_c   add	arg01, #1
+00690 0a3 00 C6 FD F9 |         movbyts	arg02, #0
+00694 0a4             | builtin_wordfill_
+00694 0a4 01 C8 55 F0 |         shr	arg03, #1 wc
+00698 0a5 E2 C6 51 CC |  if_c   wrword	arg02, arg01
+0069c 0a6 02 C4 05 C1 |  if_c   add	arg01, #2
+006a0 0a7 E3 C6 29 F9 |         setword	arg02, arg02, #1
+006a4 0a8             | builtin_longfill_
+006a4 0a8 E2 00 88 FC |         wrfast	#0,arg01
+006a8 0a9 00 C8 0D F2 |         cmp	arg03, #0 wz
+006ac 0aa E4 02 D8 5C |  if_nz  rep	#1, arg03
+006b0 0ab 17 C6 61 5D |  if_nz  wflong	arg02
+006b4 0ac 2D 00 64 FD |         ret
+006b8 0ad             | COUNT_
+006b8 0ad 00 00 00 00 |     long 0
+006bc 0ae             | RETADDR_
+006bc 0ae 00 00 00 00 |     long 0
+006c0 0af             | fp
+006c0 0af 00 00 00 00 |     long 0
+006c4 0b0             | pushregs_
+006c4 0b0 2B EC 63 FD |     pop  pa
+006c8 0b1 2B 5C 61 FD |     pop  RETADDR_
+006cc 0b2 04 5A 95 FB |     tjz  COUNT_, #pushregs_done_
+006d0 0b3 01 5A 85 F1 |     sub  COUNT_, #1
+006d4 0b4 28 5A 61 FD |     setq COUNT_
+006d8 0b5 00 CD 65 FC |     wrlong local01, ptra
+006dc 0b6 01 5A 05 F1 |     add  COUNT_, #1
+006e0 0b7             | pushregs_done_
+006e0 0b7 02 5A 65 F0 |     shl  COUNT_, #2
+006e4 0b8 AD F0 03 F1 |     add  ptra, COUNT_
+006e8 0b9 02 5A 45 F0 |     shr  COUNT_, #2
+006ec 0ba 28 04 64 FD |     setq #2 ' push 3 registers starting at COUNT_
+006f0 0bb 00 5B 65 FC |     wrlong COUNT_, ptra
+006f4 0bc 0C F0 07 F1 |     add    ptra, #12
+006f8 0bd F8 5F 01 F6 |     mov    fp, ptra
+006fc 0be 2C EC 63 FD |     jmp  pa
+00700 0bf             |  popregs_
+00700 0bf 2B EC 63 FD |     pop    pa
+00704 0c0 0C F0 87 F1 |     sub    ptra, #12
+00708 0c1 28 04 64 FD |     setq   #2
+0070c 0c2 00 5B 05 FB |     rdlong COUNT_, ptra
+00710 0c3 06 5A 95 FB |     tjz    COUNT_, #popregs__ret
+00714 0c4 02 5A 65 F0 |     shl    COUNT_, #2
+00718 0c5 AD F0 83 F1 |     sub    ptra, COUNT_
+0071c 0c6 02 5A 45 F0 |     shr    COUNT_, #2
+00720 0c7 01 5A 85 F1 |     sub    COUNT_, #1
+00724 0c8 28 5A 61 FD |     setq   COUNT_
+00728 0c9 00 CD 05 FB |     rdlong local01, ptra
+0072c 0ca             | popregs__ret
+0072c 0ca 2A 5C 61 FD |     push   RETADDR_
+00730 0cb 2C EC 63 FD |     jmp    pa
+00734 0cc             | 
+00734 0cc             | unsdivide_
+00734 0cc 28 00 64 FD |        setq    #0
+00738 0cd F1 E0 11 FD |        qdiv    muldiva_, muldivb_
+0073c 0ce 18 E2 61 FD |        getqx   muldivb_
+00740 0cf 19 E0 61 0D |  _ret_ getqy   muldiva_
+00744 0d0             | 
+00744 0d0             | divide_
+00744 0d0 F0 E0 51 F6 |        abs     muldiva_,muldiva_     wc       'abs(x)
+00748 0d1 03 B6 85 F5 |        muxc    itmp2_,#%11                    'store sign of x
+0074c 0d2 F1 E2 59 F6 |        abs     muldivb_,muldivb_     wcz      'abs(y)
+00750 0d3 02 B6 65 C5 |  if_c  xor     itmp2_,#%10                    'store sign of y
+00754 0d4 2D 00 64 AD |  if_z  ret
+00758 0d5 D8 FF BF FD |        call    #unsdivide_
+0075c 0d6 01 B6 D5 F7 |        test    itmp2_,#1        wc       'restore sign, remainder
+00760 0d7 F0 E0 81 F6 |        negc    muldiva_,muldiva_ 
+00764 0d8 02 B6 D5 F7 |        test    itmp2_,#%10      wc       'restore sign, division result
+00768 0d9 F1 E2 81 06 |  _ret_ negc    muldivb_,muldivb_
+0076c 0da             | 
+0076c 0da             | itmp1_
+0076c 0da 00 00 00 00 | 	long	0
+00770 0db             | itmp2_
+00770 0db 00 00 00 00 | 	long	0
+00774 0dc             | objptr
+00774 0dc 8C 17 00 00 | 	long	@objmem
+00778 0dd             | ptr___system__dat__
+00778 0dd 74 17 00 00 | 	long	@__system__dat_
+0077c 0de             | ptr__dat__
+0077c 0de 60 0C 00 00 | 	long	@_dat_
+00780 0df             | ptr_stackspace_
+00780 0df AC 18 00 00 | 	long	@stackspace
+00784 0e0             | result1
+00784 0e0 00 00 00 00 | 	long	0
+00788 0e1             | result2
+00788 0e1 00 00 00 00 | 	long	0
+0078c 0e2             | COG_BSS_START
+0078c 0e2             | 	fit	480
+0078c                 | 	orgh
+0078c                 | hubentry
+0078c                 | 
+0078c                 | ' 
+0078c                 | ' '----------------------------------------------------------------
+0078c                 | ' '------------  Alpha testing the thing --------------------------
+0078c                 | ' '---------------------------------------------------------------- 
+0078c                 | ' 
+0078c                 | ' pub test
+0078c                 | _test
+0078c                 | ' 
+0078c                 | ' start()
+0078c     F0 02 B0 FD | 	call	#_start
+00790                 | ' waitms(500)
+00790     F4 C5 05 F6 | 	mov	arg01, #500
+00794     4C 04 B0 FD | 	call	#__system___waitms
+00798                 | ' repeat
+00798                 | LR__0001
+00798                 | '   play(c4,500,16384)
+00798     06 C5 05 F6 | 	mov	arg01, #262
+0079c     F4 C7 05 F6 | 	mov	arg02, #500
+007a0     0E C8 C5 F9 | 	decod	arg03, #14
+007a4     20 01 B0 FD | 	call	#_play
+007a8                 | '   play(d4,500,16384)
+007a8     26 C5 05 F6 | 	mov	arg01, #294
+007ac     F4 C7 05 F6 | 	mov	arg02, #500
+007b0     0E C8 C5 F9 | 	decod	arg03, #14
+007b4     10 01 B0 FD | 	call	#_play
+007b8                 | '   play(e4,500,16384)
+007b8     4A C5 05 F6 | 	mov	arg01, #330
+007bc     F4 C7 05 F6 | 	mov	arg02, #500
+007c0     0E C8 C5 F9 | 	decod	arg03, #14
+007c4     00 01 B0 FD | 	call	#_play
+007c8                 | '   play(f4,500,16384)
+007c8     5D C5 05 F6 | 	mov	arg01, #349
+007cc     F4 C7 05 F6 | 	mov	arg02, #500
+007d0     0E C8 C5 F9 | 	decod	arg03, #14
+007d4     F0 00 B0 FD | 	call	#_play
+007d8                 | '   play(g4,500,16384)
+007d8     88 C5 05 F6 | 	mov	arg01, #392
+007dc     F4 C7 05 F6 | 	mov	arg02, #500
+007e0     0E C8 C5 F9 | 	decod	arg03, #14
+007e4     E0 00 B0 FD | 	call	#_play
+007e8                 | '   play(a4,500,16384)
+007e8     B8 C5 05 F6 | 	mov	arg01, #440
+007ec     F4 C7 05 F6 | 	mov	arg02, #500
+007f0     0E C8 C5 F9 | 	decod	arg03, #14
+007f4     D0 00 B0 FD | 	call	#_play
+007f8                 | '   play(h4,500,16384)
+007f8     EE C5 05 F6 | 	mov	arg01, #494
+007fc     F4 C7 05 F6 | 	mov	arg02, #500
+00800     0E C8 C5 F9 | 	decod	arg03, #14
+00804     C0 00 B0 FD | 	call	#_play
+00808                 | '   play(2*c4,500,16384)
+00808     01 00 00 FF 
+0080c     0C C4 05 F6 | 	mov	arg01, ##524
+00810     F4 C7 05 F6 | 	mov	arg02, #500
+00814     0E C8 C5 F9 | 	decod	arg03, #14
+00818     AC 00 B0 FD | 	call	#_play
+0081c                 | '   play(c4,500,0)
+0081c     06 C5 05 F6 | 	mov	arg01, #262
+00820     F4 C7 05 F6 | 	mov	arg02, #500
+00824     00 C8 05 F6 | 	mov	arg03, #0
+00828     9C 00 B0 FD | 	call	#_play
+0082c                 | '   play(2*c4,500,16384)
+0082c     01 00 00 FF 
+00830     0C C4 05 F6 | 	mov	arg01, ##524
+00834     F4 C7 05 F6 | 	mov	arg02, #500
+00838     0E C8 C5 F9 | 	decod	arg03, #14
+0083c     88 00 B0 FD | 	call	#_play
+00840                 | '   play(h4,500,16384)
+00840     EE C5 05 F6 | 	mov	arg01, #494
+00844     F4 C7 05 F6 | 	mov	arg02, #500
+00848     0E C8 C5 F9 | 	decod	arg03, #14
+0084c     78 00 B0 FD | 	call	#_play
+00850                 | '   play(a4,500,16384)
+00850     B8 C5 05 F6 | 	mov	arg01, #440
+00854     F4 C7 05 F6 | 	mov	arg02, #500
+00858     0E C8 C5 F9 | 	decod	arg03, #14
+0085c     68 00 B0 FD | 	call	#_play
+00860                 | '   play(g4,500,16384)
+00860     88 C5 05 F6 | 	mov	arg01, #392
+00864     F4 C7 05 F6 | 	mov	arg02, #500
+00868     0E C8 C5 F9 | 	decod	arg03, #14
+0086c     58 00 B0 FD | 	call	#_play
+00870                 | '   play(f4,500,16384)
+00870     5D C5 05 F6 | 	mov	arg01, #349
+00874     F4 C7 05 F6 | 	mov	arg02, #500
+00878     0E C8 C5 F9 | 	decod	arg03, #14
+0087c     48 00 B0 FD | 	call	#_play
+00880                 | '   play(e4,500,16384)
+00880     4A C5 05 F6 | 	mov	arg01, #330
+00884     F4 C7 05 F6 | 	mov	arg02, #500
+00888     0E C8 C5 F9 | 	decod	arg03, #14
+0088c     38 00 B0 FD | 	call	#_play
+00890                 | '   play(d4,500,16384)
+00890     26 C5 05 F6 | 	mov	arg01, #294
+00894     F4 C7 05 F6 | 	mov	arg02, #500
+00898     0E C8 C5 F9 | 	decod	arg03, #14
+0089c     28 00 B0 FD | 	call	#_play
+008a0                 | '   play(c4,500,16384)
+008a0     06 C5 05 F6 | 	mov	arg01, #262
+008a4     F4 C7 05 F6 | 	mov	arg02, #500
+008a8     0E C8 C5 F9 | 	decod	arg03, #14
+008ac     18 00 B0 FD | 	call	#_play
+008b0                 | '   play(c4,500,0)
+008b0     06 C5 05 F6 | 	mov	arg01, #262
+008b4     F4 C7 05 F6 | 	mov	arg02, #500
+008b8     00 C8 05 F6 | 	mov	arg03, #0
+008bc     08 00 B0 FD | 	call	#_play
+008c0     D4 FE 9F FD | 	jmp	#LR__0001
+008c4                 | _test_ret
+008c4     2D 00 64 FD | 	ret
+008c8                 | 
+008c8                 | ' 
+008c8                 | '  
+008c8                 | '  
+008c8                 | ' '----------------------------------------------------------------
+008c8                 | ' '------------  An alpha test playing procedure ------------------
+008c8                 | ' '------------  Plays sine waves in allchannels ------------------
+008c8                 | ' '------------  makes a harmonic sound ---------------------------
+008c8                 | ' '---------------------------------------------------------------- 
+008c8                 | ' 
+008c8                 | ' pub play(ff,time,vol) |ilss,ss,ssf,base,iii
+008c8                 | _play
+008c8     0A 5A 05 F6 | 	mov	COUNT_, #10
+008cc     B0 00 A0 FD | 	call	#pushregs_
+008d0     E2 CC 01 F6 | 	mov	local01, arg01
+008d4     E3 CE 01 F6 | 	mov	local02, arg02
+008d8     E4 D0 01 F6 | 	mov	local03, arg03
+008dc                 | ' 
+008dc                 | ' ' Test play 
+008dc                 | ' 
+008dc                 | ' ilss:=40000/ff
+008dc     4E 00 00 FF 
+008e0     40 E0 05 F6 | 	mov	muldiva_, ##40000
+008e4     E6 E2 01 F6 | 	mov	muldivb_, local01
+008e8     D0 00 A0 FD | 	call	#divide_
+008ec                 | ' ss:=2*(1024/ilss)
+008ec     0A E0 C5 F9 | 	decod	muldiva_, #10
+008f0     D0 00 A0 FD | 	call	#divide_
+008f4     F1 D2 01 F6 | 	mov	local04, muldivb_
+008f8     01 D2 65 F0 | 	shl	local04, #1
+008fc                 | ' if ss<2
+008fc     02 D2 5D F2 | 	cmps	local04, #2 wcz
+00900                 | '   ss:=2
+00900     02 D2 05 C6 |  if_b	mov	local04, #2
+00904                 | ' ssf:=(ss*3568945)/(ff*2048)
+00904     3A 1B 00 FF 
+00908     31 D3 05 FD | 	qmul	local04, ##3568945
+0090c     18 E0 61 FD | 	getqx	muldiva_
+00910     0B CC 65 F0 | 	shl	local01, #11
+00914     E6 E2 01 F6 | 	mov	muldivb_, local01
+00918     D0 00 A0 FD | 	call	#divide_
+0091c     F1 D4 01 F6 | 	mov	local05, muldivb_
+00920                 | ' 
+00920                 | ' 
+00920                 | ' base:=@channel1[0]
+00920     DC D6 01 F6 | 	mov	local06, objptr
+00924                 | ' 
+00924                 | ' repeat iii from 0 to 7
+00924     00 D8 05 F6 | 	mov	local07, #0
+00928     04 F8 9F FE | 	loc	pa,	#(@LR__0003-@LR__0002)
+0092c     93 00 A0 FD | 	call	#FCACHE_LOAD_
+00930                 | LR__0002
+00930                 | '   long [base+32*iii]:=0
+00930     EB DA 01 F6 | 	mov	local08, local06
+00934     EC CC 01 F6 | 	mov	local01, local07
+00938     05 CC 65 F0 | 	shl	local01, #5
+0093c     E6 DA 01 F1 | 	add	local08, local01
+00940     ED 00 68 FC | 	wrlong	#0, local08
+00944                 | '   long [base+32*iii+8]:=@sinewave | $80000000 
+00944     01 00 00 FF 
+00948     04 BD 05 F1 | 	add	ptr__dat__, ##772
+0094c     DE DA 01 F6 | 	mov	local08, ptr__dat__
+00950     1F DA 25 F4 | 	bith	local08, #31
+00954     EB DC 01 F6 | 	mov	local09, local06
+00958     EC DE 01 F6 | 	mov	local10, local07
+0095c     05 DE 65 F0 | 	shl	local10, #5
+00960     EF DC 01 F1 | 	add	local09, local10
+00964     08 DC 05 F1 | 	add	local09, #8
+00968     EE DA 61 FC | 	wrlong	local08, local09
+0096c                 | '   long[base+32*iii+12]:=16
+0096c     EB DA 01 F6 | 	mov	local08, local06
+00970     EC CC 01 F6 | 	mov	local01, local07
+00974     05 CC 65 F0 | 	shl	local01, #5
+00978     E6 DA 01 F1 | 	add	local08, local01
+0097c     0C DA 05 F1 | 	add	local08, #12
+00980     ED 20 68 FC | 	wrlong	#16, local08
+00984                 | '   long[base+32*iii+16]:=2048+16
+00984     EB DA 01 F6 | 	mov	local08, local06
+00988     EC CC 01 F6 | 	mov	local01, local07
+0098c     05 CC 65 F0 | 	shl	local01, #5
+00990     E6 DA 01 F1 | 	add	local08, local01
+00994     10 DA 05 F1 | 	add	local08, #16
+00998     04 00 80 FF 
+0099c     ED 20 68 FC | 	wrlong	##2064, local08
+009a0                 | '   word[base+32*iii+20]:=vol/(iii+1)
+009a0     EC E2 01 F6 | 	mov	muldivb_, local07
+009a4     01 E2 05 F1 | 	add	muldivb_, #1
+009a8     E8 E0 01 F6 | 	mov	muldiva_, local03
+009ac     01 00 00 FF 
+009b0     04 BD 85 F1 | 	sub	ptr__dat__, ##772
+009b4     D0 00 A0 FD | 	call	#divide_
+009b8     EB DC 01 F6 | 	mov	local09, local06
+009bc     EC DE 01 F6 | 	mov	local10, local07
+009c0     05 DE 65 F0 | 	shl	local10, #5
+009c4     EF DC 01 F1 | 	add	local09, local10
+009c8     14 DC 05 F1 | 	add	local09, #20
+009cc     EE E2 51 FC | 	wrword	muldivb_, local09
+009d0                 | '   word[base+32*iii+22]:=8192
+009d0     EB DA 01 F6 | 	mov	local08, local06
+009d4     EC CC 01 F6 | 	mov	local01, local07
+009d8     05 CC 65 F0 | 	shl	local01, #5
+009dc     E6 DA 01 F1 | 	add	local08, local01
+009e0     16 DA 05 F1 | 	add	local08, #22
+009e4     10 00 80 FF 
+009e8     ED 00 58 FC | 	wrword	##8192, local08
+009ec                 | '   word[base+32*iii+24]:=ssf
+009ec     EB DA 01 F6 | 	mov	local08, local06
+009f0     EC CC 01 F6 | 	mov	local01, local07
+009f4     05 CC 65 F0 | 	shl	local01, #5
+009f8     E6 DA 01 F1 | 	add	local08, local01
+009fc     18 DA 05 F1 | 	add	local08, #24
+00a00     ED D4 51 FC | 	wrword	local05, local08
+00a04                 | '   word[base+32*iii+26]:=ss*iii
+00a04     EC D2 01 FD | 	qmul	local04, local07
+00a08     18 DA 61 FD | 	getqx	local08
+00a0c     EB CC 01 F6 | 	mov	local01, local06
+00a10     EC DC 01 F6 | 	mov	local09, local07
+00a14     05 DC 65 F0 | 	shl	local09, #5
+00a18     EE CC 01 F1 | 	add	local01, local09
+00a1c     1A CC 05 F1 | 	add	local01, #26
+00a20     E6 DA 51 FC | 	wrword	local08, local01
+00a24                 | '   long [base+32*iii+8]:=@sinewave | $C0000000  
+00a24     01 00 00 FF 
+00a28     04 BD 05 F1 | 	add	ptr__dat__, ##772
+00a2c     DE DA 01 F6 | 	mov	local08, ptr__dat__
+00a30     3E DA 25 F4 | 	bith	local08, #62
+00a34     EB DC 01 F6 | 	mov	local09, local06
+00a38     EC DE 01 F6 | 	mov	local10, local07
+00a3c     05 DE 65 F0 | 	shl	local10, #5
+00a40     EF DC 01 F1 | 	add	local09, local10
+00a44     08 DC 05 F1 | 	add	local09, #8
+00a48     EE DA 61 FC | 	wrlong	local08, local09
+00a4c     01 D8 05 F1 | 	add	local07, #1
+00a50     08 D8 5D F2 | 	cmps	local07, #8 wcz
+00a54     01 00 00 FF 
+00a58     04 BD 85 F1 | 	sub	ptr__dat__, ##772
+00a5c     D0 FE 9F CD |  if_b	jmp	#LR__0002
+00a60                 | LR__0003
+00a60                 | ' repeat time
+00a60     00 CE 0D F2 | 	cmp	local02, #0 wz
+00a64     0C 00 90 AD |  if_e	jmp	#LR__0005
+00a68                 | LR__0004
+00a68                 | '     waitms(1)
+00a68     01 C4 05 F6 | 	mov	arg01, #1
+00a6c     74 01 B0 FD | 	call	#__system___waitms
+00a70     FD CF 6D FB | 	djnz	local02, #LR__0004
+00a74                 | LR__0005
+00a74     AF F0 03 F6 | 	mov	ptra, fp
+00a78     BF 00 A0 FD | 	call	#popregs_
+00a7c                 | _play_ret
+00a7c     2D 00 64 FD | 	ret
+00a80                 | 
+00a80                 | ' 
+00a80                 | ' 
+00a80                 | ' '--------------------------------------------------------------
+00a80                 | ' '---------- Init the variables, start the cog. ----------------
+00a80                 | ' '--------------------------------------------------------------
+00a80                 | ' 
+00a80                 | ' pub start() :cog,base | iii
+00a80                 | _start
+00a80     07 5A 05 F6 | 	mov	COUNT_, #7
+00a84     B0 00 A0 FD | 	call	#pushregs_
+00a88                 | ' 
+00a88                 | ' base:=@channel1[0]
+00a88     DC CC 01 F6 | 	mov	local01, objptr
+00a8c                 | ' 
+00a8c                 | ' repeat iii from 0 to 7
+00a8c     00 CE 05 F6 | 	mov	local02, #0
+00a90     78 F6 9F FE | 	loc	pa,	#(@LR__0007-@LR__0006)
+00a94     93 00 A0 FD | 	call	#FCACHE_LOAD_
+00a98                 | LR__0006
+00a98                 | '   long [base+32*iii]:=0
+00a98     E6 D0 01 F6 | 	mov	local03, local01
+00a9c     E7 D2 01 F6 | 	mov	local04, local02
+00aa0     05 D2 65 F0 | 	shl	local04, #5
+00aa4     E9 D0 01 F1 | 	add	local03, local04
+00aa8     E8 00 68 FC | 	wrlong	#0, local03
+00aac                 | '   long [base+32*iii+4]:=0
+00aac     E6 D0 01 F6 | 	mov	local03, local01
+00ab0     E7 D2 01 F6 | 	mov	local04, local02
+00ab4     05 D2 65 F0 | 	shl	local04, #5
+00ab8     E9 D0 01 F1 | 	add	local03, local04
+00abc     04 D0 05 F1 | 	add	local03, #4
+00ac0     E8 00 68 FC | 	wrlong	#0, local03
+00ac4                 | '   long[base+32*iii+12]:=0
+00ac4     E6 D0 01 F6 | 	mov	local03, local01
+00ac8     E7 D2 01 F6 | 	mov	local04, local02
+00acc     05 D2 65 F0 | 	shl	local04, #5
+00ad0     E9 D0 01 F1 | 	add	local03, local04
+00ad4     0C D0 05 F1 | 	add	local03, #12
+00ad8     E8 00 68 FC | 	wrlong	#0, local03
+00adc                 | '   long[base+32*iii+16]:=2 
+00adc     E6 D0 01 F6 | 	mov	local03, local01
+00ae0     E7 D2 01 F6 | 	mov	local04, local02
+00ae4     05 D2 65 F0 | 	shl	local04, #5
+00ae8     E9 D0 01 F1 | 	add	local03, local04
+00aec     10 D0 05 F1 | 	add	local03, #16
+00af0     E8 04 68 FC | 	wrlong	#2, local03
+00af4                 | '   word[base+32*iii+20]:=0
+00af4     E6 D0 01 F6 | 	mov	local03, local01
+00af8     E7 D2 01 F6 | 	mov	local04, local02
+00afc     05 D2 65 F0 | 	shl	local04, #5
+00b00     E9 D0 01 F1 | 	add	local03, local04
+00b04     14 D0 05 F1 | 	add	local03, #20
+00b08     E8 00 58 FC | 	wrword	#0, local03
+00b0c                 | '   word[base+32*iii+22]:=8192
+00b0c     E6 D0 01 F6 | 	mov	local03, local01
+00b10     E7 D2 01 F6 | 	mov	local04, local02
+00b14     05 D2 65 F0 | 	shl	local04, #5
+00b18     E9 D0 01 F1 | 	add	local03, local04
+00b1c     16 D0 05 F1 | 	add	local03, #22
+00b20     10 00 80 FF 
+00b24     E8 00 58 FC | 	wrword	##8192, local03
+00b28                 | '   word[base+32*iii+24]:=100+2*iii
+00b28     E7 D2 01 F6 | 	mov	local04, local02
+00b2c     01 D2 65 F0 | 	shl	local04, #1
+00b30     64 D0 05 F6 | 	mov	local03, #100
+00b34     E9 D0 01 F1 | 	add	local03, local04
+00b38     E6 D4 01 F6 | 	mov	local05, local01
+00b3c     E7 D6 01 F6 | 	mov	local06, local02
+00b40     05 D6 65 F0 | 	shl	local06, #5
+00b44     EB D4 01 F1 | 	add	local05, local06
+00b48     18 D4 05 F1 | 	add	local05, #24
+00b4c     EA D0 51 FC | 	wrword	local03, local05
+00b50                 | '   word[base+32*iii+26]:=2
+00b50     E6 D0 01 F6 | 	mov	local03, local01
+00b54     E7 D2 01 F6 | 	mov	local04, local02
+00b58     05 D2 65 F0 | 	shl	local04, #5
+00b5c     E9 D0 01 F1 | 	add	local03, local04
+00b60     1A D0 05 F1 | 	add	local03, #26
+00b64     E8 04 58 FC | 	wrword	#2, local03
+00b68                 | '   long [base+32*iii+8]:=@null | $C0000000
+00b68     01 00 00 FF 
+00b6c     FC BC 05 F1 | 	add	ptr__dat__, ##764
+00b70     DE D0 01 F6 | 	mov	local03, ptr__dat__
+00b74     3E D0 25 F4 | 	bith	local03, #62
+00b78     E6 D4 01 F6 | 	mov	local05, local01
+00b7c     E7 D6 01 F6 | 	mov	local06, local02
+00b80     05 D6 65 F0 | 	shl	local06, #5
+00b84     EB D4 01 F1 | 	add	local05, local06
+00b88     08 D4 05 F1 | 	add	local05, #8
+00b8c     EA D0 61 FC | 	wrlong	local03, local05
+00b90     01 CE 05 F1 | 	add	local02, #1
+00b94     08 CE 5D F2 | 	cmps	local02, #8 wcz
+00b98     01 00 00 FF 
+00b9c     FC BC 85 F1 | 	sub	ptr__dat__, ##764
+00ba0     F4 FE 9F CD |  if_b	jmp	#LR__0006
+00ba4                 | LR__0007
+00ba4                 | '   
+00ba4                 | ' cog:=coginit(16,@audio,@channel1)
+00ba4     DE C6 01 F6 | 	mov	arg02, ptr__dat__
+00ba8     DC C8 01 F6 | 	mov	arg03, objptr
+00bac     10 C4 05 F6 | 	mov	arg01, #16
+00bb0     28 C8 61 FD | 	setq	arg03
+00bb4     E3 C4 F1 FC | 	coginit	arg01, arg02 wc
+00bb8     01 C4 65 C6 |  if_b	neg	arg01, #1
+00bbc     E2 C0 01 F6 | 	mov	result1, arg01
+00bc0     E0 D8 01 F6 | 	mov	local07, result1
+00bc4                 | ' waitms(100)
+00bc4     64 C4 05 F6 | 	mov	arg01, #100
+00bc8     18 00 B0 FD | 	call	#__system___waitms
+00bcc                 | ' return cog,base
+00bcc     E6 C2 01 F6 | 	mov	result2, local01
+00bd0     EC C0 01 F6 | 	mov	result1, local07
+00bd4     AF F0 03 F6 | 	mov	ptra, fp
+00bd8     BF 00 A0 FD | 	call	#popregs_
+00bdc                 | _start_ret
+00bdc     2D 00 64 FD | 	ret
+00be0                 | hubexit
+00be0     81 00 80 FD | 	jmp	#cogexit
+00be4                 | 
+00be4                 | __system___waitms
+00be4     03 5A 05 F6 | 	mov	COUNT_, #3
+00be8     B0 00 A0 FD | 	call	#pushregs_
+00bec     E2 CC 01 F6 | 	mov	local01, arg01
+00bf0     14 CE 05 FB | 	rdlong	local02, #20
+00bf4     20 F4 9F FE | 	loc	pa,	#(@LR__0009-@LR__0008)
+00bf8     93 00 A0 FD | 	call	#FCACHE_LOAD_
+00bfc                 | LR__0008
+00bfc     01 00 00 FF 
+00c00     E8 CD 5D F2 | 	cmps	local01, ##1000 wcz
+00c04     1F CE 61 1D |  if_a	waitx	local02
+00c08     01 00 00 1F 
+00c0c     E8 CD 85 11 |  if_a	sub	local01, ##1000
+00c10     E8 FF 9F 1D |  if_a	jmp	#LR__0008
+00c14                 | LR__0009
+00c14     0C BA 05 F1 | 	add	ptr___system__dat__, #12
+00c18     DD D0 09 FB | 	rdlong	local03, ptr___system__dat__ wz
+00c1c     0C BA 85 F1 | 	sub	ptr___system__dat__, #12
+00c20     20 00 90 5D |  if_ne	jmp	#LR__0010
+00c24     E7 E0 01 F6 | 	mov	muldiva_, local02
+00c28     01 00 00 FF 
+00c2c     E8 E3 05 F6 | 	mov	muldivb_, ##1000
+00c30     CC 00 A0 FD | 	call	#unsdivide_
+00c34     F1 D0 01 F6 | 	mov	local03, muldivb_
+00c38     0C BA 05 F1 | 	add	ptr___system__dat__, #12
+00c3c     DD E2 61 FC | 	wrlong	muldivb_, ptr___system__dat__
+00c40     0C BA 85 F1 | 	sub	ptr___system__dat__, #12
+00c44                 | LR__0010
+00c44     00 CC 5D F2 | 	cmps	local01, #0 wcz
+00c48     E8 CC 01 1D |  if_a	qmul	local01, local03
+00c4c     18 C4 61 1D |  if_a	getqx	arg01
+00c50     1F C4 61 1D |  if_a	waitx	arg01
+00c54     AF F0 03 F6 | 	mov	ptra, fp
+00c58     BF 00 A0 FD | 	call	#popregs_
+00c5c                 | __system___waitms_ret
+00c5c     2D 00 64 FD | 	ret
+00c60                 | 	alignl
+00c60                 | _dat_
+00c60                 | 
+00c60                 | audio       org     0
+00c60     00 F2 07 F6 | 			mov     ptrb,#0
+00c64     0E 7C 05 FC |             wrpin   dac,#left       ' Noise dither DACs at clk/90
+00c68     0E C8 1C FC |             wxpin   #100,#left
+00c6c     0F 7C 05 FC |             wrpin   dac,#right
+00c70     0F C8 1C FC |             wxpin   #100,#right
+00c74     41 9C 64 FD |             dirh    #left addpins 1
+00c78     20 9C 64 FD |             setse1  #%001<<6 + left ' Set the event - DAC empty
+00c7c     79 E8 07 F6 |             mov     ijmp1,#isr1     ' Init the interrupt
+00c80     25 08 64 FD |             setint1 #4              ' Interrupt from DAC empty event
+00c84                 |             
+00c84                 | '---------------------------------------------------------------------------------        
+00c84                 | '----------------- The main loop -------------------------------------------------
+00c84                 | '---------------------------------------------------------------------------------
+00c84                 | 
+00c84     82 06 11 F2 | loop        cmp     time0,a21000000 wc  ' time counter overflow protection
+00c88     10 00 90 CD |       if_c  jmp     #loop1
+00c8c                 |   
+00c8c     09 4C 05 F6 |             mov     cn,#9
+00c90     82 4C 8D F9 | p402        altd    cn,#a21000000
+00c94     81 00 80 F1 |             sub     0-0,a20000000
+00c98     FD 4D 6D FB |             djnz    cn,#p402
+00c9c                 |     
+00c9c     00 4C 05 F6 | loop1       mov     cn,#0             ' Find the channel to compute
+00ca0     84 4E 01 F6 |             mov     ct,time1           ' with the lowest next sample time
+00ca4     85 4E 39 F3 |             fle     ct,time2 wcz       ' How to size-optimize this???
+00ca8     01 4C 05 C6 |     if_c    mov     cn,#1
+00cac     86 4E 39 F3 |             fle     ct,time3 wcz
+00cb0     02 4C 05 C6 |     if_c    mov     cn,#2     
+00cb4     87 4E 39 F3 |             fle     ct,time4 wcz
+00cb8     03 4C 05 C6 |     if_c    mov     cn,#3
+00cbc     88 4E 39 F3 |             fle     ct,time5 wcz
+00cc0     04 4C 05 C6 |     if_c    mov     cn,#4
+00cc4     89 4E 39 F3 |             fle     ct,time6 wcz
+00cc8     05 4C 05 C6 |     if_c    mov     cn,#5
+00ccc     8A 4E 39 F3 |             fle     ct,time7 wcz
+00cd0     06 4C 05 C6 |     if_c    mov     cn,#6
+00cd4     8B 4E 39 F3 |             fle     ct,time8 wcz
+00cd8     07 4C 05 C6 |     if_c    mov     cn,#7
+00cdc                 | 
+00cdc                 | 
+00cdc                 | '----------------------------------------------------------------------------------
+00cdc                 | '------------- Compute channel samples --------------------------------------------
+00cdc                 | '----------------------------------------------------------------------------------
+00cdc                 | 
+00cdc                 | 
+00cdc     A6 22 01 F6 | p401        mov     channeladd,cn              ' todo: reset channel times to enable proper streamed stereo audio
+00ce0     05 22 65 F0 |             shl     channeladd,#5
+00ce4     91 F0 03 F1 |             add     ptra,channeladd
+00ce8                 | 
+00ce8     28 0E 64 FD |             setq    #7               
+00cec     00 33 05 FB |             rdlong  pointer0,ptra
+00cf0                 |             
+00cf0     9E 48 39 F9 |      	    getword apan0,volpan0,#1           ' extract vol,pan,skip and freq from longs 
+00cf4     9E 46 31 F9 |     	    getword avol0,volpan0,#0
+00cf8     9F 44 39 F9 | 	        getword askip0,freqskip0,#1    	    
+00cfc     9F 42 31 F9 | 	        getword afreq0,freqskip0,#0
+00d00                 | 
+00d00     84 4C 95 F9 |             alts    cn, #time1
+00d04     00 50 01 F6 |             mov     dt0,0-0   
+00d08     83 50 81 F1 |             sub     dt0,time0
+00d0c                 | 
+00d0c     84 4C 8D F9 |             altd    cn, #time1
+00d10     A1 00 00 F1 |             add     0-0,afreq0  	
+00d14                 | 
+00d14     A2 32 01 F1 |             add     pointer0,askip0
+00d18     9D 32 19 F2 |             cmp     pointer0,lend0 wcz
+00d1c     9D 32 81 31 |     if_ge   sub     pointer0,lend0	        
+00d20     9C 32 01 31 |     if_ge   add     pointer0,lstart0       
+00d24     99 26 01 F6 |             mov     qq,pointer0
+00d28     9B 26 01 F1 |             add     qq,sstart0
+00d2c                 | 
+00d2c     1F 36 0D F4 |             testb   sstart0,#31 wz
+00d30                 | 
+00d30     93 28 C1 5A |     if_nz   rdbyte  spl,qq
+00d34     08 28 65 50 |     if_nz   shl     spl,#8
+00d38     93 28 E1 AA |     if_z    rdword  spl,qq
+00d3c                 | 
+00d3c     A3 28 31 FA |             scas    spl,avol0
+00d40     00 28 01 F6 |             mov     spl,0-0
+00d44                 |  
+00d44     A4 28 31 FA |             scas    spl,apan0
+00d48     00 52 01 F6 |             mov     ls0,0-0
+00d4c                 |  
+00d4c     AE 4C 8D F9 |             altd    cn,#ls1
+00d50     A9 00 00 F6 |             mov     0-0,ls0
+00d54                 |              
+00d54     20 00 00 FF 
+00d58     00 26 05 F6 |             mov     qq,##16384
+00d5c     A4 26 81 F1 |             sub     qq,apan0
+00d60     93 28 31 FA |             scas    spl,qq
+00d64     00 54 01 F6 |             mov     rs0, 0-0
+00d68                 | 
+00d68     B6 4C 8D F9 |             altd    cn,#rs1
+00d6c     AA 00 00 F6 |             mov     0-0,rs0
+00d70                 | 
+00d70     AA 34 29 F9 |             setword sample0,rs0,#1
+00d74     A9 34 21 F9 |             setword sample0,ls0,#0
+00d78                 |             
+00d78     1E 36 0D F4 |             testb   sstart0,#30 wz
+00d7c     14 00 90 5D |     if_nz   jmp     #p403
+00d80                 |             
+00d80     00 32 05 F6 |             mov    pointer0,#0  
+00d84     1E 36 05 F4 |             bitl   sstart0,#30
+00d88     08 F0 07 F1 |             add    ptra,#8
+00d8c     00 37 65 FC |             wrlong sstart0,ptra
+00d90     08 F0 87 F1 |             sub    ptra,#8
+00d94                 |  
+00d94     28 02 64 FD | p403        setq #1
+00d98                 |      
+00d98     00 33 65 FC |             wrlong  pointer0,ptra
+00d9c     91 F0 83 F1 |             sub     ptra, channeladd
+00da0     00 00 90 FD |             jmp     #p101
+00da4                 |                        
+00da4                 |             
+00da4                 |           
+00da4                 |             
+00da4                 | '------------------------ Channels end here --------------------       
+00da4                 | 
+00da4                 | ' Now add all channels and put the sample to the buffer    
+00da4                 | 
+00da4                 | 
+00da4     83 4A 09 F2 | p101        cmp     oldt0,time0 wz   ' There must not be 2 entries with the same time
+00da8     01 24 85 A1 |     if_z    sub     front,#1         ' 
+00dac     FF 25 05 A5 |     if_z    and     front,#511     
+00db0                 |            
+00db0                 |     
+00db0     00 5A 05 F6 |             mov     rs,#0            ' Mix all channels to rs and ls
+00db4     00 58 05 F6 |             mov     ls,#0
+00db8     B6 5A 01 F1 |             add     rs,rs1
+00dbc     B7 5A 01 F1 |             add     rs,rs2            'todo: in channel computing, mov rs to oldrs, hrer sub oldrs, abb newrs
+00dc0     B8 5A 01 F1 |             add     rs,rs3
+00dc4     B9 5A 01 F1 |             add     rs,rs4
+00dc8     BA 5A 01 F1 |             add     rs,rs5
+00dcc     BB 5A 01 F1 |             add     rs,rs6
+00dd0     BC 5A 01 F1 |             add     rs,rs7
+00dd4     BD 5A 01 F1 |             add     rs,rs8
+00dd8                 | 
+00dd8                 |            
+00dd8     AE 58 01 F1 |             add     ls,ls1
+00ddc     AF 58 01 F1 |             add     ls,ls2
+00de0     B0 58 01 F1 |             add     ls,ls3
+00de4     B1 58 01 F1 |             add     ls,ls4
+00de8     B2 58 01 F1 |             add     ls,ls5
+00dec     B3 58 01 F1 |             add     ls,ls6
+00df0     B4 58 01 F1 |             add     ls,ls7
+00df4     B5 58 01 F1 |             add     ls,ls8
+00df8                 | 
+00df8                 |  		
+00df8     0F 58 E5 F4 |             bitnot  ls,#15            ' convert to unsigned. TODO: compute and apply the gain for samples to not exceed 16 bit range
+00dfc     0F 5A E5 F4 |             bitnot  rs,#15		      ' and these with $FFFF if a filter should be applied
+00e00                 | 		    
+00e00     AC 5A 29 F9 |             setword rs,ls,#1         ' Pack L and R to one long    		
+00e04     AD 18 01 F6 |             mov newsample, rs
+00e08                 | 
+00e08     83 4A 01 F6 |             mov     oldt0,time0      ' update global time
+00e0c     A8 06 01 F1 |             add     time0,dt0    
+00e10                 | 
+00e10                 |             
+00e10                 |  
+00e10                 |                                      ' now push dt0 samples to the buffer
+00e10     00 50 0D F2 |             cmp      dt0,#0 wz
+00e14     84 FE 9F AD |     if_z    jmp      #loop1
+00e18     A8 1A 01 F6 |             mov      t1,dt0
+00e1c                 |   
+00e1c     F9 1D 01 F6 | p301        mov     t2,ptrb         ' Check if the buffer is full	
+00e20     01 1C 85 F1 |             sub     t2,#1
+00e24     FF 1D 05 F5 |             and     t2,#511
+00e28     92 1C 19 F2 |             cmp     t2,front wcz
+00e2c     EC FF 9F AD |     if_e    jmp     #p301    
+00e30                 |     
+00e30     92 18 31 FC |             wrlut   newsample, front
+00e34     01 24 05 F1 |             add     front,#1
+00e38     FF 25 05 F5 |             and     front,#511
+00e3c     F7 1B 6D FB |             djnz    t1,#p301
+00e40                 |             
+00e40     40 FE 9F FD |             jmp     #loop            'loop
+00e44                 | 
+00e44                 | '-------------------------------------------------------------------------
+00e44                 | '------------------ This is the end of the main loop ---------------------
+00e44                 | '-------------------------------------------------------------------------
+00e44                 | 
+00e44                 | '--------------------------------------------------------------------------
+00e44                 | '------ Interrupt service -------------------------------------------------
+00e44                 | '------ Output the sample, get the next one if exists ---------------------
+00e44                 | '--------------------------------------------------------------------------
+00e44                 | 
+00e44     0E 2A 25 FC | isr1        wypin   lsample,#left        '2     The sample has to be outputted every 90 cycles     
+00e48     0F 2C 25 FC |             wypin   rsample,#right       '4
+00e4c                 |            
+00e4c     92 F2 1B F2 |             cmp     ptrb,front wcz       '6    If the buffer is empty, do nothing 
+00e50     F5 FF 3B AB |     if_e    reti1                        '8/10
+00e54                 | 
+00e54     E1 2F A5 FA |             rdlut   lsnext,ptrb++        '11    else read the sample and its time from LUT
+00e58     97 2C 39 F9 |           	getword rsample,lsnext,#1    '13
+00e5c     97 2A 31 F9 |           	getword lsample,lsnext,#0    '15
+00e60     F5 FF 3B FB |             reti1                        '17/19 
+00e64                 |           
+00e64                 | '---------------------------------------------------------------------------
+00e64                 | '-------- End of interrupt -------------------------------------------------
+00e64                 | '---------------------------------------------------------------------------    
+00e64                 | 
+00e64                 | 
+00e64                 | '---------------------------------------------------------------------------
+00e64                 | '------- Variables ---------------------------------------------------------
+00e64                 | '---------------------------------------------------------------------------
+00e64                 | 
+00e64                 | ' constants
+00e64                 | 
+00e64                 | 
+00e64     00 00 00 10 | a20000000   long $10000000
+00e68     00 00 00 11 | a21000000   long $11000000  ' this const has to be immediately before time0 due to djnz loop initial pointer pointing one long before
+00e6c                 | 
+00e6c                 | ' Time variables
+00e6c                 | 
+00e6c     00 00 00 00 | time0       long 0    ' Global sample computing time
+00e70     01 00 00 00 | time1       long 1    ' Local channels time
+00e74     02 00 00 00 | time2       long 2
+00e78     03 00 00 00 | time3       long 3
+00e7c     04 00 00 00 | time4       long 4
+00e80     05 00 00 00 | time5       long 5
+00e84     06 00 00 00 | time6       long 6
+00e88     07 00 00 00 | time7       long 7
+00e8c     08 00 00 00 | time8       long 8
+00e90                 | 
+00e90                 | 
+00e90                 | 
+00e90     00 00 00 00 | newsample long 0
+00e94                 | '
+00e94     00 00 00 00 | t1 long 0
+00e98     00 00 00 00 | t2 long 0
+00e9c                 | '
+00e9c     00 00 00 00 | nrsample long 0
+00ea0     00 00 00 00 | nlsample long 0
+00ea4                 | '
+00ea4     00 00 00 00 | channeladd long 0
+00ea8                 | 
+00ea8                 | 
+00ea8     00 00 00 00 | front       long 0
+00eac                 | 
+00eac                 | ' temporary variables 
+00eac                 | '
+00eac     00 00 00 00 | qq          long 0
+00eb0     00 00 00 00 | spl         long 0
+00eb4                 | 
+00eb4                 | ' circular buffer in LUT
+00eb4                 | 
+00eb4                 | 
+00eb4                 | '
+00eb4                 | 
+00eb4                 | ' Interrupt ISR variables
+00eb4                 | 
+00eb4                 | 'counter     long $FFFFF800 ' this counter will overflow after 1210 seconds
+00eb4     00 00 00 00 | lsample     long 0
+00eb8     00 00 00 00 | rsample     long 0
+00ebc     00 00 00 00 | lsnext      long 0
+00ec0     00 00 00 00 | rsnext      long 0 
+00ec4                 | 'irqtime     long 0
+00ec4                 | 
+00ec4                 | 
+00ec4     00 00 00 00 | pointer0    long 0
+00ec8     00 00 00 00 | sample0     long 0
+00ecc     00 00 00 00 | sstart0     long 0     ' start pointer and type at bit 31
+00ed0     00 00 00 00 | lstart0     long 0
+00ed4     00 00 00 00 | lend0       long 0
+00ed8     00 00 00 00 | volpan0     long 0
+00edc     00 00 00 00 | freqskip0   long 0
+00ee0     00 00 00 00 | dummy long 0
+00ee4                 | 
+00ee4                 | 
+00ee4     00 00 00 00 | afreq0 long 0
+00ee8                 | 
+00ee8                 | 
+00ee8     00 00 00 00 | askip0 long 0
+00eec     00 00 00 00 | avol0 long 0
+00ef0     00 00 00 00 | apan0 long 0
+00ef4                 | 
+00ef4                 | 
+00ef4                 | 
+00ef4                 | 
+00ef4     FF FF FF FF | oldt0       long $FFFFFFFF    'Temporary time variables
+00ef8     00 00 00 00 | cn          long 0
+00efc     00 00 00 00 | ct          long 0
+00f00     00 00 00 00 | dt0         long 0
+00f04                 | 
+00f04                 | ' Samples
+00f04     00 00 00 00 | ls0 long 0
+00f08     00 00 00 00 | rs0 long 0
+00f0c     00 00 00 00 | channel long 0
+00f10     00 00 00 00 | ls          long 0    ' Global sample variable
+00f14     00 00 00 00 | rs          long 0
+00f18                 | 
+00f18     00 00 00 00 | ls1         long 0    ' Channel samples
+00f1c     00 00 00 00 | ls2         long 0
+00f20     00 00 00 00 | ls3         long 0
+00f24     00 00 00 00 | ls4         long 0
+00f28     00 00 00 00 | ls5         long 0
+00f2c     00 00 00 00 | ls6         long 0
+00f30     00 00 00 00 | ls7         long 0
+00f34     00 00 00 00 | ls8         long 0
+00f38     00 00 00 00 | rs1         long 0
+00f3c     00 00 00 00 | rs2         long 0
+00f40     00 00 00 00 | rs3         long 0
+00f44     00 00 00 00 | rs4         long 0
+00f48     00 00 00 00 | rs5         long 0
+00f4c     00 00 00 00 | rs6         long 0
+00f50     00 00 00 00 | rs7         long 0
+00f54     00 00 00 00 | rs8         long 0
+00f58                 | 
+00f58     44 00 17 00 | dac         long %10111_00000000_01_00010_0     'random dither, as 90 cycles period needed
+00f5c                 | 
+00f5c     00 00 00 00 
+00f60     00 00 00 00 | null  			long 	0,0           ' for channel reset
+00f64     73 32 00 04 
+00f68     00 00 10 00 
+00f6c     00 00 00 00 
+00f70     00 00 00 00 | sinewave 		file 	"sinus.s2"    ' for testing
+00f74     00 00 C9 00 
+00f78     92 01 5B 02 
+00f7c     24 03 ED 03 
+00f80     B6 04 7F 05 | 	byte	$00, $00, $c9, $00, $92, $01, $5b, $02, $24, $03, $ed, $03, $b6, $04, $7f, $05
+00f84     48 06 11 07 
+00f88     D9 07 A2 08 
+00f8c     6A 09 33 0A 
+00f90     FB 0A C4 0B | 	byte	$48, $06, $11, $07, $d9, $07, $a2, $08, $6a, $09, $33, $0a, $fb, $0a, $c4, $0b
+00f94     8C 0C 54 0D 
+00f98     1C 0E E3 0E 
+00f9c     AB 0F 72 10 
+00fa0     3A 11 01 12 | 	byte	$8c, $0c, $54, $0d, $1c, $0e, $e3, $0e, $ab, $0f, $72, $10, $3a, $11, $01, $12
+00fa4     C8 12 8F 13 
+00fa8     55 14 1C 15 
+00fac     E2 15 A8 16 
+00fb0     6E 17 33 18 | 	byte	$c8, $12, $8f, $13, $55, $14, $1c, $15, $e2, $15, $a8, $16, $6e, $17, $33, $18
+00fb4     F9 18 BE 19 
+00fb8     82 1A 47 1B 
+00fbc     0B 1C CF 1C 
+00fc0     93 1D 57 1E | 	byte	$f9, $18, $be, $19, $82, $1a, $47, $1b, $0b, $1c, $cf, $1c, $93, $1d, $57, $1e
+00fc4     1A 1F DD 1F 
+00fc8     9F 20 61 21 
+00fcc     23 22 E5 22 
+00fd0     A6 23 67 24 | 	byte	$1a, $1f, $dd, $1f, $9f, $20, $61, $21, $23, $22, $e5, $22, $a6, $23, $67, $24
+00fd4     28 25 E8 25 
+00fd8     A8 26 67 27 
+00fdc     26 28 E5 28 
+00fe0     A3 29 61 2A | 	byte	$28, $25, $e8, $25, $a8, $26, $67, $27, $26, $28, $e5, $28, $a3, $29, $61, $2a
+00fe4     1F 2B DC 2B 
+00fe8     99 2C 55 2D 
+00fec     11 2E CC 2E 
+00ff0     87 2F 41 30 | 	byte	$1f, $2b, $dc, $2b, $99, $2c, $55, $2d, $11, $2e, $cc, $2e, $87, $2f, $41, $30
+00ff4     FB 30 B5 31 
+00ff8     6E 32 26 33 
+00ffc     DF 33 96 34 
+01000     4D 35 04 36 | 	byte	$fb, $30, $b5, $31, $6e, $32, $26, $33, $df, $33, $96, $34, $4d, $35, $04, $36
+01004     BA 36 6F 37 
+01008     24 38 D9 38 
+0100c     8C 39 40 3A 
+01010     F2 3A A5 3B | 	byte	$ba, $36, $6f, $37, $24, $38, $d9, $38, $8c, $39, $40, $3a, $f2, $3a, $a5, $3b
+01014     56 3C 07 3D 
+01018     B8 3D 68 3E 
+0101c     17 3F C5 3F 
+01020     73 40 21 41 | 	byte	$56, $3c, $07, $3d, $b8, $3d, $68, $3e, $17, $3f, $c5, $3f, $73, $40, $21, $41
+01024     CE 41 7A 42 
+01028     25 43 D0 43 
+0102c     7A 44 24 45 
+01030     CD 45 75 46 | 	byte	$ce, $41, $7a, $42, $25, $43, $d0, $43, $7a, $44, $24, $45, $cd, $45, $75, $46
+01034     1C 47 C3 47 
+01038     69 48 0F 49 
+0103c     B4 49 58 4A 
+01040     FB 4A 9D 4B | 	byte	$1c, $47, $c3, $47, $69, $48, $0f, $49, $b4, $49, $58, $4a, $fb, $4a, $9d, $4b
+01044     3F 4C E0 4C 
+01048     81 4D 20 4E 
+0104c     BF 4E 5D 4F 
+01050     FB 4F 97 50 | 	byte	$3f, $4c, $e0, $4c, $81, $4d, $20, $4e, $bf, $4e, $5d, $4f, $fb, $4f, $97, $50
+01054     33 51 CE 51 
+01058     68 52 02 53 
+0105c     9B 53 32 54 
+01060     C9 54 60 55 | 	byte	$33, $51, $ce, $51, $68, $52, $02, $53, $9b, $53, $32, $54, $c9, $54, $60, $55
+01064     F5 55 8A 56 
+01068     1D 57 B0 57 
+0106c     42 58 D3 58 
+01070     64 59 F3 59 | 	byte	$f5, $55, $8a, $56, $1d, $57, $b0, $57, $42, $58, $d3, $58, $64, $59, $f3, $59
+01074     82 5A 0F 5B 
+01078     9C 5B 28 5C 
+0107c     B3 5C 3E 5D 
+01080     C7 5D 4F 5E | 	byte	$82, $5a, $0f, $5b, $9c, $5b, $28, $5c, $b3, $5c, $3e, $5d, $c7, $5d, $4f, $5e
+01084     D7 5E 5D 5F 
+01088     E3 5F 68 60 
+0108c     EB 60 6E 61 
+01090     F0 61 71 62 | 	byte	$d7, $5e, $5d, $5f, $e3, $5f, $68, $60, $eb, $60, $6e, $61, $f0, $61, $71, $62
+01094     F1 62 70 63 
+01098     EE 63 6C 64 
+0109c     E8 64 63 65 
+010a0     DD 65 56 66 | 	byte	$f1, $62, $70, $63, $ee, $63, $6c, $64, $e8, $64, $63, $65, $dd, $65, $56, $66
+010a4     CF 66 46 67 
+010a8     BC 67 32 68 
+010ac     A6 68 19 69 
+010b0     8B 69 FD 69 | 	byte	$cf, $66, $46, $67, $bc, $67, $32, $68, $a6, $68, $19, $69, $8b, $69, $fd, $69
+010b4     6D 6A DC 6A 
+010b8     4A 6B B7 6B 
+010bc     23 6C 8E 6C 
+010c0     F8 6C 61 6D | 	byte	$6d, $6a, $dc, $6a, $4a, $6b, $b7, $6b, $23, $6c, $8e, $6c, $f8, $6c, $61, $6d
+010c4     C9 6D 30 6E 
+010c8     96 6E FB 6E 
+010cc     5E 6F C1 6F 
+010d0     22 70 83 70 | 	byte	$c9, $6d, $30, $6e, $96, $6e, $fb, $6e, $5e, $6f, $c1, $6f, $22, $70, $83, $70
+010d4     E2 70 40 71 
+010d8     9D 71 F9 71 
+010dc     54 72 AE 72 
+010e0     07 73 5E 73 | 	byte	$e2, $70, $40, $71, $9d, $71, $f9, $71, $54, $72, $ae, $72, $07, $73, $5e, $73
+010e4     B5 73 0A 74 
+010e8     5F 74 B2 74 
+010ec     04 75 55 75 
+010f0     A5 75 F3 75 | 	byte	$b5, $73, $0a, $74, $5f, $74, $b2, $74, $04, $75, $55, $75, $a5, $75, $f3, $75
+010f4     41 76 8D 76 
+010f8     D8 76 22 77 
+010fc     6B 77 B3 77 
+01100     FA 77 3F 78 | 	byte	$41, $76, $8d, $76, $d8, $76, $22, $77, $6b, $77, $b3, $77, $fa, $77, $3f, $78
+01104     84 78 C7 78 
+01108     09 79 4A 79 
+0110c     89 79 C8 79 
+01110     05 7A 41 7A | 	byte	$84, $78, $c7, $78, $09, $79, $4a, $79, $89, $79, $c8, $79, $05, $7a, $41, $7a
+01114     7C 7A B6 7A 
+01118     EE 7A 26 7B 
+0111c     5C 7B 91 7B 
+01120     C5 7B F8 7B | 	byte	$7c, $7a, $b6, $7a, $ee, $7a, $26, $7b, $5c, $7b, $91, $7b, $c5, $7b, $f8, $7b
+01124     29 7C 59 7C 
+01128     88 7C B6 7C 
+0112c     E3 7C 0E 7D 
+01130     39 7D 62 7D | 	byte	$29, $7c, $59, $7c, $88, $7c, $b6, $7c, $e3, $7c, $0e, $7d, $39, $7d, $62, $7d
+01134     89 7D B0 7D 
+01138     D5 7D FA 7D 
+0113c     1D 7E 3E 7E 
+01140     5F 7E 7E 7E | 	byte	$89, $7d, $b0, $7d, $d5, $7d, $fa, $7d, $1d, $7e, $3e, $7e, $5f, $7e, $7e, $7e
+01144     9C 7E B9 7E 
+01148     D5 7E EF 7E 
+0114c     09 7F 21 7F 
+01150     37 7F 4D 7F | 	byte	$9c, $7e, $b9, $7e, $d5, $7e, $ef, $7e, $09, $7f, $21, $7f, $37, $7f, $4d, $7f
+01154     61 7F 74 7F 
+01158     86 7F 97 7F 
+0115c     A6 7F B4 7F 
+01160     C1 7F CD 7F | 	byte	$61, $7f, $74, $7f, $86, $7f, $97, $7f, $a6, $7f, $b4, $7f, $c1, $7f, $cd, $7f
+01164     D8 7F E1 7F 
+01168     E9 7F F0 7F 
+0116c     F5 7F F9 7F 
+01170     FD 7F FE 7F | 	byte	$d8, $7f, $e1, $7f, $e9, $7f, $f0, $7f, $f5, $7f, $f9, $7f, $fd, $7f, $fe, $7f
+01174     FF 7F FE 7F 
+01178     FD 7F F9 7F 
+0117c     F5 7F F0 7F 
+01180     E9 7F E1 7F | 	byte	$ff, $7f, $fe, $7f, $fd, $7f, $f9, $7f, $f5, $7f, $f0, $7f, $e9, $7f, $e1, $7f
+01184     D8 7F CD 7F 
+01188     C1 7F B4 7F 
+0118c     A6 7F 97 7F 
+01190     86 7F 74 7F | 	byte	$d8, $7f, $cd, $7f, $c1, $7f, $b4, $7f, $a6, $7f, $97, $7f, $86, $7f, $74, $7f
+01194     61 7F 4D 7F 
+01198     37 7F 21 7F 
+0119c     09 7F EF 7E 
+011a0     D5 7E B9 7E | 	byte	$61, $7f, $4d, $7f, $37, $7f, $21, $7f, $09, $7f, $ef, $7e, $d5, $7e, $b9, $7e
+011a4     9C 7E 7E 7E 
+011a8     5F 7E 3E 7E 
+011ac     1D 7E FA 7D 
+011b0     D5 7D B0 7D | 	byte	$9c, $7e, $7e, $7e, $5f, $7e, $3e, $7e, $1d, $7e, $fa, $7d, $d5, $7d, $b0, $7d
+011b4     89 7D 62 7D 
+011b8     39 7D 0E 7D 
+011bc     E3 7C B6 7C 
+011c0     88 7C 59 7C | 	byte	$89, $7d, $62, $7d, $39, $7d, $0e, $7d, $e3, $7c, $b6, $7c, $88, $7c, $59, $7c
+011c4     29 7C F8 7B 
+011c8     C5 7B 91 7B 
+011cc     5C 7B 26 7B 
+011d0     EE 7A B6 7A | 	byte	$29, $7c, $f8, $7b, $c5, $7b, $91, $7b, $5c, $7b, $26, $7b, $ee, $7a, $b6, $7a
+011d4     7C 7A 41 7A 
+011d8     05 7A C8 79 
+011dc     89 79 4A 79 
+011e0     09 79 C7 78 | 	byte	$7c, $7a, $41, $7a, $05, $7a, $c8, $79, $89, $79, $4a, $79, $09, $79, $c7, $78
+011e4     84 78 3F 78 
+011e8     FA 77 B3 77 
+011ec     6B 77 22 77 
+011f0     D8 76 8D 76 | 	byte	$84, $78, $3f, $78, $fa, $77, $b3, $77, $6b, $77, $22, $77, $d8, $76, $8d, $76
+011f4     41 76 F3 75 
+011f8     A5 75 55 75 
+011fc     04 75 B2 74 
+01200     5F 74 0A 74 | 	byte	$41, $76, $f3, $75, $a5, $75, $55, $75, $04, $75, $b2, $74, $5f, $74, $0a, $74
+01204     B5 73 5E 73 
+01208     07 73 AE 72 
+0120c     54 72 F9 71 
+01210     9D 71 40 71 | 	byte	$b5, $73, $5e, $73, $07, $73, $ae, $72, $54, $72, $f9, $71, $9d, $71, $40, $71
+01214     E2 70 83 70 
+01218     22 70 C1 6F 
+0121c     5E 6F FB 6E 
+01220     96 6E 30 6E | 	byte	$e2, $70, $83, $70, $22, $70, $c1, $6f, $5e, $6f, $fb, $6e, $96, $6e, $30, $6e
+01224     C9 6D 61 6D 
+01228     F8 6C 8E 6C 
+0122c     23 6C B7 6B 
+01230     4A 6B DC 6A | 	byte	$c9, $6d, $61, $6d, $f8, $6c, $8e, $6c, $23, $6c, $b7, $6b, $4a, $6b, $dc, $6a
+01234     6D 6A FD 69 
+01238     8B 69 19 69 
+0123c     A6 68 32 68 
+01240     BC 67 46 67 | 	byte	$6d, $6a, $fd, $69, $8b, $69, $19, $69, $a6, $68, $32, $68, $bc, $67, $46, $67
+01244     CF 66 56 66 
+01248     DD 65 63 65 
+0124c     E8 64 6C 64 
+01250     EE 63 70 63 | 	byte	$cf, $66, $56, $66, $dd, $65, $63, $65, $e8, $64, $6c, $64, $ee, $63, $70, $63
+01254     F1 62 71 62 
+01258     F0 61 6E 61 
+0125c     EB 60 68 60 
+01260     E3 5F 5D 5F | 	byte	$f1, $62, $71, $62, $f0, $61, $6e, $61, $eb, $60, $68, $60, $e3, $5f, $5d, $5f
+01264     D7 5E 4F 5E 
+01268     C7 5D 3E 5D 
+0126c     B3 5C 28 5C 
+01270     9C 5B 0F 5B | 	byte	$d7, $5e, $4f, $5e, $c7, $5d, $3e, $5d, $b3, $5c, $28, $5c, $9c, $5b, $0f, $5b
+01274     82 5A F3 59 
+01278     64 59 D3 58 
+0127c     42 58 B0 57 
+01280     1D 57 8A 56 | 	byte	$82, $5a, $f3, $59, $64, $59, $d3, $58, $42, $58, $b0, $57, $1d, $57, $8a, $56
+01284     F5 55 60 55 
+01288     C9 54 32 54 
+0128c     9B 53 02 53 
+01290     68 52 CE 51 | 	byte	$f5, $55, $60, $55, $c9, $54, $32, $54, $9b, $53, $02, $53, $68, $52, $ce, $51
+01294     33 51 97 50 
+01298     FB 4F 5D 4F 
+0129c     BF 4E 20 4E 
+012a0     81 4D E0 4C | 	byte	$33, $51, $97, $50, $fb, $4f, $5d, $4f, $bf, $4e, $20, $4e, $81, $4d, $e0, $4c
+012a4     3F 4C 9D 4B 
+012a8     FB 4A 58 4A 
+012ac     B4 49 0F 49 
+012b0     69 48 C3 47 | 	byte	$3f, $4c, $9d, $4b, $fb, $4a, $58, $4a, $b4, $49, $0f, $49, $69, $48, $c3, $47
+012b4     1C 47 75 46 
+012b8     CD 45 24 45 
+012bc     7A 44 D0 43 
+012c0     25 43 7A 42 | 	byte	$1c, $47, $75, $46, $cd, $45, $24, $45, $7a, $44, $d0, $43, $25, $43, $7a, $42
+012c4     CE 41 21 41 
+012c8     73 40 C5 3F 
+012cc     17 3F 68 3E 
+012d0     B8 3D 07 3D | 	byte	$ce, $41, $21, $41, $73, $40, $c5, $3f, $17, $3f, $68, $3e, $b8, $3d, $07, $3d
+012d4     56 3C A5 3B 
+012d8     F2 3A 40 3A 
+012dc     8C 39 D9 38 
+012e0     24 38 6F 37 | 	byte	$56, $3c, $a5, $3b, $f2, $3a, $40, $3a, $8c, $39, $d9, $38, $24, $38, $6f, $37
+012e4     BA 36 04 36 
+012e8     4D 35 96 34 
+012ec     DF 33 26 33 
+012f0     6E 32 B5 31 | 	byte	$ba, $36, $04, $36, $4d, $35, $96, $34, $df, $33, $26, $33, $6e, $32, $b5, $31
+012f4     FB 30 41 30 
+012f8     87 2F CC 2E 
+012fc     11 2E 55 2D 
+01300     99 2C DC 2B | 	byte	$fb, $30, $41, $30, $87, $2f, $cc, $2e, $11, $2e, $55, $2d, $99, $2c, $dc, $2b
+01304     1F 2B 61 2A 
+01308     A3 29 E5 28 
+0130c     26 28 67 27 
+01310     A8 26 E8 25 | 	byte	$1f, $2b, $61, $2a, $a3, $29, $e5, $28, $26, $28, $67, $27, $a8, $26, $e8, $25
+01314     28 25 67 24 
+01318     A6 23 E5 22 
+0131c     23 22 61 21 
+01320     9F 20 DD 1F | 	byte	$28, $25, $67, $24, $a6, $23, $e5, $22, $23, $22, $61, $21, $9f, $20, $dd, $1f
+01324     1A 1F 57 1E 
+01328     93 1D CF 1C 
+0132c     0B 1C 47 1B 
+01330     82 1A BE 19 | 	byte	$1a, $1f, $57, $1e, $93, $1d, $cf, $1c, $0b, $1c, $47, $1b, $82, $1a, $be, $19
+01334     F9 18 33 18 
+01338     6E 17 A8 16 
+0133c     E2 15 1C 15 
+01340     55 14 8F 13 | 	byte	$f9, $18, $33, $18, $6e, $17, $a8, $16, $e2, $15, $1c, $15, $55, $14, $8f, $13
+01344     C8 12 01 12 
+01348     3A 11 72 10 
+0134c     AB 0F E3 0E 
+01350     1C 0E 54 0D | 	byte	$c8, $12, $01, $12, $3a, $11, $72, $10, $ab, $0f, $e3, $0e, $1c, $0e, $54, $0d
+01354     8C 0C C4 0B 
+01358     FB 0A 33 0A 
+0135c     6A 09 A2 08 
+01360     D9 07 11 07 | 	byte	$8c, $0c, $c4, $0b, $fb, $0a, $33, $0a, $6a, $09, $a2, $08, $d9, $07, $11, $07
+01364     48 06 7F 05 
+01368     B6 04 ED 03 
+0136c     24 03 5B 02 
+01370     92 01 C9 00 | 	byte	$48, $06, $7f, $05, $b6, $04, $ed, $03, $24, $03, $5b, $02, $92, $01, $c9, $00
+01374     00 00 37 FF 
+01378     6E FE A5 FD 
+0137c     DC FC 13 FC 
+01380     4A FB 81 FA | 	byte	$00, $00, $37, $ff, $6e, $fe, $a5, $fd, $dc, $fc, $13, $fc, $4a, $fb, $81, $fa
+01384     B8 F9 EF F8 
+01388     27 F8 5E F7 
+0138c     96 F6 CD F5 
+01390     05 F5 3C F4 | 	byte	$b8, $f9, $ef, $f8, $27, $f8, $5e, $f7, $96, $f6, $cd, $f5, $05, $f5, $3c, $f4
+01394     74 F3 AC F2 
+01398     E4 F1 1D F1 
+0139c     55 F0 8E EF 
+013a0     C6 EE FF ED | 	byte	$74, $f3, $ac, $f2, $e4, $f1, $1d, $f1, $55, $f0, $8e, $ef, $c6, $ee, $ff, $ed
+013a4     38 ED 71 EC 
+013a8     AB EB E4 EA 
+013ac     1E EA 58 E9 
+013b0     92 E8 CD E7 | 	byte	$38, $ed, $71, $ec, $ab, $eb, $e4, $ea, $1e, $ea, $58, $e9, $92, $e8, $cd, $e7
+013b4     07 E7 42 E6 
+013b8     7E E5 B9 E4 
+013bc     F5 E3 31 E3 
+013c0     6D E2 A9 E1 | 	byte	$07, $e7, $42, $e6, $7e, $e5, $b9, $e4, $f5, $e3, $31, $e3, $6d, $e2, $a9, $e1
+013c4     E6 E0 23 E0 
+013c8     61 DF 9F DE 
+013cc     DD DD 1B DD 
+013d0     5A DC 99 DB | 	byte	$e6, $e0, $23, $e0, $61, $df, $9f, $de, $dd, $dd, $1b, $dd, $5a, $dc, $99, $db
+013d4     D8 DA 18 DA 
+013d8     58 D9 99 D8 
+013dc     DA D7 1B D7 
+013e0     5D D6 9F D5 | 	byte	$d8, $da, $18, $da, $58, $d9, $99, $d8, $da, $d7, $1b, $d7, $5d, $d6, $9f, $d5
+013e4     E1 D4 24 D4 
+013e8     67 D3 AB D2 
+013ec     EF D1 34 D1 
+013f0     79 D0 BF CF | 	byte	$e1, $d4, $24, $d4, $67, $d3, $ab, $d2, $ef, $d1, $34, $d1, $79, $d0, $bf, $cf
+013f4     05 CF 4B CE 
+013f8     92 CD DA CC 
+013fc     21 CC 6A CB 
+01400     B3 CA FC C9 | 	byte	$05, $cf, $4b, $ce, $92, $cd, $da, $cc, $21, $cc, $6a, $cb, $b3, $ca, $fc, $c9
+01404     46 C9 91 C8 
+01408     DC C7 27 C7 
+0140c     74 C6 C0 C5 
+01410     0E C5 5B C4 | 	byte	$46, $c9, $91, $c8, $dc, $c7, $27, $c7, $74, $c6, $c0, $c5, $0e, $c5, $5b, $c4
+01414     AA C3 F9 C2 
+01418     48 C2 98 C1 
+0141c     E9 C0 3B C0 
+01420     8D BF DF BE | 	byte	$aa, $c3, $f9, $c2, $48, $c2, $98, $c1, $e9, $c0, $3b, $c0, $8d, $bf, $df, $be
+01424     32 BE 86 BD 
+01428     DB BC 30 BC 
+0142c     86 BB DC BA 
+01430     33 BA 8B B9 | 	byte	$32, $be, $86, $bd, $db, $bc, $30, $bc, $86, $bb, $dc, $ba, $33, $ba, $8b, $b9
+01434     E4 B8 3D B8 
+01438     97 B7 F1 B6 
+0143c     4C B6 A8 B5 
+01440     05 B5 63 B4 | 	byte	$e4, $b8, $3d, $b8, $97, $b7, $f1, $b6, $4c, $b6, $a8, $b5, $05, $b5, $63, $b4
+01444     C1 B3 20 B3 
+01448     7F B2 E0 B1 
+0144c     41 B1 A3 B0 
+01450     05 B0 69 AF | 	byte	$c1, $b3, $20, $b3, $7f, $b2, $e0, $b1, $41, $b1, $a3, $b0, $05, $b0, $69, $af
+01454     CD AE 32 AE 
+01458     98 AD FE AC 
+0145c     65 AC CE AB 
+01460     37 AB A0 AA | 	byte	$cd, $ae, $32, $ae, $98, $ad, $fe, $ac, $65, $ac, $ce, $ab, $37, $ab, $a0, $aa
+01464     0B AA 76 A9 
+01468     E3 A8 50 A8 
+0146c     BE A7 2D A7 
+01470     9C A6 0D A6 | 	byte	$0b, $aa, $76, $a9, $e3, $a8, $50, $a8, $be, $a7, $2d, $a7, $9c, $a6, $0d, $a6
+01474     7E A5 F1 A4 
+01478     64 A4 D8 A3 
+0147c     4D A3 C2 A2 
+01480     39 A2 B1 A1 | 	byte	$7e, $a5, $f1, $a4, $64, $a4, $d8, $a3, $4d, $a3, $c2, $a2, $39, $a2, $b1, $a1
+01484     29 A1 A3 A0 
+01488     1D A0 98 9F 
+0148c     15 9F 92 9E 
+01490     10 9E 8F 9D | 	byte	$29, $a1, $a3, $a0, $1d, $a0, $98, $9f, $15, $9f, $92, $9e, $10, $9e, $8f, $9d
+01494     0F 9D 90 9C 
+01498     12 9C 94 9B 
+0149c     18 9B 9D 9A 
+014a0     23 9A AA 99 | 	byte	$0f, $9d, $90, $9c, $12, $9c, $94, $9b, $18, $9b, $9d, $9a, $23, $9a, $aa, $99
+014a4     31 99 BA 98 
+014a8     44 98 CE 97 
+014ac     5A 97 E7 96 
+014b0     75 96 03 96 | 	byte	$31, $99, $ba, $98, $44, $98, $ce, $97, $5a, $97, $e7, $96, $75, $96, $03, $96
+014b4     93 95 24 95 
+014b8     B6 94 49 94 
+014bc     DD 93 72 93 
+014c0     08 93 9F 92 | 	byte	$93, $95, $24, $95, $b6, $94, $49, $94, $dd, $93, $72, $93, $08, $93, $9f, $92
+014c4     37 92 D0 91 
+014c8     6A 91 05 91 
+014cc     A2 90 3F 90 
+014d0     DE 8F 7D 8F | 	byte	$37, $92, $d0, $91, $6a, $91, $05, $91, $a2, $90, $3f, $90, $de, $8f, $7d, $8f
+014d4     1E 8F C0 8E 
+014d8     63 8E 07 8E 
+014dc     AC 8D 52 8D 
+014e0     F9 8C A2 8C | 	byte	$1e, $8f, $c0, $8e, $63, $8e, $07, $8e, $ac, $8d, $52, $8d, $f9, $8c, $a2, $8c
+014e4     4B 8C F6 8B 
+014e8     A1 8B 4E 8B 
+014ec     FC 8A AB 8A 
+014f0     5B 8A 0D 8A | 	byte	$4b, $8c, $f6, $8b, $a1, $8b, $4e, $8b, $fc, $8a, $ab, $8a, $5b, $8a, $0d, $8a
+014f4     BF 89 73 89 
+014f8     28 89 DE 88 
+014fc     95 88 4D 88 
+01500     06 88 C1 87 | 	byte	$bf, $89, $73, $89, $28, $89, $de, $88, $95, $88, $4d, $88, $06, $88, $c1, $87
+01504     7C 87 39 87 
+01508     F7 86 B6 86 
+0150c     77 86 38 86 
+01510     FB 85 BF 85 | 	byte	$7c, $87, $39, $87, $f7, $86, $b6, $86, $77, $86, $38, $86, $fb, $85, $bf, $85
+01514     84 85 4A 85 
+01518     12 85 DA 84 
+0151c     A4 84 6F 84 
+01520     3B 84 08 84 | 	byte	$84, $85, $4a, $85, $12, $85, $da, $84, $a4, $84, $6f, $84, $3b, $84, $08, $84
+01524     D7 83 A7 83 
+01528     78 83 4A 83 
+0152c     1D 83 F2 82 
+01530     C7 82 9E 82 | 	byte	$d7, $83, $a7, $83, $78, $83, $4a, $83, $1d, $83, $f2, $82, $c7, $82, $9e, $82
+01534     77 82 50 82 
+01538     2B 82 06 82 
+0153c     E3 81 C2 81 
+01540     A1 81 82 81 | 	byte	$77, $82, $50, $82, $2b, $82, $06, $82, $e3, $81, $c2, $81, $a1, $81, $82, $81
+01544     64 81 47 81 
+01548     2B 81 11 81 
+0154c     F7 80 DF 80 
+01550     C9 80 B3 80 | 	byte	$64, $81, $47, $81, $2b, $81, $11, $81, $f7, $80, $df, $80, $c9, $80, $b3, $80
+01554     9F 80 8C 80 
+01558     7A 80 69 80 
+0155c     5A 80 4C 80 
+01560     3F 80 33 80 | 	byte	$9f, $80, $8c, $80, $7a, $80, $69, $80, $5a, $80, $4c, $80, $3f, $80, $33, $80
+01564     28 80 1F 80 
+01568     17 80 10 80 
+0156c     0B 80 07 80 
+01570     03 80 02 80 | 	byte	$28, $80, $1f, $80, $17, $80, $10, $80, $0b, $80, $07, $80, $03, $80, $02, $80
+01574     01 80 02 80 
+01578     03 80 07 80 
+0157c     0B 80 10 80 
+01580     17 80 1F 80 | 	byte	$01, $80, $02, $80, $03, $80, $07, $80, $0b, $80, $10, $80, $17, $80, $1f, $80
+01584     28 80 33 80 
+01588     3F 80 4C 80 
+0158c     5A 80 69 80 
+01590     7A 80 8C 80 | 	byte	$28, $80, $33, $80, $3f, $80, $4c, $80, $5a, $80, $69, $80, $7a, $80, $8c, $80
+01594     9F 80 B3 80 
+01598     C9 80 DF 80 
+0159c     F7 80 11 81 
+015a0     2B 81 47 81 | 	byte	$9f, $80, $b3, $80, $c9, $80, $df, $80, $f7, $80, $11, $81, $2b, $81, $47, $81
+015a4     64 81 82 81 
+015a8     A1 81 C2 81 
+015ac     E3 81 06 82 
+015b0     2B 82 50 82 | 	byte	$64, $81, $82, $81, $a1, $81, $c2, $81, $e3, $81, $06, $82, $2b, $82, $50, $82
+015b4     77 82 9E 82 
+015b8     C7 82 F2 82 
+015bc     1D 83 4A 83 
+015c0     78 83 A7 83 | 	byte	$77, $82, $9e, $82, $c7, $82, $f2, $82, $1d, $83, $4a, $83, $78, $83, $a7, $83
+015c4     D7 83 08 84 
+015c8     3B 84 6F 84 
+015cc     A4 84 DA 84 
+015d0     12 85 4A 85 | 	byte	$d7, $83, $08, $84, $3b, $84, $6f, $84, $a4, $84, $da, $84, $12, $85, $4a, $85
+015d4     84 85 BF 85 
+015d8     FB 85 38 86 
+015dc     77 86 B6 86 
+015e0     F7 86 39 87 | 	byte	$84, $85, $bf, $85, $fb, $85, $38, $86, $77, $86, $b6, $86, $f7, $86, $39, $87
+015e4     7C 87 C1 87 
+015e8     06 88 4D 88 
+015ec     95 88 DE 88 
+015f0     28 89 73 89 | 	byte	$7c, $87, $c1, $87, $06, $88, $4d, $88, $95, $88, $de, $88, $28, $89, $73, $89
+015f4     BF 89 0D 8A 
+015f8     5B 8A AB 8A 
+015fc     FC 8A 4E 8B 
+01600     A1 8B F6 8B | 	byte	$bf, $89, $0d, $8a, $5b, $8a, $ab, $8a, $fc, $8a, $4e, $8b, $a1, $8b, $f6, $8b
+01604     4B 8C A2 8C 
+01608     F9 8C 52 8D 
+0160c     AC 8D 07 8E 
+01610     63 8E C0 8E | 	byte	$4b, $8c, $a2, $8c, $f9, $8c, $52, $8d, $ac, $8d, $07, $8e, $63, $8e, $c0, $8e
+01614     1E 8F 7D 8F 
+01618     DE 8F 3F 90 
+0161c     A2 90 05 91 
+01620     6A 91 D0 91 | 	byte	$1e, $8f, $7d, $8f, $de, $8f, $3f, $90, $a2, $90, $05, $91, $6a, $91, $d0, $91
+01624     37 92 9F 92 
+01628     08 93 72 93 
+0162c     DD 93 49 94 
+01630     B6 94 24 95 | 	byte	$37, $92, $9f, $92, $08, $93, $72, $93, $dd, $93, $49, $94, $b6, $94, $24, $95
+01634     93 95 03 96 
+01638     75 96 E7 96 
+0163c     5A 97 CE 97 
+01640     44 98 BA 98 | 	byte	$93, $95, $03, $96, $75, $96, $e7, $96, $5a, $97, $ce, $97, $44, $98, $ba, $98
+01644     31 99 AA 99 
+01648     23 9A 9D 9A 
+0164c     18 9B 94 9B 
+01650     12 9C 90 9C | 	byte	$31, $99, $aa, $99, $23, $9a, $9d, $9a, $18, $9b, $94, $9b, $12, $9c, $90, $9c
+01654     0F 9D 8F 9D 
+01658     10 9E 92 9E 
+0165c     15 9F 98 9F 
+01660     1D A0 A3 A0 | 	byte	$0f, $9d, $8f, $9d, $10, $9e, $92, $9e, $15, $9f, $98, $9f, $1d, $a0, $a3, $a0
+01664     29 A1 B1 A1 
+01668     39 A2 C2 A2 
+0166c     4D A3 D8 A3 
+01670     64 A4 F1 A4 | 	byte	$29, $a1, $b1, $a1, $39, $a2, $c2, $a2, $4d, $a3, $d8, $a3, $64, $a4, $f1, $a4
+01674     7E A5 0D A6 
+01678     9C A6 2D A7 
+0167c     BE A7 50 A8 
+01680     E3 A8 76 A9 | 	byte	$7e, $a5, $0d, $a6, $9c, $a6, $2d, $a7, $be, $a7, $50, $a8, $e3, $a8, $76, $a9
+01684     0B AA A0 AA 
+01688     37 AB CE AB 
+0168c     65 AC FE AC 
+01690     98 AD 32 AE | 	byte	$0b, $aa, $a0, $aa, $37, $ab, $ce, $ab, $65, $ac, $fe, $ac, $98, $ad, $32, $ae
+01694     CD AE 69 AF 
+01698     05 B0 A3 B0 
+0169c     41 B1 E0 B1 
+016a0     7F B2 20 B3 | 	byte	$cd, $ae, $69, $af, $05, $b0, $a3, $b0, $41, $b1, $e0, $b1, $7f, $b2, $20, $b3
+016a4     C1 B3 63 B4 
+016a8     05 B5 A8 B5 
+016ac     4C B6 F1 B6 
+016b0     97 B7 3D B8 | 	byte	$c1, $b3, $63, $b4, $05, $b5, $a8, $b5, $4c, $b6, $f1, $b6, $97, $b7, $3d, $b8
+016b4     E4 B8 8B B9 
+016b8     33 BA DC BA 
+016bc     86 BB 30 BC 
+016c0     DB BC 86 BD | 	byte	$e4, $b8, $8b, $b9, $33, $ba, $dc, $ba, $86, $bb, $30, $bc, $db, $bc, $86, $bd
+016c4     32 BE DF BE 
+016c8     8D BF 3B C0 
+016cc     E9 C0 98 C1 
+016d0     48 C2 F9 C2 | 	byte	$32, $be, $df, $be, $8d, $bf, $3b, $c0, $e9, $c0, $98, $c1, $48, $c2, $f9, $c2
+016d4     AA C3 5B C4 
+016d8     0E C5 C0 C5 
+016dc     74 C6 27 C7 
+016e0     DC C7 91 C8 | 	byte	$aa, $c3, $5b, $c4, $0e, $c5, $c0, $c5, $74, $c6, $27, $c7, $dc, $c7, $91, $c8
+016e4     46 C9 FC C9 
+016e8     B3 CA 6A CB 
+016ec     21 CC DA CC 
+016f0     92 CD 4B CE | 	byte	$46, $c9, $fc, $c9, $b3, $ca, $6a, $cb, $21, $cc, $da, $cc, $92, $cd, $4b, $ce
+016f4     05 CF BF CF 
+016f8     79 D0 34 D1 
+016fc     EF D1 AB D2 
+01700     67 D3 24 D4 | 	byte	$05, $cf, $bf, $cf, $79, $d0, $34, $d1, $ef, $d1, $ab, $d2, $67, $d3, $24, $d4
+01704     E1 D4 9F D5 
+01708     5D D6 1B D7 
+0170c     DA D7 99 D8 
+01710     58 D9 18 DA | 	byte	$e1, $d4, $9f, $d5, $5d, $d6, $1b, $d7, $da, $d7, $99, $d8, $58, $d9, $18, $da
+01714     D8 DA 99 DB 
+01718     5A DC 1B DD 
+0171c     DD DD 9F DE 
+01720     61 DF 23 E0 | 	byte	$d8, $da, $99, $db, $5a, $dc, $1b, $dd, $dd, $dd, $9f, $de, $61, $df, $23, $e0
+01724     E6 E0 A9 E1 
+01728     6D E2 31 E3 
+0172c     F5 E3 B9 E4 
+01730     7E E5 42 E6 | 	byte	$e6, $e0, $a9, $e1, $6d, $e2, $31, $e3, $f5, $e3, $b9, $e4, $7e, $e5, $42, $e6
+01734     07 E7 CD E7 
+01738     92 E8 58 E9 
+0173c     1E EA E4 EA 
+01740     AB EB 71 EC | 	byte	$07, $e7, $cd, $e7, $92, $e8, $58, $e9, $1e, $ea, $e4, $ea, $ab, $eb, $71, $ec
+01744     38 ED FF ED 
+01748     C6 EE 8E EF 
+0174c     55 F0 1D F1 
+01750     E4 F1 AC F2 | 	byte	$38, $ed, $ff, $ed, $c6, $ee, $8e, $ef, $55, $f0, $1d, $f1, $e4, $f1, $ac, $f2
+01754     74 F3 3C F4 
+01758     05 F5 CD F5 
+0175c     96 F6 5E F7 
+01760     27 F8 EF F8 | 	byte	$74, $f3, $3c, $f4, $05, $f5, $cd, $f5, $96, $f6, $5e, $f7, $27, $f8, $ef, $f8
+01764     B8 F9 81 FA 
+01768     4A FB 13 FC 
+0176c     DC FC A5 FD 
+01770     6E FE 37 FF | 	byte	$b8, $f9, $81, $fa, $4a, $fb, $13, $fc, $dc, $fc, $a5, $fd, $6e, $fe, $37, $ff
+01774                 | 	alignl
+01774                 | __system__dat_
+01774     00 00 00 00 
+01778     00 00 00 00 | 	byte	$00[8]
+0177c     03 00 00 00 
+01780     00 00 00 00 
+01784     00 00 00 00 
+01788     00 00 00 00 | 	byte	$03, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
+0178c                 | objmem
+0178c     00 00 00 00 
+      ...             
+018a4     00 00 00 00 
+018a8     00 00 00 00 | 	long	0[72]
+018ac                 | stackspace
+018ac     00 00 00 00 | 	long	0[1]
+018b0 0e2             | 	org	COG_BSS_START
+018b0 0e2             | arg01
+018b0 0e2             | 	res	1
+018b0 0e3             | arg02
+018b0 0e3             | 	res	1
+018b0 0e4             | arg03
+018b0 0e4             | 	res	1
+018b0 0e5             | arg04
+018b0 0e5             | 	res	1
+018b0 0e6             | local01
+018b0 0e6             | 	res	1
+018b0 0e7             | local02
+018b0 0e7             | 	res	1
+018b0 0e8             | local03
+018b0 0e8             | 	res	1
+018b0 0e9             | local04
+018b0 0e9             | 	res	1
+018b0 0ea             | local05
+018b0 0ea             | 	res	1
+018b0 0eb             | local06
+018b0 0eb             | 	res	1
+018b0 0ec             | local07
+018b0 0ec             | 	res	1
+018b0 0ed             | local08
+018b0 0ed             | 	res	1
+018b0 0ee             | local09
+018b0 0ee             | 	res	1
+018b0 0ef             | local10
+018b0 0ef             | 	res	1
+018b0 0f0             | muldiva_
+018b0 0f0             | 	res	1
+018b0 0f1             | muldivb_
+018b0 0f1             | 	res	1
+018b0 0f2             | 	fit	480
+018b0 0f2             | 

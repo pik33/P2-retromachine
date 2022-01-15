@@ -46,44 +46,73 @@ do
 
     waitvbl
     tracker.tick
-    
-    lpoke base+8, tracker.currSamplePtr(0)
-    lpoke base+12,tracker.currsamplelength(0)-tracker.currrepeatLength(0)
-    lpoke base+16,tracker.currsamplelength(0)
+     
+    if tracker.trigger(0)<>old1 then 
+ '        lpoke base,0
+      old1=tracker.trigger(0)
+      
+      lpoke base+8,tracker.currSamplePtr(0) or $40000000
+      lpoke base+12,tracker.currsamplelength(0)-tracker.currrepeatLength(0)
+      lpoke base+16,tracker.currsamplelength(0)
+ 
+    endif
+  
+  
     dpoke base+20, (tracker.currVolume(0)+tracker.deltavolume(0))*mainvolume
     dpoke base+22, 8192-2048
     dpoke base+24, tracker.currPeriod(0)+tracker.deltaperiod(0)
     dpoke base+26, 1
-    if tracker.trigger(0) <> old1 then lpoke base+0,  0: old1=tracker.trigger(0)
 
-    lpoke 32+base+8, tracker.currSamplePtr(1)
-    lpoke 32+base+12,tracker.currsamplelength(1)-tracker.currrepeatLength(1)
-    lpoke 32+base+16,tracker.currsamplelength(1)
+ 
+    if tracker.trigger(1) <> old2  then
+ '         lpoke base+32,0
+      old2=tracker.trigger(1)
+      lpoke base+8+32,tracker.currSamplePtr(1) or $40000000
+      lpoke 32+base+12,tracker.currsamplelength(1)-tracker.currrepeatLength(1)
+      lpoke 32+base+16,tracker.currsamplelength(1)
+
+ 
+      endif
+      
     dpoke 32+base+20, (tracker.currVolume(1)+tracker.deltavolume(1))*mainvolume
     dpoke 32+base+22, 8192+2048
     dpoke 32+base+24, tracker.currPeriod(1)+tracker.deltaperiod(1)
     dpoke 32+base+26, 1
-    if tracker.trigger(1) <> old2 then lpoke base+32,  0: old2=tracker.trigger(1)
 
-    lpoke 64+base+8, tracker.currSamplePtr(2)
+   if tracker.trigger(2) <> old3  then
+ '   lpoke base+64,0 
+     old3=tracker.trigger(2)
+   
+    lpoke base+8+64,tracker.currSamplePtr(2) or $40000000
     lpoke 64+base+12,tracker.currsamplelength(2)-tracker.currrepeatLength(2)
     lpoke 64+base+16,tracker.currsamplelength(2)
+    endif
+    
     dpoke 64+base+20, (tracker.currVolume(2)+tracker.deltavolume(2))*mainvolume
     dpoke 64+base+22, 8192+2048
     dpoke 64+base+24, tracker.currPeriod(2)+tracker.deltaperiod(2)
     dpoke 64+base+26, 1
-    if tracker.trigger(2) <> old3 then lpoke base+64,  0: old3=tracker.trigger(2)
 
-    lpoke 96+base+8, tracker.currSamplePtr(3)
+    if tracker.trigger(3) <> old4 then
+  '   lpoke base+96,0
+    old4=tracker.trigger(3)
+    lpoke base+8+96,tracker.currSamplePtr(3) or $40000000
+   
     lpoke 96+base+12,tracker.currsamplelength(3)-tracker.currrepeatLength(3)
     lpoke 96+base+16,tracker.currsamplelength(3)
+    endif
     dpoke 96+base+20, (tracker.currVolume(3)+tracker.deltavolume(3))*mainvolume
     dpoke 96+base+22, 8192-2048
     dpoke 96+base+24, tracker.currPeriod(3)+tracker.deltaperiod(3)
     dpoke 96+base+26, 1
-    if tracker.trigger(3) <> old4 then lpoke base+96, 0 : old4=tracker.trigger(3)
 
-    
+ '   if tracker.trigger(3) <> old4 then lpoke base+8+96,  tracker.currSamplePtr(3) or $40000000 :old4=tracker.trigger(3)
+ '   if tracker.trigger(0) <> old1 then lpoke base+8,  tracker.currSamplePtr(0)or $40000000 :  old1=tracker.trigger(0)
+ '  if tracker.trigger(1) <> old2 then lpoke base+8+32, tracker.currSamplePtr(1) or $40000000 :  old2=tracker.trigger(1)
+  '  if tracker.trigger(2) <> old3 then lpoke base+8+64,  tracker.currSamplePtr(2) or $40000000 :  old3=tracker.trigger(2)
+
+  '  e=0
+   
     test
 
 loop
@@ -161,6 +190,6 @@ end sub
 
 
 asm shared
-module file "../../../mod/jungle.mod"
+module file "../../../mod/amegas.mod"
 
 end asm
