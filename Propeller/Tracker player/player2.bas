@@ -13,7 +13,7 @@ mainvolume=128 '1..128..(255)
   RD_DATA      = $03
 
 dim tracker as class using "trackerplayer.spin2"
-dim paula as class using "audio018.spin2"
+dim paula as class using "audio019.spin2"
 
 dim sn$(32)
 dim cog,base as ulong
@@ -190,6 +190,6 @@ end sub
 
 
 asm shared
-module file "../../../mod/amegas.mod"
+module file "../../../mod/blue.mod"
 
 end asm

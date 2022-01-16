@@ -1,5 +1,5 @@
 ' A Paula inspired sample based synthesizer/audio driver for a P2
-' v. 0.18 alpha - 20220115
+' v. 0.19 alpha - 20220115
 ' MIT license
 ' Piotr Kardasz pik33@o2.pl
 '-------------------------------------------------------------------
@@ -235,15 +235,17 @@ p401        mov     channeladd,cn              ' todo: reset channel times to en
             setword sample0,rs0,#1
             setword sample0,ls0,#0
             
-            testb   sstart0,#30 wz
-    if_nz   jmp     #p403
+'            testb   sstart0,#30 wz
+'    if_nz   jmp     #p403
             
-            mov    pointer0,#0  
-            bitl   sstart0,#30
-            add    ptra,#8
-            wrlong sstart0,ptra
-            sub    ptra,#8
- 
+ '           mov    pointer0,#0  
+ '           bitl   sstart0,#30
+ '           add    ptra,#8
+ '           wrlong sstart0,ptra
+ '           sub    ptra,#8
+            bitl   sstart0, #30 wcz            
+    if_z    mov    pointer0, #0  
+    if_z    wrlong sstart0, ptra[2]
 p403        setq #1
      
             wrlong  pointer0,ptra
