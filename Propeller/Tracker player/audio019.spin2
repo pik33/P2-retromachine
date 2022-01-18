@@ -235,14 +235,7 @@ p401        mov     channeladd,cn              ' todo: reset channel times to en
             setword sample0,rs0,#1
             setword sample0,ls0,#0
             
-'            testb   sstart0,#30 wz
-'    if_nz   jmp     #p403
-            
- '           mov    pointer0,#0  
- '           bitl   sstart0,#30
- '           add    ptra,#8
- '           wrlong sstart0,ptra
- '           sub    ptra,#8
+
             bitl   sstart0, #30 wcz            
     if_z    mov    pointer0, #0  
     if_z    wrlong sstart0, ptra[2]
@@ -325,7 +318,7 @@ p301        mov     t2,ptrb         ' Check if the buffer is full
 '------ Output the sample, get the next one if exists ---------------------
 '--------------------------------------------------------------------------
 
-isr1        wypin   lsample,#left        '2     The sample has to be outputted every 90 cycles     
+isr1        wypin   lsample,#left        '2     The sample has to be outputted every 100 cycles     
             wypin   rsample,#right       '4
            
             cmp     ptrb,front wcz       '6    If the buffer is empty, do nothing 
@@ -347,7 +340,9 @@ isr1        wypin   lsample,#left        '2     The sample has to be outputted e
 
 ' constants
 
-
+hp long 0
+lp long 0
+bp long 0
 a20000000   long $10000000
 a21000000   long $11000000  ' this const has to be immediately before time0 due to djnz loop initial pointer pointing one long before
 

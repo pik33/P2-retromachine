@@ -46,6 +46,11 @@ do
 
     waitvbl
     tracker.tick
+    
+    dltest=v030.dl_ptr
+    dlentry=lpeek(dltest)
+    for i=0 to 539: lpoke dltest+4*i, lpeek(dltest+4*i+4) :next i
+    lpoke dltest+4*539,dlentry 
      
     if tracker.trigger(0)<>old1 then 
  '        lpoke base,0
@@ -190,6 +195,6 @@ end sub
 
 
 asm shared
-module file "../../../mod/blue.mod"
+module file "../../../mod/ballada.mod"
 
 end asm

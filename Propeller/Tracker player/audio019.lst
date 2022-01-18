@@ -1,5 +1,5 @@
 00000                 | 
-00000                 | #line 1 "D:/programowanie/20211226-P2-retromachine/Propeller/Tracker player/audio019.p2asm"
+00000                 | #line 1 "D:/Programowanie/P2-retromachine/Propeller/Tracker player/audio019.p2asm"
 00000                 | ' 
 00000                 | ' '319220550    =3546895, change to NTSC freq if needed
 00000                 | ' '322159050 ' This is 90x Amiga NTSC = 3579545
@@ -181,13 +181,13 @@
 00770 0db             | itmp2_
 00770 0db 00 00 00 00 | 	long	0
 00774 0dc             | objptr
-00774 0dc 5C 17 00 00 | 	long	@objmem
+00774 0dc 68 17 00 00 | 	long	@objmem
 00778 0dd             | ptr___system__dat__
-00778 0dd 44 17 00 00 | 	long	@__system__dat_
+00778 0dd 50 17 00 00 | 	long	@__system__dat_
 0077c 0de             | ptr__dat__
 0077c 0de 40 0C 00 00 | 	long	@_dat_
 00780 0df             | ptr_stackspace_
-00780 0df 7C 18 00 00 | 	long	@stackspace
+00780 0df 88 18 00 00 | 	long	@stackspace
 00784 0e0             | result1
 00784 0e0 00 00 00 00 | 	long	0
 00788 0e1             | result2
@@ -420,7 +420,7 @@
 00a00     ED D8 51 FC | 	wrword	local07, local08
 00a04                 | '   long [base+32*iii+8]:=@sinewave | $C0000000  
 00a04     01 00 00 FF 
-00a08     F4 BC 05 F1 | 	add	ptr__dat__, ##756
+00a08     00 BD 05 F1 | 	add	ptr__dat__, ##768
 00a0c     DE D6 01 F6 | 	mov	local06, ptr__dat__
 00a10     3E D6 25 F4 | 	bith	local06, #62
 00a14     E9 DA 01 F6 | 	mov	local08, local04
@@ -432,7 +432,7 @@
 00a2c     01 D4 05 F1 | 	add	local05, #1
 00a30     01 D4 5D F2 | 	cmps	local05, #1 wcz
 00a34     01 00 00 FF 
-00a38     F4 BC 85 F1 | 	sub	ptr__dat__, ##756
+00a38     00 BD 85 F1 | 	sub	ptr__dat__, ##768
 00a3c     E0 FE 9F CD |  if_b	jmp	#LR__0002
 00a40                 | LR__0003
 00a40                 | ' repeat time
@@ -530,7 +530,7 @@
 00b44     E8 04 58 FC | 	wrword	#2, local03
 00b48                 | '   long [base+32*iii+8]:=@null | $C0000000
 00b48     01 00 00 FF 
-00b4c     EC BC 05 F1 | 	add	ptr__dat__, ##748
+00b4c     F8 BC 05 F1 | 	add	ptr__dat__, ##760
 00b50     DE D0 01 F6 | 	mov	local03, ptr__dat__
 00b54     3E D0 25 F4 | 	bith	local03, #62
 00b58     E6 D4 01 F6 | 	mov	local05, local01
@@ -542,7 +542,7 @@
 00b70     01 CE 05 F1 | 	add	local02, #1
 00b74     08 CE 5D F2 | 	cmps	local02, #8 wcz
 00b78     01 00 00 FF 
-00b7c     EC BC 85 F1 | 	sub	ptr__dat__, ##748
+00b7c     F8 BC 85 F1 | 	sub	ptr__dat__, ##760
 00b80     F4 FE 9F CD |  if_b	jmp	#LR__0006
 00b84                 | LR__0007
 00b84                 | '   
@@ -609,9 +609,9 @@
 00c40                 | 
 00c40                 | audio       org     0
 00c40     00 F2 07 F6 | 			mov     ptrb,#0
-00c44     0E 74 05 FC |             wrpin   dac,#left       ' Noise dither DACs at clk/90
+00c44     0E 7A 05 FC |             wrpin   dac,#left       ' Noise dither DACs at clk/90
 00c48     0E C8 1C FC |             wxpin   #100,#left
-00c4c     0F 74 05 FC |             wrpin   dac,#right
+00c4c     0F 7A 05 FC |             wrpin   dac,#right
 00c50     0F C8 1C FC |             wxpin   #100,#right
 00c54     41 9C 64 FD |             dirh    #left addpins 1
 00c58     20 9C 64 FD |             setse1  #%001<<6 + left ' Set the event - DAC empty
@@ -622,30 +622,30 @@
 00c64                 | '----------------- The main loop -------------------------------------------------
 00c64                 | '---------------------------------------------------------------------------------
 00c64                 | 
-00c64     7E FE 10 F2 | loop        cmp     time0,a21000000 wc  ' time counter overflow protection
+00c64     81 04 11 F2 | loop        cmp     time0,a21000000 wc  ' time counter overflow protection
 00c68     10 00 90 CD |       if_c  jmp     #loop1
 00c6c                 |   
-00c6c     09 44 05 F6 |             mov     cn,#9
-00c70     7E 44 8D F9 | p402        altd    cn,#a21000000
-00c74     7D 00 80 F1 |             sub     0-0,a20000000
-00c78     FD 45 6D FB |             djnz    cn,#p402
+00c6c     09 4A 05 F6 |             mov     cn,#9
+00c70     81 4A 8D F9 | p402        altd    cn,#a21000000
+00c74     80 00 80 F1 |             sub     0-0,a20000000
+00c78     FD 4B 6D FB |             djnz    cn,#p402
 00c7c                 |     
-00c7c     00 44 05 F6 | loop1       mov     cn,#0             ' Find the channel to compute
-00c80     80 46 01 F6 |             mov     ct,time1           ' with the lowest next sample time
-00c84     81 46 39 F3 |             fle     ct,time2 wcz       ' How to size-optimize this???
-00c88     01 44 05 C6 |     if_c    mov     cn,#1
-00c8c     82 46 39 F3 |             fle     ct,time3 wcz
-00c90     02 44 05 C6 |     if_c    mov     cn,#2     
-00c94     83 46 39 F3 |             fle     ct,time4 wcz
-00c98     03 44 05 C6 |     if_c    mov     cn,#3
-00c9c     84 46 39 F3 |             fle     ct,time5 wcz
-00ca0     04 44 05 C6 |     if_c    mov     cn,#4
-00ca4     85 46 39 F3 |             fle     ct,time6 wcz
-00ca8     05 44 05 C6 |     if_c    mov     cn,#5
-00cac     86 46 39 F3 |             fle     ct,time7 wcz
-00cb0     06 44 05 C6 |     if_c    mov     cn,#6
-00cb4     87 46 39 F3 |             fle     ct,time8 wcz
-00cb8     07 44 05 C6 |     if_c    mov     cn,#7
+00c7c     00 4A 05 F6 | loop1       mov     cn,#0             ' Find the channel to compute
+00c80     83 4C 01 F6 |             mov     ct,time1           ' with the lowest next sample time
+00c84     84 4C 39 F3 |             fle     ct,time2 wcz       ' How to size-optimize this???
+00c88     01 4A 05 C6 |     if_c    mov     cn,#1
+00c8c     85 4C 39 F3 |             fle     ct,time3 wcz
+00c90     02 4A 05 C6 |     if_c    mov     cn,#2     
+00c94     86 4C 39 F3 |             fle     ct,time4 wcz
+00c98     03 4A 05 C6 |     if_c    mov     cn,#3
+00c9c     87 4C 39 F3 |             fle     ct,time5 wcz
+00ca0     04 4A 05 C6 |     if_c    mov     cn,#4
+00ca4     88 4C 39 F3 |             fle     ct,time6 wcz
+00ca8     05 4A 05 C6 |     if_c    mov     cn,#5
+00cac     89 4C 39 F3 |             fle     ct,time7 wcz
+00cb0     06 4A 05 C6 |     if_c    mov     cn,#6
+00cb4     8A 4C 39 F3 |             fle     ct,time8 wcz
+00cb8     07 4A 05 C6 |     if_c    mov     cn,#7
 00cbc                 | 
 00cbc                 | 
 00cbc                 | '----------------------------------------------------------------------------------
@@ -653,58 +653,58 @@
 00cbc                 | '----------------------------------------------------------------------------------
 00cbc                 | 
 00cbc                 | 
-00cbc     A2 1A 01 F6 | p401        mov     channeladd,cn              ' todo: reset channel times to enable proper streamed stereo audio
-00cc0     05 1A 65 F0 |             shl     channeladd,#5
-00cc4     8D F0 03 F1 |             add     ptra,channeladd
+00cbc     A5 20 01 F6 | p401        mov     channeladd,cn              ' todo: reset channel times to enable proper streamed stereo audio
+00cc0     05 20 65 F0 |             shl     channeladd,#5
+00cc4     90 F0 03 F1 |             add     ptra,channeladd
 00cc8                 | 
 00cc8     28 0E 64 FD |             setq    #7               
-00ccc     00 2B 05 FB |             rdlong  pointer0,ptra
+00ccc     00 31 05 FB |             rdlong  pointer0,ptra
 00cd0                 |             
-00cd0     9A 40 39 F9 |      	    getword apan0,volpan0,#1           ' extract vol,pan,skip and freq from longs 
-00cd4     9A 3E 31 F9 |     	    getword avol0,volpan0,#0
-00cd8     9B 3C 39 F9 | 	        getword askip0,freqskip0,#1    	    
-00cdc     9B 3A 31 F9 | 	        getword afreq0,freqskip0,#0
+00cd0     9D 46 39 F9 |      	    getword apan0,volpan0,#1           ' extract vol,pan,skip and freq from longs 
+00cd4     9D 44 31 F9 |     	    getword avol0,volpan0,#0
+00cd8     9E 42 39 F9 | 	        getword askip0,freqskip0,#1    	    
+00cdc     9E 40 31 F9 | 	        getword afreq0,freqskip0,#0
 00ce0                 | 
-00ce0     80 44 95 F9 |             alts    cn, #time1
-00ce4     00 48 01 F6 |             mov     dt0,0-0   
-00ce8     7F 48 81 F1 |             sub     dt0,time0
+00ce0     83 4A 95 F9 |             alts    cn, #time1
+00ce4     00 4E 01 F6 |             mov     dt0,0-0   
+00ce8     82 4E 81 F1 |             sub     dt0,time0
 00cec                 | 
-00cec     80 44 8D F9 |             altd    cn, #time1
-00cf0     9D 00 00 F1 |             add     0-0,afreq0  	
+00cec     83 4A 8D F9 |             altd    cn, #time1
+00cf0     A0 00 00 F1 |             add     0-0,afreq0  	
 00cf4                 | 
-00cf4     9E 2A 01 F1 |             add     pointer0,askip0
-00cf8     99 2A 19 F2 |             cmp     pointer0,lend0 wcz
-00cfc     99 2A 81 31 |     if_ge   sub     pointer0,lend0	        
-00d00     98 2A 01 31 |     if_ge   add     pointer0,lstart0       
-00d04     95 1E 01 F6 |             mov     qq,pointer0
-00d08     97 1E 01 F1 |             add     qq,sstart0
+00cf4     A1 30 01 F1 |             add     pointer0,askip0
+00cf8     9C 30 19 F2 |             cmp     pointer0,lend0 wcz
+00cfc     9C 30 81 31 |     if_ge   sub     pointer0,lend0	        
+00d00     9B 30 01 31 |     if_ge   add     pointer0,lstart0       
+00d04     98 24 01 F6 |             mov     qq,pointer0
+00d08     9A 24 01 F1 |             add     qq,sstart0
 00d0c                 | 
-00d0c     1F 2E 0D F4 |             testb   sstart0,#31 wz
+00d0c     1F 34 0D F4 |             testb   sstart0,#31 wz
 00d10                 | 
-00d10     8F 20 C1 5A |     if_nz   rdbyte  spl,qq
-00d14     08 20 65 50 |     if_nz   shl     spl,#8
-00d18     8F 20 E1 AA |     if_z    rdword  spl,qq
+00d10     92 26 C1 5A |     if_nz   rdbyte  spl,qq
+00d14     08 26 65 50 |     if_nz   shl     spl,#8
+00d18     92 26 E1 AA |     if_z    rdword  spl,qq
 00d1c                 | 
-00d1c     9F 20 31 FA |             scas    spl,avol0
-00d20     00 20 01 F6 |             mov     spl,0-0
+00d1c     A2 26 31 FA |             scas    spl,avol0
+00d20     00 26 01 F6 |             mov     spl,0-0
 00d24                 |  
-00d24     A0 20 31 FA |             scas    spl,apan0
-00d28     00 4A 01 F6 |             mov     ls0,0-0
+00d24     A3 26 31 FA |             scas    spl,apan0
+00d28     00 50 01 F6 |             mov     ls0,0-0
 00d2c                 |  
-00d2c     AA 44 8D F9 |             altd    cn,#ls1
-00d30     A5 00 00 F6 |             mov     0-0,ls0
+00d2c     AD 4A 8D F9 |             altd    cn,#ls1
+00d30     A8 00 00 F6 |             mov     0-0,ls0
 00d34                 |              
 00d34     20 00 00 FF 
-00d38     00 1E 05 F6 |             mov     qq,##16384
-00d3c     A0 1E 81 F1 |             sub     qq,apan0
-00d40     8F 20 31 FA |             scas    spl,qq
-00d44     00 4C 01 F6 |             mov     rs0, 0-0
+00d38     00 24 05 F6 |             mov     qq,##16384
+00d3c     A3 24 81 F1 |             sub     qq,apan0
+00d40     92 26 31 FA |             scas    spl,qq
+00d44     00 52 01 F6 |             mov     rs0, 0-0
 00d48                 | 
-00d48     B2 44 8D F9 |             altd    cn,#rs1
-00d4c     A6 00 00 F6 |             mov     0-0,rs0
+00d48     B5 4A 8D F9 |             altd    cn,#rs1
+00d4c     A9 00 00 F6 |             mov     0-0,rs0
 00d50                 | 
-00d50     A6 2C 29 F9 |             setword sample0,rs0,#1
-00d54     A5 2C 21 F9 |             setword sample0,ls0,#0
+00d50     A9 32 29 F9 |             setword sample0,rs0,#1
+00d54     A8 32 21 F9 |             setword sample0,ls0,#0
 00d58                 |             
 00d58                 | '            testb   sstart0,#30 wz
 00d58                 | '    if_nz   jmp     #p403
@@ -714,13 +714,13 @@
 00d58                 |  '           add    ptra,#8
 00d58                 |  '           wrlong sstart0,ptra
 00d58                 |  '           sub    ptra,#8
-00d58     1E 2E 1D F4 |             bitl   sstart0, #30 wcz            
-00d5c     00 2A 05 A6 |     if_z    mov    pointer0, #0  
-00d60     02 2F 65 AC |     if_z    wrlong sstart0, ptra[2]
+00d58     1E 34 1D F4 |             bitl   sstart0, #30 wcz            
+00d5c     00 30 05 A6 |     if_z    mov    pointer0, #0  
+00d60     02 35 65 AC |     if_z    wrlong sstart0, ptra[2]
 00d64     28 02 64 FD | p403        setq #1
 00d68                 |      
-00d68     00 2B 65 FC |             wrlong  pointer0,ptra
-00d6c     8D F0 83 F1 |             sub     ptra, channeladd
+00d68     00 31 65 FC |             wrlong  pointer0,ptra
+00d6c     90 F0 83 F1 |             sub     ptra, channeladd
 00d70     00 00 90 FD |             jmp     #p101
 00d74                 |                        
 00d74                 |             
@@ -731,59 +731,59 @@
 00d74                 | ' Now add all channels and put the sample to the buffer    
 00d74                 | 
 00d74                 | 
-00d74     7F 42 09 F2 | p101        cmp     oldt0,time0 wz   ' There must not be 2 entries with the same time
-00d78     01 1C 85 A1 |     if_z    sub     front,#1         ' 
-00d7c     FF 1D 05 A5 |     if_z    and     front,#511     
+00d74     82 48 09 F2 | p101        cmp     oldt0,time0 wz   ' There must not be 2 entries with the same time
+00d78     01 22 85 A1 |     if_z    sub     front,#1         ' 
+00d7c     FF 23 05 A5 |     if_z    and     front,#511     
 00d80                 |            
 00d80                 |     
-00d80     00 52 05 F6 |             mov     rs,#0            ' Mix all channels to rs and ls
-00d84     00 50 05 F6 |             mov     ls,#0
-00d88     B2 52 01 F1 |             add     rs,rs1
-00d8c     B3 52 01 F1 |             add     rs,rs2            'todo: in channel computing, mov rs to oldrs, hrer sub oldrs, abb newrs
-00d90     B4 52 01 F1 |             add     rs,rs3
-00d94     B5 52 01 F1 |             add     rs,rs4
-00d98     B6 52 01 F1 |             add     rs,rs5
-00d9c     B7 52 01 F1 |             add     rs,rs6
-00da0     B8 52 01 F1 |             add     rs,rs7
-00da4     B9 52 01 F1 |             add     rs,rs8
+00d80     00 58 05 F6 |             mov     rs,#0            ' Mix all channels to rs and ls
+00d84     00 56 05 F6 |             mov     ls,#0
+00d88     B5 58 01 F1 |             add     rs,rs1
+00d8c     B6 58 01 F1 |             add     rs,rs2            'todo: in channel computing, mov rs to oldrs, hrer sub oldrs, abb newrs
+00d90     B7 58 01 F1 |             add     rs,rs3
+00d94     B8 58 01 F1 |             add     rs,rs4
+00d98     B9 58 01 F1 |             add     rs,rs5
+00d9c     BA 58 01 F1 |             add     rs,rs6
+00da0     BB 58 01 F1 |             add     rs,rs7
+00da4     BC 58 01 F1 |             add     rs,rs8
 00da8                 | 
 00da8                 |            
-00da8     AA 50 01 F1 |             add     ls,ls1
-00dac     AB 50 01 F1 |             add     ls,ls2
-00db0     AC 50 01 F1 |             add     ls,ls3
-00db4     AD 50 01 F1 |             add     ls,ls4
-00db8     AE 50 01 F1 |             add     ls,ls5
-00dbc     AF 50 01 F1 |             add     ls,ls6
-00dc0     B0 50 01 F1 |             add     ls,ls7
-00dc4     B1 50 01 F1 |             add     ls,ls8
+00da8     AD 56 01 F1 |             add     ls,ls1
+00dac     AE 56 01 F1 |             add     ls,ls2
+00db0     AF 56 01 F1 |             add     ls,ls3
+00db4     B0 56 01 F1 |             add     ls,ls4
+00db8     B1 56 01 F1 |             add     ls,ls5
+00dbc     B2 56 01 F1 |             add     ls,ls6
+00dc0     B3 56 01 F1 |             add     ls,ls7
+00dc4     B4 56 01 F1 |             add     ls,ls8
 00dc8                 | 
 00dc8                 |  		
-00dc8     0F 50 E5 F4 |             bitnot  ls,#15            ' convert to unsigned. TODO: compute and apply the gain for samples to not exceed 16 bit range
-00dcc     0F 52 E5 F4 |             bitnot  rs,#15		      ' and these with $FFFF if a filter should be applied
+00dc8     0F 56 E5 F4 |             bitnot  ls,#15            ' convert to unsigned. TODO: compute and apply the gain for samples to not exceed 16 bit range
+00dcc     0F 58 E5 F4 |             bitnot  rs,#15		      ' and these with $FFFF if a filter should be applied
 00dd0                 | 		    
-00dd0     A8 52 29 F9 |             setword rs,ls,#1         ' Pack L and R to one long    		
-00dd4     A9 10 01 F6 |             mov newsample, rs
+00dd0     AB 58 29 F9 |             setword rs,ls,#1         ' Pack L and R to one long    		
+00dd4     AC 16 01 F6 |             mov newsample, rs
 00dd8                 | 
-00dd8     7F 42 01 F6 |             mov     oldt0,time0      ' update global time
-00ddc     A4 FE 00 F1 |             add     time0,dt0    
+00dd8     82 48 01 F6 |             mov     oldt0,time0      ' update global time
+00ddc     A7 04 01 F1 |             add     time0,dt0    
 00de0                 | 
 00de0                 |             
 00de0                 |  
 00de0                 |                                      ' now push dt0 samples to the buffer
-00de0     00 48 0D F2 |             cmp      dt0,#0 wz
+00de0     00 4E 0D F2 |             cmp      dt0,#0 wz
 00de4     94 FE 9F AD |     if_z    jmp      #loop1
-00de8     A4 12 01 F6 |             mov      t1,dt0
+00de8     A7 18 01 F6 |             mov      t1,dt0
 00dec                 |   
-00dec     F9 15 01 F6 | p301        mov     t2,ptrb         ' Check if the buffer is full	
-00df0     01 14 85 F1 |             sub     t2,#1
-00df4     FF 15 05 F5 |             and     t2,#511
-00df8     8E 14 19 F2 |             cmp     t2,front wcz
+00dec     F9 1B 01 F6 | p301        mov     t2,ptrb         ' Check if the buffer is full	
+00df0     01 1A 85 F1 |             sub     t2,#1
+00df4     FF 1B 05 F5 |             and     t2,#511
+00df8     91 1A 19 F2 |             cmp     t2,front wcz
 00dfc     EC FF 9F AD |     if_e    jmp     #p301    
 00e00                 |     
-00e00     8E 10 31 FC |             wrlut   newsample, front
-00e04     01 1C 05 F1 |             add     front,#1
-00e08     FF 1D 05 F5 |             and     front,#511
-00e0c     F7 13 6D FB |             djnz    t1,#p301
+00e00     91 16 31 FC |             wrlut   newsample, front
+00e04     01 22 05 F1 |             add     front,#1
+00e08     FF 23 05 F5 |             and     front,#511
+00e0c     F7 19 6D FB |             djnz    t1,#p301
 00e10                 |             
 00e10     50 FE 9F FD |             jmp     #loop            'loop
 00e14                 | 
@@ -796,15 +796,15 @@
 00e14                 | '------ Output the sample, get the next one if exists ---------------------
 00e14                 | '--------------------------------------------------------------------------
 00e14                 | 
-00e14     0E 22 25 FC | isr1        wypin   lsample,#left        '2     The sample has to be outputted every 90 cycles     
-00e18     0F 24 25 FC |             wypin   rsample,#right       '4
+00e14     0E 28 25 FC | isr1        wypin   lsample,#left        '2     The sample has to be outputted every 100 cycles     
+00e18     0F 2A 25 FC |             wypin   rsample,#right       '4
 00e1c                 |            
-00e1c     8E F2 1B F2 |             cmp     ptrb,front wcz       '6    If the buffer is empty, do nothing 
+00e1c     91 F2 1B F2 |             cmp     ptrb,front wcz       '6    If the buffer is empty, do nothing 
 00e20     F5 FF 3B AB |     if_e    reti1                        '8/10
 00e24                 | 
-00e24     E1 27 A5 FA |             rdlut   lsnext,ptrb++        '11    else read the sample and its time from LUT
-00e28     93 24 39 F9 |           	getword rsample,lsnext,#1    '13
-00e2c     93 22 31 F9 |           	getword lsample,lsnext,#0    '15
+00e24     E1 2D A5 FA |             rdlut   lsnext,ptrb++        '11    else read the sample and its time from LUT
+00e28     96 2A 39 F9 |           	getword rsample,lsnext,#1    '13
+00e2c     96 28 31 F9 |           	getword lsample,lsnext,#0    '15
 00e30     F5 FF 3B FB |             reti1                        '17/19 
 00e34                 |           
 00e34                 | '---------------------------------------------------------------------------
@@ -818,664 +818,666 @@
 00e34                 | 
 00e34                 | ' constants
 00e34                 | 
-00e34                 | 
-00e34     00 00 00 10 | a20000000   long $10000000
-00e38     00 00 00 11 | a21000000   long $11000000  ' this const has to be immediately before time0 due to djnz loop initial pointer pointing one long before
-00e3c                 | 
-00e3c                 | ' Time variables
-00e3c                 | 
-00e3c     00 00 00 00 | time0       long 0    ' Global sample computing time
-00e40     01 00 00 00 | time1       long 1    ' Local channels time
-00e44     02 00 00 00 | time2       long 2
-00e48     03 00 00 00 | time3       long 3
-00e4c     04 00 00 00 | time4       long 4
-00e50     05 00 00 00 | time5       long 5
-00e54     06 00 00 00 | time6       long 6
-00e58     07 00 00 00 | time7       long 7
-00e5c     08 00 00 00 | time8       long 8
-00e60                 | 
-00e60                 | 
-00e60                 | 
-00e60     00 00 00 00 | newsample long 0
-00e64                 | '
-00e64     00 00 00 00 | t1 long 0
-00e68     00 00 00 00 | t2 long 0
-00e6c                 | '
-00e6c     00 00 00 00 | nrsample long 0
-00e70     00 00 00 00 | nlsample long 0
-00e74                 | '
-00e74     00 00 00 00 | channeladd long 0
-00e78                 | 
-00e78                 | 
-00e78     00 00 00 00 | front       long 0
-00e7c                 | 
-00e7c                 | ' temporary variables 
-00e7c                 | '
-00e7c     00 00 00 00 | qq          long 0
-00e80     00 00 00 00 | spl         long 0
-00e84                 | 
-00e84                 | ' circular buffer in LUT
+00e34     00 00 00 00 | hp long 0
+00e38     00 00 00 00 | lp long 0
+00e3c     00 00 00 00 | bp long 0
+00e40     00 00 00 10 | a20000000   long $10000000
+00e44     00 00 00 11 | a21000000   long $11000000  ' this const has to be immediately before time0 due to djnz loop initial pointer pointing one long before
+00e48                 | 
+00e48                 | ' Time variables
+00e48                 | 
+00e48     00 00 00 00 | time0       long 0    ' Global sample computing time
+00e4c     01 00 00 00 | time1       long 1    ' Local channels time
+00e50     02 00 00 00 | time2       long 2
+00e54     03 00 00 00 | time3       long 3
+00e58     04 00 00 00 | time4       long 4
+00e5c     05 00 00 00 | time5       long 5
+00e60     06 00 00 00 | time6       long 6
+00e64     07 00 00 00 | time7       long 7
+00e68     08 00 00 00 | time8       long 8
+00e6c                 | 
+00e6c                 | 
+00e6c                 | 
+00e6c     00 00 00 00 | newsample long 0
+00e70                 | '
+00e70     00 00 00 00 | t1 long 0
+00e74     00 00 00 00 | t2 long 0
+00e78                 | '
+00e78     00 00 00 00 | nrsample long 0
+00e7c     00 00 00 00 | nlsample long 0
+00e80                 | '
+00e80     00 00 00 00 | channeladd long 0
 00e84                 | 
 00e84                 | 
-00e84                 | '
-00e84                 | 
-00e84                 | ' Interrupt ISR variables
-00e84                 | 
-00e84                 | 
-00e84     00 00 00 00 | lsample     long 0
-00e88     00 00 00 00 | rsample     long 0
-00e8c     00 00 00 00 | lsnext      long 0
-00e90     00 00 00 00 | rsnext      long 0 
-00e94                 | 
-00e94                 | 
-00e94     00 00 00 00 | pointer0    long 0
-00e98     00 00 00 00 | sample0     long 0
-00e9c     00 00 00 00 | sstart0     long 0     ' start pointer and type at bit 31
-00ea0     00 00 00 00 | lstart0     long 0
-00ea4     00 00 00 00 | lend0       long 0
-00ea8     00 00 00 00 | volpan0     long 0
-00eac     00 00 00 00 | freqskip0   long 0
-00eb0     00 00 00 00 | dummy0      long 0
-00eb4                 | 
-00eb4     00 00 00 00 | afreq0      long 0
-00eb8     00 00 00 00 | askip0      long 0
-00ebc     00 00 00 00 | avol0       long 0
-00ec0     00 00 00 00 | apan0       long 0
-00ec4                 | 
-00ec4     FF FF FF FF | oldt0       long $FFFFFFFF    'Temporary time variables
-00ec8     00 00 00 00 | cn          long 0
-00ecc     00 00 00 00 | ct          long 0
-00ed0     00 00 00 00 | dt0         long 0
-00ed4                 | 
-00ed4                 | ' Samples
-00ed4     00 00 00 00 | ls0         long 0
-00ed8     00 00 00 00 | rs0         long 0
-00edc     00 00 00 00 | channel     long 0
-00ee0     00 00 00 00 | ls          long 0    ' Global sample variable
-00ee4     00 00 00 00 | rs          long 0
-00ee8                 | 
-00ee8     00 00 00 00 | ls1         long 0    ' Channel samples
-00eec     00 00 00 00 | ls2         long 0
-00ef0     00 00 00 00 | ls3         long 0
-00ef4     00 00 00 00 | ls4         long 0
-00ef8     00 00 00 00 | ls5         long 0
-00efc     00 00 00 00 | ls6         long 0
-00f00     00 00 00 00 | ls7         long 0
-00f04     00 00 00 00 | ls8         long 0
-00f08     00 00 00 00 | rs1         long 0
-00f0c     00 00 00 00 | rs2         long 0
-00f10     00 00 00 00 | rs3         long 0
-00f14     00 00 00 00 | rs4         long 0
-00f18     00 00 00 00 | rs5         long 0
-00f1c     00 00 00 00 | rs6         long 0
-00f20     00 00 00 00 | rs7         long 0
-00f24     00 00 00 00 | rs8         long 0
-00f28                 | 
-00f28     44 00 17 00 | dac         long %10111_00000000_01_00010_0     'random dither, as 90 cycles period needed
-00f2c                 | 
-00f2c     00 00 00 00 
-00f30     00 00 00 00 | null  			long 	0,0           ' for channel reset
-00f34     73 32 00 04 
-00f38     00 00 10 00 
-00f3c     00 00 00 00 
-00f40     00 00 00 00 | sinewave 		file 	"sinus.s2"    ' for testing
-00f44     00 00 C9 00 
-00f48     92 01 5B 02 
-00f4c     24 03 ED 03 
-00f50     B6 04 7F 05 | 	byte	$00, $00, $c9, $00, $92, $01, $5b, $02, $24, $03, $ed, $03, $b6, $04, $7f, $05
-00f54     48 06 11 07 
-00f58     D9 07 A2 08 
-00f5c     6A 09 33 0A 
-00f60     FB 0A C4 0B | 	byte	$48, $06, $11, $07, $d9, $07, $a2, $08, $6a, $09, $33, $0a, $fb, $0a, $c4, $0b
-00f64     8C 0C 54 0D 
-00f68     1C 0E E3 0E 
-00f6c     AB 0F 72 10 
-00f70     3A 11 01 12 | 	byte	$8c, $0c, $54, $0d, $1c, $0e, $e3, $0e, $ab, $0f, $72, $10, $3a, $11, $01, $12
-00f74     C8 12 8F 13 
-00f78     55 14 1C 15 
-00f7c     E2 15 A8 16 
-00f80     6E 17 33 18 | 	byte	$c8, $12, $8f, $13, $55, $14, $1c, $15, $e2, $15, $a8, $16, $6e, $17, $33, $18
-00f84     F9 18 BE 19 
-00f88     82 1A 47 1B 
-00f8c     0B 1C CF 1C 
-00f90     93 1D 57 1E | 	byte	$f9, $18, $be, $19, $82, $1a, $47, $1b, $0b, $1c, $cf, $1c, $93, $1d, $57, $1e
-00f94     1A 1F DD 1F 
-00f98     9F 20 61 21 
-00f9c     23 22 E5 22 
-00fa0     A6 23 67 24 | 	byte	$1a, $1f, $dd, $1f, $9f, $20, $61, $21, $23, $22, $e5, $22, $a6, $23, $67, $24
-00fa4     28 25 E8 25 
-00fa8     A8 26 67 27 
-00fac     26 28 E5 28 
-00fb0     A3 29 61 2A | 	byte	$28, $25, $e8, $25, $a8, $26, $67, $27, $26, $28, $e5, $28, $a3, $29, $61, $2a
-00fb4     1F 2B DC 2B 
-00fb8     99 2C 55 2D 
-00fbc     11 2E CC 2E 
-00fc0     87 2F 41 30 | 	byte	$1f, $2b, $dc, $2b, $99, $2c, $55, $2d, $11, $2e, $cc, $2e, $87, $2f, $41, $30
-00fc4     FB 30 B5 31 
-00fc8     6E 32 26 33 
-00fcc     DF 33 96 34 
-00fd0     4D 35 04 36 | 	byte	$fb, $30, $b5, $31, $6e, $32, $26, $33, $df, $33, $96, $34, $4d, $35, $04, $36
-00fd4     BA 36 6F 37 
-00fd8     24 38 D9 38 
-00fdc     8C 39 40 3A 
-00fe0     F2 3A A5 3B | 	byte	$ba, $36, $6f, $37, $24, $38, $d9, $38, $8c, $39, $40, $3a, $f2, $3a, $a5, $3b
-00fe4     56 3C 07 3D 
-00fe8     B8 3D 68 3E 
-00fec     17 3F C5 3F 
-00ff0     73 40 21 41 | 	byte	$56, $3c, $07, $3d, $b8, $3d, $68, $3e, $17, $3f, $c5, $3f, $73, $40, $21, $41
-00ff4     CE 41 7A 42 
-00ff8     25 43 D0 43 
-00ffc     7A 44 24 45 
-01000     CD 45 75 46 | 	byte	$ce, $41, $7a, $42, $25, $43, $d0, $43, $7a, $44, $24, $45, $cd, $45, $75, $46
-01004     1C 47 C3 47 
-01008     69 48 0F 49 
-0100c     B4 49 58 4A 
-01010     FB 4A 9D 4B | 	byte	$1c, $47, $c3, $47, $69, $48, $0f, $49, $b4, $49, $58, $4a, $fb, $4a, $9d, $4b
-01014     3F 4C E0 4C 
-01018     81 4D 20 4E 
-0101c     BF 4E 5D 4F 
-01020     FB 4F 97 50 | 	byte	$3f, $4c, $e0, $4c, $81, $4d, $20, $4e, $bf, $4e, $5d, $4f, $fb, $4f, $97, $50
-01024     33 51 CE 51 
-01028     68 52 02 53 
-0102c     9B 53 32 54 
-01030     C9 54 60 55 | 	byte	$33, $51, $ce, $51, $68, $52, $02, $53, $9b, $53, $32, $54, $c9, $54, $60, $55
-01034     F5 55 8A 56 
-01038     1D 57 B0 57 
-0103c     42 58 D3 58 
-01040     64 59 F3 59 | 	byte	$f5, $55, $8a, $56, $1d, $57, $b0, $57, $42, $58, $d3, $58, $64, $59, $f3, $59
-01044     82 5A 0F 5B 
-01048     9C 5B 28 5C 
-0104c     B3 5C 3E 5D 
-01050     C7 5D 4F 5E | 	byte	$82, $5a, $0f, $5b, $9c, $5b, $28, $5c, $b3, $5c, $3e, $5d, $c7, $5d, $4f, $5e
-01054     D7 5E 5D 5F 
-01058     E3 5F 68 60 
-0105c     EB 60 6E 61 
-01060     F0 61 71 62 | 	byte	$d7, $5e, $5d, $5f, $e3, $5f, $68, $60, $eb, $60, $6e, $61, $f0, $61, $71, $62
-01064     F1 62 70 63 
-01068     EE 63 6C 64 
-0106c     E8 64 63 65 
-01070     DD 65 56 66 | 	byte	$f1, $62, $70, $63, $ee, $63, $6c, $64, $e8, $64, $63, $65, $dd, $65, $56, $66
-01074     CF 66 46 67 
-01078     BC 67 32 68 
-0107c     A6 68 19 69 
-01080     8B 69 FD 69 | 	byte	$cf, $66, $46, $67, $bc, $67, $32, $68, $a6, $68, $19, $69, $8b, $69, $fd, $69
-01084     6D 6A DC 6A 
-01088     4A 6B B7 6B 
-0108c     23 6C 8E 6C 
-01090     F8 6C 61 6D | 	byte	$6d, $6a, $dc, $6a, $4a, $6b, $b7, $6b, $23, $6c, $8e, $6c, $f8, $6c, $61, $6d
-01094     C9 6D 30 6E 
-01098     96 6E FB 6E 
-0109c     5E 6F C1 6F 
-010a0     22 70 83 70 | 	byte	$c9, $6d, $30, $6e, $96, $6e, $fb, $6e, $5e, $6f, $c1, $6f, $22, $70, $83, $70
-010a4     E2 70 40 71 
-010a8     9D 71 F9 71 
-010ac     54 72 AE 72 
-010b0     07 73 5E 73 | 	byte	$e2, $70, $40, $71, $9d, $71, $f9, $71, $54, $72, $ae, $72, $07, $73, $5e, $73
-010b4     B5 73 0A 74 
-010b8     5F 74 B2 74 
-010bc     04 75 55 75 
-010c0     A5 75 F3 75 | 	byte	$b5, $73, $0a, $74, $5f, $74, $b2, $74, $04, $75, $55, $75, $a5, $75, $f3, $75
-010c4     41 76 8D 76 
-010c8     D8 76 22 77 
-010cc     6B 77 B3 77 
-010d0     FA 77 3F 78 | 	byte	$41, $76, $8d, $76, $d8, $76, $22, $77, $6b, $77, $b3, $77, $fa, $77, $3f, $78
-010d4     84 78 C7 78 
-010d8     09 79 4A 79 
-010dc     89 79 C8 79 
-010e0     05 7A 41 7A | 	byte	$84, $78, $c7, $78, $09, $79, $4a, $79, $89, $79, $c8, $79, $05, $7a, $41, $7a
-010e4     7C 7A B6 7A 
-010e8     EE 7A 26 7B 
-010ec     5C 7B 91 7B 
-010f0     C5 7B F8 7B | 	byte	$7c, $7a, $b6, $7a, $ee, $7a, $26, $7b, $5c, $7b, $91, $7b, $c5, $7b, $f8, $7b
-010f4     29 7C 59 7C 
-010f8     88 7C B6 7C 
-010fc     E3 7C 0E 7D 
-01100     39 7D 62 7D | 	byte	$29, $7c, $59, $7c, $88, $7c, $b6, $7c, $e3, $7c, $0e, $7d, $39, $7d, $62, $7d
-01104     89 7D B0 7D 
-01108     D5 7D FA 7D 
-0110c     1D 7E 3E 7E 
-01110     5F 7E 7E 7E | 	byte	$89, $7d, $b0, $7d, $d5, $7d, $fa, $7d, $1d, $7e, $3e, $7e, $5f, $7e, $7e, $7e
-01114     9C 7E B9 7E 
-01118     D5 7E EF 7E 
-0111c     09 7F 21 7F 
-01120     37 7F 4D 7F | 	byte	$9c, $7e, $b9, $7e, $d5, $7e, $ef, $7e, $09, $7f, $21, $7f, $37, $7f, $4d, $7f
-01124     61 7F 74 7F 
-01128     86 7F 97 7F 
-0112c     A6 7F B4 7F 
-01130     C1 7F CD 7F | 	byte	$61, $7f, $74, $7f, $86, $7f, $97, $7f, $a6, $7f, $b4, $7f, $c1, $7f, $cd, $7f
-01134     D8 7F E1 7F 
-01138     E9 7F F0 7F 
-0113c     F5 7F F9 7F 
-01140     FD 7F FE 7F | 	byte	$d8, $7f, $e1, $7f, $e9, $7f, $f0, $7f, $f5, $7f, $f9, $7f, $fd, $7f, $fe, $7f
-01144     FF 7F FE 7F 
-01148     FD 7F F9 7F 
-0114c     F5 7F F0 7F 
-01150     E9 7F E1 7F | 	byte	$ff, $7f, $fe, $7f, $fd, $7f, $f9, $7f, $f5, $7f, $f0, $7f, $e9, $7f, $e1, $7f
-01154     D8 7F CD 7F 
-01158     C1 7F B4 7F 
-0115c     A6 7F 97 7F 
-01160     86 7F 74 7F | 	byte	$d8, $7f, $cd, $7f, $c1, $7f, $b4, $7f, $a6, $7f, $97, $7f, $86, $7f, $74, $7f
-01164     61 7F 4D 7F 
-01168     37 7F 21 7F 
-0116c     09 7F EF 7E 
-01170     D5 7E B9 7E | 	byte	$61, $7f, $4d, $7f, $37, $7f, $21, $7f, $09, $7f, $ef, $7e, $d5, $7e, $b9, $7e
-01174     9C 7E 7E 7E 
-01178     5F 7E 3E 7E 
-0117c     1D 7E FA 7D 
-01180     D5 7D B0 7D | 	byte	$9c, $7e, $7e, $7e, $5f, $7e, $3e, $7e, $1d, $7e, $fa, $7d, $d5, $7d, $b0, $7d
-01184     89 7D 62 7D 
-01188     39 7D 0E 7D 
-0118c     E3 7C B6 7C 
-01190     88 7C 59 7C | 	byte	$89, $7d, $62, $7d, $39, $7d, $0e, $7d, $e3, $7c, $b6, $7c, $88, $7c, $59, $7c
-01194     29 7C F8 7B 
-01198     C5 7B 91 7B 
-0119c     5C 7B 26 7B 
-011a0     EE 7A B6 7A | 	byte	$29, $7c, $f8, $7b, $c5, $7b, $91, $7b, $5c, $7b, $26, $7b, $ee, $7a, $b6, $7a
-011a4     7C 7A 41 7A 
-011a8     05 7A C8 79 
-011ac     89 79 4A 79 
-011b0     09 79 C7 78 | 	byte	$7c, $7a, $41, $7a, $05, $7a, $c8, $79, $89, $79, $4a, $79, $09, $79, $c7, $78
-011b4     84 78 3F 78 
-011b8     FA 77 B3 77 
-011bc     6B 77 22 77 
-011c0     D8 76 8D 76 | 	byte	$84, $78, $3f, $78, $fa, $77, $b3, $77, $6b, $77, $22, $77, $d8, $76, $8d, $76
-011c4     41 76 F3 75 
-011c8     A5 75 55 75 
-011cc     04 75 B2 74 
-011d0     5F 74 0A 74 | 	byte	$41, $76, $f3, $75, $a5, $75, $55, $75, $04, $75, $b2, $74, $5f, $74, $0a, $74
-011d4     B5 73 5E 73 
-011d8     07 73 AE 72 
-011dc     54 72 F9 71 
-011e0     9D 71 40 71 | 	byte	$b5, $73, $5e, $73, $07, $73, $ae, $72, $54, $72, $f9, $71, $9d, $71, $40, $71
-011e4     E2 70 83 70 
-011e8     22 70 C1 6F 
-011ec     5E 6F FB 6E 
-011f0     96 6E 30 6E | 	byte	$e2, $70, $83, $70, $22, $70, $c1, $6f, $5e, $6f, $fb, $6e, $96, $6e, $30, $6e
-011f4     C9 6D 61 6D 
-011f8     F8 6C 8E 6C 
-011fc     23 6C B7 6B 
-01200     4A 6B DC 6A | 	byte	$c9, $6d, $61, $6d, $f8, $6c, $8e, $6c, $23, $6c, $b7, $6b, $4a, $6b, $dc, $6a
-01204     6D 6A FD 69 
-01208     8B 69 19 69 
-0120c     A6 68 32 68 
-01210     BC 67 46 67 | 	byte	$6d, $6a, $fd, $69, $8b, $69, $19, $69, $a6, $68, $32, $68, $bc, $67, $46, $67
-01214     CF 66 56 66 
-01218     DD 65 63 65 
-0121c     E8 64 6C 64 
-01220     EE 63 70 63 | 	byte	$cf, $66, $56, $66, $dd, $65, $63, $65, $e8, $64, $6c, $64, $ee, $63, $70, $63
-01224     F1 62 71 62 
-01228     F0 61 6E 61 
-0122c     EB 60 68 60 
-01230     E3 5F 5D 5F | 	byte	$f1, $62, $71, $62, $f0, $61, $6e, $61, $eb, $60, $68, $60, $e3, $5f, $5d, $5f
-01234     D7 5E 4F 5E 
-01238     C7 5D 3E 5D 
-0123c     B3 5C 28 5C 
-01240     9C 5B 0F 5B | 	byte	$d7, $5e, $4f, $5e, $c7, $5d, $3e, $5d, $b3, $5c, $28, $5c, $9c, $5b, $0f, $5b
-01244     82 5A F3 59 
-01248     64 59 D3 58 
-0124c     42 58 B0 57 
-01250     1D 57 8A 56 | 	byte	$82, $5a, $f3, $59, $64, $59, $d3, $58, $42, $58, $b0, $57, $1d, $57, $8a, $56
-01254     F5 55 60 55 
-01258     C9 54 32 54 
-0125c     9B 53 02 53 
-01260     68 52 CE 51 | 	byte	$f5, $55, $60, $55, $c9, $54, $32, $54, $9b, $53, $02, $53, $68, $52, $ce, $51
-01264     33 51 97 50 
-01268     FB 4F 5D 4F 
-0126c     BF 4E 20 4E 
-01270     81 4D E0 4C | 	byte	$33, $51, $97, $50, $fb, $4f, $5d, $4f, $bf, $4e, $20, $4e, $81, $4d, $e0, $4c
-01274     3F 4C 9D 4B 
-01278     FB 4A 58 4A 
-0127c     B4 49 0F 49 
-01280     69 48 C3 47 | 	byte	$3f, $4c, $9d, $4b, $fb, $4a, $58, $4a, $b4, $49, $0f, $49, $69, $48, $c3, $47
-01284     1C 47 75 46 
-01288     CD 45 24 45 
-0128c     7A 44 D0 43 
-01290     25 43 7A 42 | 	byte	$1c, $47, $75, $46, $cd, $45, $24, $45, $7a, $44, $d0, $43, $25, $43, $7a, $42
-01294     CE 41 21 41 
-01298     73 40 C5 3F 
-0129c     17 3F 68 3E 
-012a0     B8 3D 07 3D | 	byte	$ce, $41, $21, $41, $73, $40, $c5, $3f, $17, $3f, $68, $3e, $b8, $3d, $07, $3d
-012a4     56 3C A5 3B 
-012a8     F2 3A 40 3A 
-012ac     8C 39 D9 38 
-012b0     24 38 6F 37 | 	byte	$56, $3c, $a5, $3b, $f2, $3a, $40, $3a, $8c, $39, $d9, $38, $24, $38, $6f, $37
-012b4     BA 36 04 36 
-012b8     4D 35 96 34 
-012bc     DF 33 26 33 
-012c0     6E 32 B5 31 | 	byte	$ba, $36, $04, $36, $4d, $35, $96, $34, $df, $33, $26, $33, $6e, $32, $b5, $31
-012c4     FB 30 41 30 
-012c8     87 2F CC 2E 
-012cc     11 2E 55 2D 
-012d0     99 2C DC 2B | 	byte	$fb, $30, $41, $30, $87, $2f, $cc, $2e, $11, $2e, $55, $2d, $99, $2c, $dc, $2b
-012d4     1F 2B 61 2A 
-012d8     A3 29 E5 28 
-012dc     26 28 67 27 
-012e0     A8 26 E8 25 | 	byte	$1f, $2b, $61, $2a, $a3, $29, $e5, $28, $26, $28, $67, $27, $a8, $26, $e8, $25
-012e4     28 25 67 24 
-012e8     A6 23 E5 22 
-012ec     23 22 61 21 
-012f0     9F 20 DD 1F | 	byte	$28, $25, $67, $24, $a6, $23, $e5, $22, $23, $22, $61, $21, $9f, $20, $dd, $1f
-012f4     1A 1F 57 1E 
-012f8     93 1D CF 1C 
-012fc     0B 1C 47 1B 
-01300     82 1A BE 19 | 	byte	$1a, $1f, $57, $1e, $93, $1d, $cf, $1c, $0b, $1c, $47, $1b, $82, $1a, $be, $19
-01304     F9 18 33 18 
-01308     6E 17 A8 16 
-0130c     E2 15 1C 15 
-01310     55 14 8F 13 | 	byte	$f9, $18, $33, $18, $6e, $17, $a8, $16, $e2, $15, $1c, $15, $55, $14, $8f, $13
-01314     C8 12 01 12 
-01318     3A 11 72 10 
-0131c     AB 0F E3 0E 
-01320     1C 0E 54 0D | 	byte	$c8, $12, $01, $12, $3a, $11, $72, $10, $ab, $0f, $e3, $0e, $1c, $0e, $54, $0d
-01324     8C 0C C4 0B 
-01328     FB 0A 33 0A 
-0132c     6A 09 A2 08 
-01330     D9 07 11 07 | 	byte	$8c, $0c, $c4, $0b, $fb, $0a, $33, $0a, $6a, $09, $a2, $08, $d9, $07, $11, $07
-01334     48 06 7F 05 
-01338     B6 04 ED 03 
-0133c     24 03 5B 02 
-01340     92 01 C9 00 | 	byte	$48, $06, $7f, $05, $b6, $04, $ed, $03, $24, $03, $5b, $02, $92, $01, $c9, $00
-01344     00 00 37 FF 
-01348     6E FE A5 FD 
-0134c     DC FC 13 FC 
-01350     4A FB 81 FA | 	byte	$00, $00, $37, $ff, $6e, $fe, $a5, $fd, $dc, $fc, $13, $fc, $4a, $fb, $81, $fa
-01354     B8 F9 EF F8 
-01358     27 F8 5E F7 
-0135c     96 F6 CD F5 
-01360     05 F5 3C F4 | 	byte	$b8, $f9, $ef, $f8, $27, $f8, $5e, $f7, $96, $f6, $cd, $f5, $05, $f5, $3c, $f4
-01364     74 F3 AC F2 
-01368     E4 F1 1D F1 
-0136c     55 F0 8E EF 
-01370     C6 EE FF ED | 	byte	$74, $f3, $ac, $f2, $e4, $f1, $1d, $f1, $55, $f0, $8e, $ef, $c6, $ee, $ff, $ed
-01374     38 ED 71 EC 
-01378     AB EB E4 EA 
-0137c     1E EA 58 E9 
-01380     92 E8 CD E7 | 	byte	$38, $ed, $71, $ec, $ab, $eb, $e4, $ea, $1e, $ea, $58, $e9, $92, $e8, $cd, $e7
-01384     07 E7 42 E6 
-01388     7E E5 B9 E4 
-0138c     F5 E3 31 E3 
-01390     6D E2 A9 E1 | 	byte	$07, $e7, $42, $e6, $7e, $e5, $b9, $e4, $f5, $e3, $31, $e3, $6d, $e2, $a9, $e1
-01394     E6 E0 23 E0 
-01398     61 DF 9F DE 
-0139c     DD DD 1B DD 
-013a0     5A DC 99 DB | 	byte	$e6, $e0, $23, $e0, $61, $df, $9f, $de, $dd, $dd, $1b, $dd, $5a, $dc, $99, $db
-013a4     D8 DA 18 DA 
-013a8     58 D9 99 D8 
-013ac     DA D7 1B D7 
-013b0     5D D6 9F D5 | 	byte	$d8, $da, $18, $da, $58, $d9, $99, $d8, $da, $d7, $1b, $d7, $5d, $d6, $9f, $d5
-013b4     E1 D4 24 D4 
-013b8     67 D3 AB D2 
-013bc     EF D1 34 D1 
-013c0     79 D0 BF CF | 	byte	$e1, $d4, $24, $d4, $67, $d3, $ab, $d2, $ef, $d1, $34, $d1, $79, $d0, $bf, $cf
-013c4     05 CF 4B CE 
-013c8     92 CD DA CC 
-013cc     21 CC 6A CB 
-013d0     B3 CA FC C9 | 	byte	$05, $cf, $4b, $ce, $92, $cd, $da, $cc, $21, $cc, $6a, $cb, $b3, $ca, $fc, $c9
-013d4     46 C9 91 C8 
-013d8     DC C7 27 C7 
-013dc     74 C6 C0 C5 
-013e0     0E C5 5B C4 | 	byte	$46, $c9, $91, $c8, $dc, $c7, $27, $c7, $74, $c6, $c0, $c5, $0e, $c5, $5b, $c4
-013e4     AA C3 F9 C2 
-013e8     48 C2 98 C1 
-013ec     E9 C0 3B C0 
-013f0     8D BF DF BE | 	byte	$aa, $c3, $f9, $c2, $48, $c2, $98, $c1, $e9, $c0, $3b, $c0, $8d, $bf, $df, $be
-013f4     32 BE 86 BD 
-013f8     DB BC 30 BC 
-013fc     86 BB DC BA 
-01400     33 BA 8B B9 | 	byte	$32, $be, $86, $bd, $db, $bc, $30, $bc, $86, $bb, $dc, $ba, $33, $ba, $8b, $b9
-01404     E4 B8 3D B8 
-01408     97 B7 F1 B6 
-0140c     4C B6 A8 B5 
-01410     05 B5 63 B4 | 	byte	$e4, $b8, $3d, $b8, $97, $b7, $f1, $b6, $4c, $b6, $a8, $b5, $05, $b5, $63, $b4
-01414     C1 B3 20 B3 
-01418     7F B2 E0 B1 
-0141c     41 B1 A3 B0 
-01420     05 B0 69 AF | 	byte	$c1, $b3, $20, $b3, $7f, $b2, $e0, $b1, $41, $b1, $a3, $b0, $05, $b0, $69, $af
-01424     CD AE 32 AE 
-01428     98 AD FE AC 
-0142c     65 AC CE AB 
-01430     37 AB A0 AA | 	byte	$cd, $ae, $32, $ae, $98, $ad, $fe, $ac, $65, $ac, $ce, $ab, $37, $ab, $a0, $aa
-01434     0B AA 76 A9 
-01438     E3 A8 50 A8 
-0143c     BE A7 2D A7 
-01440     9C A6 0D A6 | 	byte	$0b, $aa, $76, $a9, $e3, $a8, $50, $a8, $be, $a7, $2d, $a7, $9c, $a6, $0d, $a6
-01444     7E A5 F1 A4 
-01448     64 A4 D8 A3 
-0144c     4D A3 C2 A2 
-01450     39 A2 B1 A1 | 	byte	$7e, $a5, $f1, $a4, $64, $a4, $d8, $a3, $4d, $a3, $c2, $a2, $39, $a2, $b1, $a1
-01454     29 A1 A3 A0 
-01458     1D A0 98 9F 
-0145c     15 9F 92 9E 
-01460     10 9E 8F 9D | 	byte	$29, $a1, $a3, $a0, $1d, $a0, $98, $9f, $15, $9f, $92, $9e, $10, $9e, $8f, $9d
-01464     0F 9D 90 9C 
-01468     12 9C 94 9B 
-0146c     18 9B 9D 9A 
-01470     23 9A AA 99 | 	byte	$0f, $9d, $90, $9c, $12, $9c, $94, $9b, $18, $9b, $9d, $9a, $23, $9a, $aa, $99
-01474     31 99 BA 98 
-01478     44 98 CE 97 
-0147c     5A 97 E7 96 
-01480     75 96 03 96 | 	byte	$31, $99, $ba, $98, $44, $98, $ce, $97, $5a, $97, $e7, $96, $75, $96, $03, $96
-01484     93 95 24 95 
-01488     B6 94 49 94 
-0148c     DD 93 72 93 
-01490     08 93 9F 92 | 	byte	$93, $95, $24, $95, $b6, $94, $49, $94, $dd, $93, $72, $93, $08, $93, $9f, $92
-01494     37 92 D0 91 
-01498     6A 91 05 91 
-0149c     A2 90 3F 90 
-014a0     DE 8F 7D 8F | 	byte	$37, $92, $d0, $91, $6a, $91, $05, $91, $a2, $90, $3f, $90, $de, $8f, $7d, $8f
-014a4     1E 8F C0 8E 
-014a8     63 8E 07 8E 
-014ac     AC 8D 52 8D 
-014b0     F9 8C A2 8C | 	byte	$1e, $8f, $c0, $8e, $63, $8e, $07, $8e, $ac, $8d, $52, $8d, $f9, $8c, $a2, $8c
-014b4     4B 8C F6 8B 
-014b8     A1 8B 4E 8B 
-014bc     FC 8A AB 8A 
-014c0     5B 8A 0D 8A | 	byte	$4b, $8c, $f6, $8b, $a1, $8b, $4e, $8b, $fc, $8a, $ab, $8a, $5b, $8a, $0d, $8a
-014c4     BF 89 73 89 
-014c8     28 89 DE 88 
-014cc     95 88 4D 88 
-014d0     06 88 C1 87 | 	byte	$bf, $89, $73, $89, $28, $89, $de, $88, $95, $88, $4d, $88, $06, $88, $c1, $87
-014d4     7C 87 39 87 
-014d8     F7 86 B6 86 
-014dc     77 86 38 86 
-014e0     FB 85 BF 85 | 	byte	$7c, $87, $39, $87, $f7, $86, $b6, $86, $77, $86, $38, $86, $fb, $85, $bf, $85
-014e4     84 85 4A 85 
-014e8     12 85 DA 84 
-014ec     A4 84 6F 84 
-014f0     3B 84 08 84 | 	byte	$84, $85, $4a, $85, $12, $85, $da, $84, $a4, $84, $6f, $84, $3b, $84, $08, $84
-014f4     D7 83 A7 83 
-014f8     78 83 4A 83 
-014fc     1D 83 F2 82 
-01500     C7 82 9E 82 | 	byte	$d7, $83, $a7, $83, $78, $83, $4a, $83, $1d, $83, $f2, $82, $c7, $82, $9e, $82
-01504     77 82 50 82 
-01508     2B 82 06 82 
-0150c     E3 81 C2 81 
-01510     A1 81 82 81 | 	byte	$77, $82, $50, $82, $2b, $82, $06, $82, $e3, $81, $c2, $81, $a1, $81, $82, $81
-01514     64 81 47 81 
-01518     2B 81 11 81 
-0151c     F7 80 DF 80 
-01520     C9 80 B3 80 | 	byte	$64, $81, $47, $81, $2b, $81, $11, $81, $f7, $80, $df, $80, $c9, $80, $b3, $80
-01524     9F 80 8C 80 
-01528     7A 80 69 80 
-0152c     5A 80 4C 80 
-01530     3F 80 33 80 | 	byte	$9f, $80, $8c, $80, $7a, $80, $69, $80, $5a, $80, $4c, $80, $3f, $80, $33, $80
-01534     28 80 1F 80 
-01538     17 80 10 80 
-0153c     0B 80 07 80 
-01540     03 80 02 80 | 	byte	$28, $80, $1f, $80, $17, $80, $10, $80, $0b, $80, $07, $80, $03, $80, $02, $80
-01544     01 80 02 80 
-01548     03 80 07 80 
-0154c     0B 80 10 80 
-01550     17 80 1F 80 | 	byte	$01, $80, $02, $80, $03, $80, $07, $80, $0b, $80, $10, $80, $17, $80, $1f, $80
-01554     28 80 33 80 
-01558     3F 80 4C 80 
-0155c     5A 80 69 80 
-01560     7A 80 8C 80 | 	byte	$28, $80, $33, $80, $3f, $80, $4c, $80, $5a, $80, $69, $80, $7a, $80, $8c, $80
-01564     9F 80 B3 80 
-01568     C9 80 DF 80 
-0156c     F7 80 11 81 
-01570     2B 81 47 81 | 	byte	$9f, $80, $b3, $80, $c9, $80, $df, $80, $f7, $80, $11, $81, $2b, $81, $47, $81
-01574     64 81 82 81 
-01578     A1 81 C2 81 
-0157c     E3 81 06 82 
-01580     2B 82 50 82 | 	byte	$64, $81, $82, $81, $a1, $81, $c2, $81, $e3, $81, $06, $82, $2b, $82, $50, $82
-01584     77 82 9E 82 
-01588     C7 82 F2 82 
-0158c     1D 83 4A 83 
-01590     78 83 A7 83 | 	byte	$77, $82, $9e, $82, $c7, $82, $f2, $82, $1d, $83, $4a, $83, $78, $83, $a7, $83
-01594     D7 83 08 84 
-01598     3B 84 6F 84 
-0159c     A4 84 DA 84 
-015a0     12 85 4A 85 | 	byte	$d7, $83, $08, $84, $3b, $84, $6f, $84, $a4, $84, $da, $84, $12, $85, $4a, $85
-015a4     84 85 BF 85 
-015a8     FB 85 38 86 
-015ac     77 86 B6 86 
-015b0     F7 86 39 87 | 	byte	$84, $85, $bf, $85, $fb, $85, $38, $86, $77, $86, $b6, $86, $f7, $86, $39, $87
-015b4     7C 87 C1 87 
-015b8     06 88 4D 88 
-015bc     95 88 DE 88 
-015c0     28 89 73 89 | 	byte	$7c, $87, $c1, $87, $06, $88, $4d, $88, $95, $88, $de, $88, $28, $89, $73, $89
-015c4     BF 89 0D 8A 
-015c8     5B 8A AB 8A 
-015cc     FC 8A 4E 8B 
-015d0     A1 8B F6 8B | 	byte	$bf, $89, $0d, $8a, $5b, $8a, $ab, $8a, $fc, $8a, $4e, $8b, $a1, $8b, $f6, $8b
-015d4     4B 8C A2 8C 
-015d8     F9 8C 52 8D 
-015dc     AC 8D 07 8E 
-015e0     63 8E C0 8E | 	byte	$4b, $8c, $a2, $8c, $f9, $8c, $52, $8d, $ac, $8d, $07, $8e, $63, $8e, $c0, $8e
-015e4     1E 8F 7D 8F 
-015e8     DE 8F 3F 90 
-015ec     A2 90 05 91 
-015f0     6A 91 D0 91 | 	byte	$1e, $8f, $7d, $8f, $de, $8f, $3f, $90, $a2, $90, $05, $91, $6a, $91, $d0, $91
-015f4     37 92 9F 92 
-015f8     08 93 72 93 
-015fc     DD 93 49 94 
-01600     B6 94 24 95 | 	byte	$37, $92, $9f, $92, $08, $93, $72, $93, $dd, $93, $49, $94, $b6, $94, $24, $95
-01604     93 95 03 96 
-01608     75 96 E7 96 
-0160c     5A 97 CE 97 
-01610     44 98 BA 98 | 	byte	$93, $95, $03, $96, $75, $96, $e7, $96, $5a, $97, $ce, $97, $44, $98, $ba, $98
-01614     31 99 AA 99 
-01618     23 9A 9D 9A 
-0161c     18 9B 94 9B 
-01620     12 9C 90 9C | 	byte	$31, $99, $aa, $99, $23, $9a, $9d, $9a, $18, $9b, $94, $9b, $12, $9c, $90, $9c
-01624     0F 9D 8F 9D 
-01628     10 9E 92 9E 
-0162c     15 9F 98 9F 
-01630     1D A0 A3 A0 | 	byte	$0f, $9d, $8f, $9d, $10, $9e, $92, $9e, $15, $9f, $98, $9f, $1d, $a0, $a3, $a0
-01634     29 A1 B1 A1 
-01638     39 A2 C2 A2 
-0163c     4D A3 D8 A3 
-01640     64 A4 F1 A4 | 	byte	$29, $a1, $b1, $a1, $39, $a2, $c2, $a2, $4d, $a3, $d8, $a3, $64, $a4, $f1, $a4
-01644     7E A5 0D A6 
-01648     9C A6 2D A7 
-0164c     BE A7 50 A8 
-01650     E3 A8 76 A9 | 	byte	$7e, $a5, $0d, $a6, $9c, $a6, $2d, $a7, $be, $a7, $50, $a8, $e3, $a8, $76, $a9
-01654     0B AA A0 AA 
-01658     37 AB CE AB 
-0165c     65 AC FE AC 
-01660     98 AD 32 AE | 	byte	$0b, $aa, $a0, $aa, $37, $ab, $ce, $ab, $65, $ac, $fe, $ac, $98, $ad, $32, $ae
-01664     CD AE 69 AF 
-01668     05 B0 A3 B0 
-0166c     41 B1 E0 B1 
-01670     7F B2 20 B3 | 	byte	$cd, $ae, $69, $af, $05, $b0, $a3, $b0, $41, $b1, $e0, $b1, $7f, $b2, $20, $b3
-01674     C1 B3 63 B4 
-01678     05 B5 A8 B5 
-0167c     4C B6 F1 B6 
-01680     97 B7 3D B8 | 	byte	$c1, $b3, $63, $b4, $05, $b5, $a8, $b5, $4c, $b6, $f1, $b6, $97, $b7, $3d, $b8
-01684     E4 B8 8B B9 
-01688     33 BA DC BA 
-0168c     86 BB 30 BC 
-01690     DB BC 86 BD | 	byte	$e4, $b8, $8b, $b9, $33, $ba, $dc, $ba, $86, $bb, $30, $bc, $db, $bc, $86, $bd
-01694     32 BE DF BE 
-01698     8D BF 3B C0 
-0169c     E9 C0 98 C1 
-016a0     48 C2 F9 C2 | 	byte	$32, $be, $df, $be, $8d, $bf, $3b, $c0, $e9, $c0, $98, $c1, $48, $c2, $f9, $c2
-016a4     AA C3 5B C4 
-016a8     0E C5 C0 C5 
-016ac     74 C6 27 C7 
-016b0     DC C7 91 C8 | 	byte	$aa, $c3, $5b, $c4, $0e, $c5, $c0, $c5, $74, $c6, $27, $c7, $dc, $c7, $91, $c8
-016b4     46 C9 FC C9 
-016b8     B3 CA 6A CB 
-016bc     21 CC DA CC 
-016c0     92 CD 4B CE | 	byte	$46, $c9, $fc, $c9, $b3, $ca, $6a, $cb, $21, $cc, $da, $cc, $92, $cd, $4b, $ce
-016c4     05 CF BF CF 
-016c8     79 D0 34 D1 
-016cc     EF D1 AB D2 
-016d0     67 D3 24 D4 | 	byte	$05, $cf, $bf, $cf, $79, $d0, $34, $d1, $ef, $d1, $ab, $d2, $67, $d3, $24, $d4
-016d4     E1 D4 9F D5 
-016d8     5D D6 1B D7 
-016dc     DA D7 99 D8 
-016e0     58 D9 18 DA | 	byte	$e1, $d4, $9f, $d5, $5d, $d6, $1b, $d7, $da, $d7, $99, $d8, $58, $d9, $18, $da
-016e4     D8 DA 99 DB 
-016e8     5A DC 1B DD 
-016ec     DD DD 9F DE 
-016f0     61 DF 23 E0 | 	byte	$d8, $da, $99, $db, $5a, $dc, $1b, $dd, $dd, $dd, $9f, $de, $61, $df, $23, $e0
-016f4     E6 E0 A9 E1 
-016f8     6D E2 31 E3 
-016fc     F5 E3 B9 E4 
-01700     7E E5 42 E6 | 	byte	$e6, $e0, $a9, $e1, $6d, $e2, $31, $e3, $f5, $e3, $b9, $e4, $7e, $e5, $42, $e6
-01704     07 E7 CD E7 
-01708     92 E8 58 E9 
-0170c     1E EA E4 EA 
-01710     AB EB 71 EC | 	byte	$07, $e7, $cd, $e7, $92, $e8, $58, $e9, $1e, $ea, $e4, $ea, $ab, $eb, $71, $ec
-01714     38 ED FF ED 
-01718     C6 EE 8E EF 
-0171c     55 F0 1D F1 
-01720     E4 F1 AC F2 | 	byte	$38, $ed, $ff, $ed, $c6, $ee, $8e, $ef, $55, $f0, $1d, $f1, $e4, $f1, $ac, $f2
-01724     74 F3 3C F4 
-01728     05 F5 CD F5 
-0172c     96 F6 5E F7 
-01730     27 F8 EF F8 | 	byte	$74, $f3, $3c, $f4, $05, $f5, $cd, $f5, $96, $f6, $5e, $f7, $27, $f8, $ef, $f8
-01734     B8 F9 81 FA 
-01738     4A FB 13 FC 
-0173c     DC FC A5 FD 
-01740     6E FE 37 FF | 	byte	$b8, $f9, $81, $fa, $4a, $fb, $13, $fc, $dc, $fc, $a5, $fd, $6e, $fe, $37, $ff
-01744                 | 	alignl
-01744                 | __system__dat_
-01744     00 00 00 00 
-01748     00 00 00 00 | 	byte	$00[8]
-0174c     03 00 00 00 
+00e84     00 00 00 00 | front       long 0
+00e88                 | 
+00e88                 | ' temporary variables 
+00e88                 | '
+00e88     00 00 00 00 | qq          long 0
+00e8c     00 00 00 00 | spl         long 0
+00e90                 | 
+00e90                 | ' circular buffer in LUT
+00e90                 | 
+00e90                 | 
+00e90                 | '
+00e90                 | 
+00e90                 | ' Interrupt ISR variables
+00e90                 | 
+00e90                 | 
+00e90     00 00 00 00 | lsample     long 0
+00e94     00 00 00 00 | rsample     long 0
+00e98     00 00 00 00 | lsnext      long 0
+00e9c     00 00 00 00 | rsnext      long 0 
+00ea0                 | 
+00ea0                 | 
+00ea0     00 00 00 00 | pointer0    long 0
+00ea4     00 00 00 00 | sample0     long 0
+00ea8     00 00 00 00 | sstart0     long 0     ' start pointer and type at bit 31
+00eac     00 00 00 00 | lstart0     long 0
+00eb0     00 00 00 00 | lend0       long 0
+00eb4     00 00 00 00 | volpan0     long 0
+00eb8     00 00 00 00 | freqskip0   long 0
+00ebc     00 00 00 00 | dummy0      long 0
+00ec0                 | 
+00ec0     00 00 00 00 | afreq0      long 0
+00ec4     00 00 00 00 | askip0      long 0
+00ec8     00 00 00 00 | avol0       long 0
+00ecc     00 00 00 00 | apan0       long 0
+00ed0                 | 
+00ed0     FF FF FF FF | oldt0       long $FFFFFFFF    'Temporary time variables
+00ed4     00 00 00 00 | cn          long 0
+00ed8     00 00 00 00 | ct          long 0
+00edc     00 00 00 00 | dt0         long 0
+00ee0                 | 
+00ee0                 | ' Samples
+00ee0     00 00 00 00 | ls0         long 0
+00ee4     00 00 00 00 | rs0         long 0
+00ee8     00 00 00 00 | channel     long 0
+00eec     00 00 00 00 | ls          long 0    ' Global sample variable
+00ef0     00 00 00 00 | rs          long 0
+00ef4                 | 
+00ef4     00 00 00 00 | ls1         long 0    ' Channel samples
+00ef8     00 00 00 00 | ls2         long 0
+00efc     00 00 00 00 | ls3         long 0
+00f00     00 00 00 00 | ls4         long 0
+00f04     00 00 00 00 | ls5         long 0
+00f08     00 00 00 00 | ls6         long 0
+00f0c     00 00 00 00 | ls7         long 0
+00f10     00 00 00 00 | ls8         long 0
+00f14     00 00 00 00 | rs1         long 0
+00f18     00 00 00 00 | rs2         long 0
+00f1c     00 00 00 00 | rs3         long 0
+00f20     00 00 00 00 | rs4         long 0
+00f24     00 00 00 00 | rs5         long 0
+00f28     00 00 00 00 | rs6         long 0
+00f2c     00 00 00 00 | rs7         long 0
+00f30     00 00 00 00 | rs8         long 0
+00f34                 | 
+00f34     44 00 17 00 | dac         long %10111_00000000_01_00010_0     'random dither, as 90 cycles period needed
+00f38                 | 
+00f38     00 00 00 00 
+00f3c     00 00 00 00 | null  			long 	0,0           ' for channel reset
+00f40     73 32 00 04 
+00f44     00 00 10 00 
+00f48     00 00 00 00 
+00f4c     00 00 00 00 | sinewave 		file 	"sinus.s2"    ' for testing
+00f50     00 00 C9 00 
+00f54     92 01 5B 02 
+00f58     24 03 ED 03 
+00f5c     B6 04 7F 05 | 	byte	$00, $00, $c9, $00, $92, $01, $5b, $02, $24, $03, $ed, $03, $b6, $04, $7f, $05
+00f60     48 06 11 07 
+00f64     D9 07 A2 08 
+00f68     6A 09 33 0A 
+00f6c     FB 0A C4 0B | 	byte	$48, $06, $11, $07, $d9, $07, $a2, $08, $6a, $09, $33, $0a, $fb, $0a, $c4, $0b
+00f70     8C 0C 54 0D 
+00f74     1C 0E E3 0E 
+00f78     AB 0F 72 10 
+00f7c     3A 11 01 12 | 	byte	$8c, $0c, $54, $0d, $1c, $0e, $e3, $0e, $ab, $0f, $72, $10, $3a, $11, $01, $12
+00f80     C8 12 8F 13 
+00f84     55 14 1C 15 
+00f88     E2 15 A8 16 
+00f8c     6E 17 33 18 | 	byte	$c8, $12, $8f, $13, $55, $14, $1c, $15, $e2, $15, $a8, $16, $6e, $17, $33, $18
+00f90     F9 18 BE 19 
+00f94     82 1A 47 1B 
+00f98     0B 1C CF 1C 
+00f9c     93 1D 57 1E | 	byte	$f9, $18, $be, $19, $82, $1a, $47, $1b, $0b, $1c, $cf, $1c, $93, $1d, $57, $1e
+00fa0     1A 1F DD 1F 
+00fa4     9F 20 61 21 
+00fa8     23 22 E5 22 
+00fac     A6 23 67 24 | 	byte	$1a, $1f, $dd, $1f, $9f, $20, $61, $21, $23, $22, $e5, $22, $a6, $23, $67, $24
+00fb0     28 25 E8 25 
+00fb4     A8 26 67 27 
+00fb8     26 28 E5 28 
+00fbc     A3 29 61 2A | 	byte	$28, $25, $e8, $25, $a8, $26, $67, $27, $26, $28, $e5, $28, $a3, $29, $61, $2a
+00fc0     1F 2B DC 2B 
+00fc4     99 2C 55 2D 
+00fc8     11 2E CC 2E 
+00fcc     87 2F 41 30 | 	byte	$1f, $2b, $dc, $2b, $99, $2c, $55, $2d, $11, $2e, $cc, $2e, $87, $2f, $41, $30
+00fd0     FB 30 B5 31 
+00fd4     6E 32 26 33 
+00fd8     DF 33 96 34 
+00fdc     4D 35 04 36 | 	byte	$fb, $30, $b5, $31, $6e, $32, $26, $33, $df, $33, $96, $34, $4d, $35, $04, $36
+00fe0     BA 36 6F 37 
+00fe4     24 38 D9 38 
+00fe8     8C 39 40 3A 
+00fec     F2 3A A5 3B | 	byte	$ba, $36, $6f, $37, $24, $38, $d9, $38, $8c, $39, $40, $3a, $f2, $3a, $a5, $3b
+00ff0     56 3C 07 3D 
+00ff4     B8 3D 68 3E 
+00ff8     17 3F C5 3F 
+00ffc     73 40 21 41 | 	byte	$56, $3c, $07, $3d, $b8, $3d, $68, $3e, $17, $3f, $c5, $3f, $73, $40, $21, $41
+01000     CE 41 7A 42 
+01004     25 43 D0 43 
+01008     7A 44 24 45 
+0100c     CD 45 75 46 | 	byte	$ce, $41, $7a, $42, $25, $43, $d0, $43, $7a, $44, $24, $45, $cd, $45, $75, $46
+01010     1C 47 C3 47 
+01014     69 48 0F 49 
+01018     B4 49 58 4A 
+0101c     FB 4A 9D 4B | 	byte	$1c, $47, $c3, $47, $69, $48, $0f, $49, $b4, $49, $58, $4a, $fb, $4a, $9d, $4b
+01020     3F 4C E0 4C 
+01024     81 4D 20 4E 
+01028     BF 4E 5D 4F 
+0102c     FB 4F 97 50 | 	byte	$3f, $4c, $e0, $4c, $81, $4d, $20, $4e, $bf, $4e, $5d, $4f, $fb, $4f, $97, $50
+01030     33 51 CE 51 
+01034     68 52 02 53 
+01038     9B 53 32 54 
+0103c     C9 54 60 55 | 	byte	$33, $51, $ce, $51, $68, $52, $02, $53, $9b, $53, $32, $54, $c9, $54, $60, $55
+01040     F5 55 8A 56 
+01044     1D 57 B0 57 
+01048     42 58 D3 58 
+0104c     64 59 F3 59 | 	byte	$f5, $55, $8a, $56, $1d, $57, $b0, $57, $42, $58, $d3, $58, $64, $59, $f3, $59
+01050     82 5A 0F 5B 
+01054     9C 5B 28 5C 
+01058     B3 5C 3E 5D 
+0105c     C7 5D 4F 5E | 	byte	$82, $5a, $0f, $5b, $9c, $5b, $28, $5c, $b3, $5c, $3e, $5d, $c7, $5d, $4f, $5e
+01060     D7 5E 5D 5F 
+01064     E3 5F 68 60 
+01068     EB 60 6E 61 
+0106c     F0 61 71 62 | 	byte	$d7, $5e, $5d, $5f, $e3, $5f, $68, $60, $eb, $60, $6e, $61, $f0, $61, $71, $62
+01070     F1 62 70 63 
+01074     EE 63 6C 64 
+01078     E8 64 63 65 
+0107c     DD 65 56 66 | 	byte	$f1, $62, $70, $63, $ee, $63, $6c, $64, $e8, $64, $63, $65, $dd, $65, $56, $66
+01080     CF 66 46 67 
+01084     BC 67 32 68 
+01088     A6 68 19 69 
+0108c     8B 69 FD 69 | 	byte	$cf, $66, $46, $67, $bc, $67, $32, $68, $a6, $68, $19, $69, $8b, $69, $fd, $69
+01090     6D 6A DC 6A 
+01094     4A 6B B7 6B 
+01098     23 6C 8E 6C 
+0109c     F8 6C 61 6D | 	byte	$6d, $6a, $dc, $6a, $4a, $6b, $b7, $6b, $23, $6c, $8e, $6c, $f8, $6c, $61, $6d
+010a0     C9 6D 30 6E 
+010a4     96 6E FB 6E 
+010a8     5E 6F C1 6F 
+010ac     22 70 83 70 | 	byte	$c9, $6d, $30, $6e, $96, $6e, $fb, $6e, $5e, $6f, $c1, $6f, $22, $70, $83, $70
+010b0     E2 70 40 71 
+010b4     9D 71 F9 71 
+010b8     54 72 AE 72 
+010bc     07 73 5E 73 | 	byte	$e2, $70, $40, $71, $9d, $71, $f9, $71, $54, $72, $ae, $72, $07, $73, $5e, $73
+010c0     B5 73 0A 74 
+010c4     5F 74 B2 74 
+010c8     04 75 55 75 
+010cc     A5 75 F3 75 | 	byte	$b5, $73, $0a, $74, $5f, $74, $b2, $74, $04, $75, $55, $75, $a5, $75, $f3, $75
+010d0     41 76 8D 76 
+010d4     D8 76 22 77 
+010d8     6B 77 B3 77 
+010dc     FA 77 3F 78 | 	byte	$41, $76, $8d, $76, $d8, $76, $22, $77, $6b, $77, $b3, $77, $fa, $77, $3f, $78
+010e0     84 78 C7 78 
+010e4     09 79 4A 79 
+010e8     89 79 C8 79 
+010ec     05 7A 41 7A | 	byte	$84, $78, $c7, $78, $09, $79, $4a, $79, $89, $79, $c8, $79, $05, $7a, $41, $7a
+010f0     7C 7A B6 7A 
+010f4     EE 7A 26 7B 
+010f8     5C 7B 91 7B 
+010fc     C5 7B F8 7B | 	byte	$7c, $7a, $b6, $7a, $ee, $7a, $26, $7b, $5c, $7b, $91, $7b, $c5, $7b, $f8, $7b
+01100     29 7C 59 7C 
+01104     88 7C B6 7C 
+01108     E3 7C 0E 7D 
+0110c     39 7D 62 7D | 	byte	$29, $7c, $59, $7c, $88, $7c, $b6, $7c, $e3, $7c, $0e, $7d, $39, $7d, $62, $7d
+01110     89 7D B0 7D 
+01114     D5 7D FA 7D 
+01118     1D 7E 3E 7E 
+0111c     5F 7E 7E 7E | 	byte	$89, $7d, $b0, $7d, $d5, $7d, $fa, $7d, $1d, $7e, $3e, $7e, $5f, $7e, $7e, $7e
+01120     9C 7E B9 7E 
+01124     D5 7E EF 7E 
+01128     09 7F 21 7F 
+0112c     37 7F 4D 7F | 	byte	$9c, $7e, $b9, $7e, $d5, $7e, $ef, $7e, $09, $7f, $21, $7f, $37, $7f, $4d, $7f
+01130     61 7F 74 7F 
+01134     86 7F 97 7F 
+01138     A6 7F B4 7F 
+0113c     C1 7F CD 7F | 	byte	$61, $7f, $74, $7f, $86, $7f, $97, $7f, $a6, $7f, $b4, $7f, $c1, $7f, $cd, $7f
+01140     D8 7F E1 7F 
+01144     E9 7F F0 7F 
+01148     F5 7F F9 7F 
+0114c     FD 7F FE 7F | 	byte	$d8, $7f, $e1, $7f, $e9, $7f, $f0, $7f, $f5, $7f, $f9, $7f, $fd, $7f, $fe, $7f
+01150     FF 7F FE 7F 
+01154     FD 7F F9 7F 
+01158     F5 7F F0 7F 
+0115c     E9 7F E1 7F | 	byte	$ff, $7f, $fe, $7f, $fd, $7f, $f9, $7f, $f5, $7f, $f0, $7f, $e9, $7f, $e1, $7f
+01160     D8 7F CD 7F 
+01164     C1 7F B4 7F 
+01168     A6 7F 97 7F 
+0116c     86 7F 74 7F | 	byte	$d8, $7f, $cd, $7f, $c1, $7f, $b4, $7f, $a6, $7f, $97, $7f, $86, $7f, $74, $7f
+01170     61 7F 4D 7F 
+01174     37 7F 21 7F 
+01178     09 7F EF 7E 
+0117c     D5 7E B9 7E | 	byte	$61, $7f, $4d, $7f, $37, $7f, $21, $7f, $09, $7f, $ef, $7e, $d5, $7e, $b9, $7e
+01180     9C 7E 7E 7E 
+01184     5F 7E 3E 7E 
+01188     1D 7E FA 7D 
+0118c     D5 7D B0 7D | 	byte	$9c, $7e, $7e, $7e, $5f, $7e, $3e, $7e, $1d, $7e, $fa, $7d, $d5, $7d, $b0, $7d
+01190     89 7D 62 7D 
+01194     39 7D 0E 7D 
+01198     E3 7C B6 7C 
+0119c     88 7C 59 7C | 	byte	$89, $7d, $62, $7d, $39, $7d, $0e, $7d, $e3, $7c, $b6, $7c, $88, $7c, $59, $7c
+011a0     29 7C F8 7B 
+011a4     C5 7B 91 7B 
+011a8     5C 7B 26 7B 
+011ac     EE 7A B6 7A | 	byte	$29, $7c, $f8, $7b, $c5, $7b, $91, $7b, $5c, $7b, $26, $7b, $ee, $7a, $b6, $7a
+011b0     7C 7A 41 7A 
+011b4     05 7A C8 79 
+011b8     89 79 4A 79 
+011bc     09 79 C7 78 | 	byte	$7c, $7a, $41, $7a, $05, $7a, $c8, $79, $89, $79, $4a, $79, $09, $79, $c7, $78
+011c0     84 78 3F 78 
+011c4     FA 77 B3 77 
+011c8     6B 77 22 77 
+011cc     D8 76 8D 76 | 	byte	$84, $78, $3f, $78, $fa, $77, $b3, $77, $6b, $77, $22, $77, $d8, $76, $8d, $76
+011d0     41 76 F3 75 
+011d4     A5 75 55 75 
+011d8     04 75 B2 74 
+011dc     5F 74 0A 74 | 	byte	$41, $76, $f3, $75, $a5, $75, $55, $75, $04, $75, $b2, $74, $5f, $74, $0a, $74
+011e0     B5 73 5E 73 
+011e4     07 73 AE 72 
+011e8     54 72 F9 71 
+011ec     9D 71 40 71 | 	byte	$b5, $73, $5e, $73, $07, $73, $ae, $72, $54, $72, $f9, $71, $9d, $71, $40, $71
+011f0     E2 70 83 70 
+011f4     22 70 C1 6F 
+011f8     5E 6F FB 6E 
+011fc     96 6E 30 6E | 	byte	$e2, $70, $83, $70, $22, $70, $c1, $6f, $5e, $6f, $fb, $6e, $96, $6e, $30, $6e
+01200     C9 6D 61 6D 
+01204     F8 6C 8E 6C 
+01208     23 6C B7 6B 
+0120c     4A 6B DC 6A | 	byte	$c9, $6d, $61, $6d, $f8, $6c, $8e, $6c, $23, $6c, $b7, $6b, $4a, $6b, $dc, $6a
+01210     6D 6A FD 69 
+01214     8B 69 19 69 
+01218     A6 68 32 68 
+0121c     BC 67 46 67 | 	byte	$6d, $6a, $fd, $69, $8b, $69, $19, $69, $a6, $68, $32, $68, $bc, $67, $46, $67
+01220     CF 66 56 66 
+01224     DD 65 63 65 
+01228     E8 64 6C 64 
+0122c     EE 63 70 63 | 	byte	$cf, $66, $56, $66, $dd, $65, $63, $65, $e8, $64, $6c, $64, $ee, $63, $70, $63
+01230     F1 62 71 62 
+01234     F0 61 6E 61 
+01238     EB 60 68 60 
+0123c     E3 5F 5D 5F | 	byte	$f1, $62, $71, $62, $f0, $61, $6e, $61, $eb, $60, $68, $60, $e3, $5f, $5d, $5f
+01240     D7 5E 4F 5E 
+01244     C7 5D 3E 5D 
+01248     B3 5C 28 5C 
+0124c     9C 5B 0F 5B | 	byte	$d7, $5e, $4f, $5e, $c7, $5d, $3e, $5d, $b3, $5c, $28, $5c, $9c, $5b, $0f, $5b
+01250     82 5A F3 59 
+01254     64 59 D3 58 
+01258     42 58 B0 57 
+0125c     1D 57 8A 56 | 	byte	$82, $5a, $f3, $59, $64, $59, $d3, $58, $42, $58, $b0, $57, $1d, $57, $8a, $56
+01260     F5 55 60 55 
+01264     C9 54 32 54 
+01268     9B 53 02 53 
+0126c     68 52 CE 51 | 	byte	$f5, $55, $60, $55, $c9, $54, $32, $54, $9b, $53, $02, $53, $68, $52, $ce, $51
+01270     33 51 97 50 
+01274     FB 4F 5D 4F 
+01278     BF 4E 20 4E 
+0127c     81 4D E0 4C | 	byte	$33, $51, $97, $50, $fb, $4f, $5d, $4f, $bf, $4e, $20, $4e, $81, $4d, $e0, $4c
+01280     3F 4C 9D 4B 
+01284     FB 4A 58 4A 
+01288     B4 49 0F 49 
+0128c     69 48 C3 47 | 	byte	$3f, $4c, $9d, $4b, $fb, $4a, $58, $4a, $b4, $49, $0f, $49, $69, $48, $c3, $47
+01290     1C 47 75 46 
+01294     CD 45 24 45 
+01298     7A 44 D0 43 
+0129c     25 43 7A 42 | 	byte	$1c, $47, $75, $46, $cd, $45, $24, $45, $7a, $44, $d0, $43, $25, $43, $7a, $42
+012a0     CE 41 21 41 
+012a4     73 40 C5 3F 
+012a8     17 3F 68 3E 
+012ac     B8 3D 07 3D | 	byte	$ce, $41, $21, $41, $73, $40, $c5, $3f, $17, $3f, $68, $3e, $b8, $3d, $07, $3d
+012b0     56 3C A5 3B 
+012b4     F2 3A 40 3A 
+012b8     8C 39 D9 38 
+012bc     24 38 6F 37 | 	byte	$56, $3c, $a5, $3b, $f2, $3a, $40, $3a, $8c, $39, $d9, $38, $24, $38, $6f, $37
+012c0     BA 36 04 36 
+012c4     4D 35 96 34 
+012c8     DF 33 26 33 
+012cc     6E 32 B5 31 | 	byte	$ba, $36, $04, $36, $4d, $35, $96, $34, $df, $33, $26, $33, $6e, $32, $b5, $31
+012d0     FB 30 41 30 
+012d4     87 2F CC 2E 
+012d8     11 2E 55 2D 
+012dc     99 2C DC 2B | 	byte	$fb, $30, $41, $30, $87, $2f, $cc, $2e, $11, $2e, $55, $2d, $99, $2c, $dc, $2b
+012e0     1F 2B 61 2A 
+012e4     A3 29 E5 28 
+012e8     26 28 67 27 
+012ec     A8 26 E8 25 | 	byte	$1f, $2b, $61, $2a, $a3, $29, $e5, $28, $26, $28, $67, $27, $a8, $26, $e8, $25
+012f0     28 25 67 24 
+012f4     A6 23 E5 22 
+012f8     23 22 61 21 
+012fc     9F 20 DD 1F | 	byte	$28, $25, $67, $24, $a6, $23, $e5, $22, $23, $22, $61, $21, $9f, $20, $dd, $1f
+01300     1A 1F 57 1E 
+01304     93 1D CF 1C 
+01308     0B 1C 47 1B 
+0130c     82 1A BE 19 | 	byte	$1a, $1f, $57, $1e, $93, $1d, $cf, $1c, $0b, $1c, $47, $1b, $82, $1a, $be, $19
+01310     F9 18 33 18 
+01314     6E 17 A8 16 
+01318     E2 15 1C 15 
+0131c     55 14 8F 13 | 	byte	$f9, $18, $33, $18, $6e, $17, $a8, $16, $e2, $15, $1c, $15, $55, $14, $8f, $13
+01320     C8 12 01 12 
+01324     3A 11 72 10 
+01328     AB 0F E3 0E 
+0132c     1C 0E 54 0D | 	byte	$c8, $12, $01, $12, $3a, $11, $72, $10, $ab, $0f, $e3, $0e, $1c, $0e, $54, $0d
+01330     8C 0C C4 0B 
+01334     FB 0A 33 0A 
+01338     6A 09 A2 08 
+0133c     D9 07 11 07 | 	byte	$8c, $0c, $c4, $0b, $fb, $0a, $33, $0a, $6a, $09, $a2, $08, $d9, $07, $11, $07
+01340     48 06 7F 05 
+01344     B6 04 ED 03 
+01348     24 03 5B 02 
+0134c     92 01 C9 00 | 	byte	$48, $06, $7f, $05, $b6, $04, $ed, $03, $24, $03, $5b, $02, $92, $01, $c9, $00
+01350     00 00 37 FF 
+01354     6E FE A5 FD 
+01358     DC FC 13 FC 
+0135c     4A FB 81 FA | 	byte	$00, $00, $37, $ff, $6e, $fe, $a5, $fd, $dc, $fc, $13, $fc, $4a, $fb, $81, $fa
+01360     B8 F9 EF F8 
+01364     27 F8 5E F7 
+01368     96 F6 CD F5 
+0136c     05 F5 3C F4 | 	byte	$b8, $f9, $ef, $f8, $27, $f8, $5e, $f7, $96, $f6, $cd, $f5, $05, $f5, $3c, $f4
+01370     74 F3 AC F2 
+01374     E4 F1 1D F1 
+01378     55 F0 8E EF 
+0137c     C6 EE FF ED | 	byte	$74, $f3, $ac, $f2, $e4, $f1, $1d, $f1, $55, $f0, $8e, $ef, $c6, $ee, $ff, $ed
+01380     38 ED 71 EC 
+01384     AB EB E4 EA 
+01388     1E EA 58 E9 
+0138c     92 E8 CD E7 | 	byte	$38, $ed, $71, $ec, $ab, $eb, $e4, $ea, $1e, $ea, $58, $e9, $92, $e8, $cd, $e7
+01390     07 E7 42 E6 
+01394     7E E5 B9 E4 
+01398     F5 E3 31 E3 
+0139c     6D E2 A9 E1 | 	byte	$07, $e7, $42, $e6, $7e, $e5, $b9, $e4, $f5, $e3, $31, $e3, $6d, $e2, $a9, $e1
+013a0     E6 E0 23 E0 
+013a4     61 DF 9F DE 
+013a8     DD DD 1B DD 
+013ac     5A DC 99 DB | 	byte	$e6, $e0, $23, $e0, $61, $df, $9f, $de, $dd, $dd, $1b, $dd, $5a, $dc, $99, $db
+013b0     D8 DA 18 DA 
+013b4     58 D9 99 D8 
+013b8     DA D7 1B D7 
+013bc     5D D6 9F D5 | 	byte	$d8, $da, $18, $da, $58, $d9, $99, $d8, $da, $d7, $1b, $d7, $5d, $d6, $9f, $d5
+013c0     E1 D4 24 D4 
+013c4     67 D3 AB D2 
+013c8     EF D1 34 D1 
+013cc     79 D0 BF CF | 	byte	$e1, $d4, $24, $d4, $67, $d3, $ab, $d2, $ef, $d1, $34, $d1, $79, $d0, $bf, $cf
+013d0     05 CF 4B CE 
+013d4     92 CD DA CC 
+013d8     21 CC 6A CB 
+013dc     B3 CA FC C9 | 	byte	$05, $cf, $4b, $ce, $92, $cd, $da, $cc, $21, $cc, $6a, $cb, $b3, $ca, $fc, $c9
+013e0     46 C9 91 C8 
+013e4     DC C7 27 C7 
+013e8     74 C6 C0 C5 
+013ec     0E C5 5B C4 | 	byte	$46, $c9, $91, $c8, $dc, $c7, $27, $c7, $74, $c6, $c0, $c5, $0e, $c5, $5b, $c4
+013f0     AA C3 F9 C2 
+013f4     48 C2 98 C1 
+013f8     E9 C0 3B C0 
+013fc     8D BF DF BE | 	byte	$aa, $c3, $f9, $c2, $48, $c2, $98, $c1, $e9, $c0, $3b, $c0, $8d, $bf, $df, $be
+01400     32 BE 86 BD 
+01404     DB BC 30 BC 
+01408     86 BB DC BA 
+0140c     33 BA 8B B9 | 	byte	$32, $be, $86, $bd, $db, $bc, $30, $bc, $86, $bb, $dc, $ba, $33, $ba, $8b, $b9
+01410     E4 B8 3D B8 
+01414     97 B7 F1 B6 
+01418     4C B6 A8 B5 
+0141c     05 B5 63 B4 | 	byte	$e4, $b8, $3d, $b8, $97, $b7, $f1, $b6, $4c, $b6, $a8, $b5, $05, $b5, $63, $b4
+01420     C1 B3 20 B3 
+01424     7F B2 E0 B1 
+01428     41 B1 A3 B0 
+0142c     05 B0 69 AF | 	byte	$c1, $b3, $20, $b3, $7f, $b2, $e0, $b1, $41, $b1, $a3, $b0, $05, $b0, $69, $af
+01430     CD AE 32 AE 
+01434     98 AD FE AC 
+01438     65 AC CE AB 
+0143c     37 AB A0 AA | 	byte	$cd, $ae, $32, $ae, $98, $ad, $fe, $ac, $65, $ac, $ce, $ab, $37, $ab, $a0, $aa
+01440     0B AA 76 A9 
+01444     E3 A8 50 A8 
+01448     BE A7 2D A7 
+0144c     9C A6 0D A6 | 	byte	$0b, $aa, $76, $a9, $e3, $a8, $50, $a8, $be, $a7, $2d, $a7, $9c, $a6, $0d, $a6
+01450     7E A5 F1 A4 
+01454     64 A4 D8 A3 
+01458     4D A3 C2 A2 
+0145c     39 A2 B1 A1 | 	byte	$7e, $a5, $f1, $a4, $64, $a4, $d8, $a3, $4d, $a3, $c2, $a2, $39, $a2, $b1, $a1
+01460     29 A1 A3 A0 
+01464     1D A0 98 9F 
+01468     15 9F 92 9E 
+0146c     10 9E 8F 9D | 	byte	$29, $a1, $a3, $a0, $1d, $a0, $98, $9f, $15, $9f, $92, $9e, $10, $9e, $8f, $9d
+01470     0F 9D 90 9C 
+01474     12 9C 94 9B 
+01478     18 9B 9D 9A 
+0147c     23 9A AA 99 | 	byte	$0f, $9d, $90, $9c, $12, $9c, $94, $9b, $18, $9b, $9d, $9a, $23, $9a, $aa, $99
+01480     31 99 BA 98 
+01484     44 98 CE 97 
+01488     5A 97 E7 96 
+0148c     75 96 03 96 | 	byte	$31, $99, $ba, $98, $44, $98, $ce, $97, $5a, $97, $e7, $96, $75, $96, $03, $96
+01490     93 95 24 95 
+01494     B6 94 49 94 
+01498     DD 93 72 93 
+0149c     08 93 9F 92 | 	byte	$93, $95, $24, $95, $b6, $94, $49, $94, $dd, $93, $72, $93, $08, $93, $9f, $92
+014a0     37 92 D0 91 
+014a4     6A 91 05 91 
+014a8     A2 90 3F 90 
+014ac     DE 8F 7D 8F | 	byte	$37, $92, $d0, $91, $6a, $91, $05, $91, $a2, $90, $3f, $90, $de, $8f, $7d, $8f
+014b0     1E 8F C0 8E 
+014b4     63 8E 07 8E 
+014b8     AC 8D 52 8D 
+014bc     F9 8C A2 8C | 	byte	$1e, $8f, $c0, $8e, $63, $8e, $07, $8e, $ac, $8d, $52, $8d, $f9, $8c, $a2, $8c
+014c0     4B 8C F6 8B 
+014c4     A1 8B 4E 8B 
+014c8     FC 8A AB 8A 
+014cc     5B 8A 0D 8A | 	byte	$4b, $8c, $f6, $8b, $a1, $8b, $4e, $8b, $fc, $8a, $ab, $8a, $5b, $8a, $0d, $8a
+014d0     BF 89 73 89 
+014d4     28 89 DE 88 
+014d8     95 88 4D 88 
+014dc     06 88 C1 87 | 	byte	$bf, $89, $73, $89, $28, $89, $de, $88, $95, $88, $4d, $88, $06, $88, $c1, $87
+014e0     7C 87 39 87 
+014e4     F7 86 B6 86 
+014e8     77 86 38 86 
+014ec     FB 85 BF 85 | 	byte	$7c, $87, $39, $87, $f7, $86, $b6, $86, $77, $86, $38, $86, $fb, $85, $bf, $85
+014f0     84 85 4A 85 
+014f4     12 85 DA 84 
+014f8     A4 84 6F 84 
+014fc     3B 84 08 84 | 	byte	$84, $85, $4a, $85, $12, $85, $da, $84, $a4, $84, $6f, $84, $3b, $84, $08, $84
+01500     D7 83 A7 83 
+01504     78 83 4A 83 
+01508     1D 83 F2 82 
+0150c     C7 82 9E 82 | 	byte	$d7, $83, $a7, $83, $78, $83, $4a, $83, $1d, $83, $f2, $82, $c7, $82, $9e, $82
+01510     77 82 50 82 
+01514     2B 82 06 82 
+01518     E3 81 C2 81 
+0151c     A1 81 82 81 | 	byte	$77, $82, $50, $82, $2b, $82, $06, $82, $e3, $81, $c2, $81, $a1, $81, $82, $81
+01520     64 81 47 81 
+01524     2B 81 11 81 
+01528     F7 80 DF 80 
+0152c     C9 80 B3 80 | 	byte	$64, $81, $47, $81, $2b, $81, $11, $81, $f7, $80, $df, $80, $c9, $80, $b3, $80
+01530     9F 80 8C 80 
+01534     7A 80 69 80 
+01538     5A 80 4C 80 
+0153c     3F 80 33 80 | 	byte	$9f, $80, $8c, $80, $7a, $80, $69, $80, $5a, $80, $4c, $80, $3f, $80, $33, $80
+01540     28 80 1F 80 
+01544     17 80 10 80 
+01548     0B 80 07 80 
+0154c     03 80 02 80 | 	byte	$28, $80, $1f, $80, $17, $80, $10, $80, $0b, $80, $07, $80, $03, $80, $02, $80
+01550     01 80 02 80 
+01554     03 80 07 80 
+01558     0B 80 10 80 
+0155c     17 80 1F 80 | 	byte	$01, $80, $02, $80, $03, $80, $07, $80, $0b, $80, $10, $80, $17, $80, $1f, $80
+01560     28 80 33 80 
+01564     3F 80 4C 80 
+01568     5A 80 69 80 
+0156c     7A 80 8C 80 | 	byte	$28, $80, $33, $80, $3f, $80, $4c, $80, $5a, $80, $69, $80, $7a, $80, $8c, $80
+01570     9F 80 B3 80 
+01574     C9 80 DF 80 
+01578     F7 80 11 81 
+0157c     2B 81 47 81 | 	byte	$9f, $80, $b3, $80, $c9, $80, $df, $80, $f7, $80, $11, $81, $2b, $81, $47, $81
+01580     64 81 82 81 
+01584     A1 81 C2 81 
+01588     E3 81 06 82 
+0158c     2B 82 50 82 | 	byte	$64, $81, $82, $81, $a1, $81, $c2, $81, $e3, $81, $06, $82, $2b, $82, $50, $82
+01590     77 82 9E 82 
+01594     C7 82 F2 82 
+01598     1D 83 4A 83 
+0159c     78 83 A7 83 | 	byte	$77, $82, $9e, $82, $c7, $82, $f2, $82, $1d, $83, $4a, $83, $78, $83, $a7, $83
+015a0     D7 83 08 84 
+015a4     3B 84 6F 84 
+015a8     A4 84 DA 84 
+015ac     12 85 4A 85 | 	byte	$d7, $83, $08, $84, $3b, $84, $6f, $84, $a4, $84, $da, $84, $12, $85, $4a, $85
+015b0     84 85 BF 85 
+015b4     FB 85 38 86 
+015b8     77 86 B6 86 
+015bc     F7 86 39 87 | 	byte	$84, $85, $bf, $85, $fb, $85, $38, $86, $77, $86, $b6, $86, $f7, $86, $39, $87
+015c0     7C 87 C1 87 
+015c4     06 88 4D 88 
+015c8     95 88 DE 88 
+015cc     28 89 73 89 | 	byte	$7c, $87, $c1, $87, $06, $88, $4d, $88, $95, $88, $de, $88, $28, $89, $73, $89
+015d0     BF 89 0D 8A 
+015d4     5B 8A AB 8A 
+015d8     FC 8A 4E 8B 
+015dc     A1 8B F6 8B | 	byte	$bf, $89, $0d, $8a, $5b, $8a, $ab, $8a, $fc, $8a, $4e, $8b, $a1, $8b, $f6, $8b
+015e0     4B 8C A2 8C 
+015e4     F9 8C 52 8D 
+015e8     AC 8D 07 8E 
+015ec     63 8E C0 8E | 	byte	$4b, $8c, $a2, $8c, $f9, $8c, $52, $8d, $ac, $8d, $07, $8e, $63, $8e, $c0, $8e
+015f0     1E 8F 7D 8F 
+015f4     DE 8F 3F 90 
+015f8     A2 90 05 91 
+015fc     6A 91 D0 91 | 	byte	$1e, $8f, $7d, $8f, $de, $8f, $3f, $90, $a2, $90, $05, $91, $6a, $91, $d0, $91
+01600     37 92 9F 92 
+01604     08 93 72 93 
+01608     DD 93 49 94 
+0160c     B6 94 24 95 | 	byte	$37, $92, $9f, $92, $08, $93, $72, $93, $dd, $93, $49, $94, $b6, $94, $24, $95
+01610     93 95 03 96 
+01614     75 96 E7 96 
+01618     5A 97 CE 97 
+0161c     44 98 BA 98 | 	byte	$93, $95, $03, $96, $75, $96, $e7, $96, $5a, $97, $ce, $97, $44, $98, $ba, $98
+01620     31 99 AA 99 
+01624     23 9A 9D 9A 
+01628     18 9B 94 9B 
+0162c     12 9C 90 9C | 	byte	$31, $99, $aa, $99, $23, $9a, $9d, $9a, $18, $9b, $94, $9b, $12, $9c, $90, $9c
+01630     0F 9D 8F 9D 
+01634     10 9E 92 9E 
+01638     15 9F 98 9F 
+0163c     1D A0 A3 A0 | 	byte	$0f, $9d, $8f, $9d, $10, $9e, $92, $9e, $15, $9f, $98, $9f, $1d, $a0, $a3, $a0
+01640     29 A1 B1 A1 
+01644     39 A2 C2 A2 
+01648     4D A3 D8 A3 
+0164c     64 A4 F1 A4 | 	byte	$29, $a1, $b1, $a1, $39, $a2, $c2, $a2, $4d, $a3, $d8, $a3, $64, $a4, $f1, $a4
+01650     7E A5 0D A6 
+01654     9C A6 2D A7 
+01658     BE A7 50 A8 
+0165c     E3 A8 76 A9 | 	byte	$7e, $a5, $0d, $a6, $9c, $a6, $2d, $a7, $be, $a7, $50, $a8, $e3, $a8, $76, $a9
+01660     0B AA A0 AA 
+01664     37 AB CE AB 
+01668     65 AC FE AC 
+0166c     98 AD 32 AE | 	byte	$0b, $aa, $a0, $aa, $37, $ab, $ce, $ab, $65, $ac, $fe, $ac, $98, $ad, $32, $ae
+01670     CD AE 69 AF 
+01674     05 B0 A3 B0 
+01678     41 B1 E0 B1 
+0167c     7F B2 20 B3 | 	byte	$cd, $ae, $69, $af, $05, $b0, $a3, $b0, $41, $b1, $e0, $b1, $7f, $b2, $20, $b3
+01680     C1 B3 63 B4 
+01684     05 B5 A8 B5 
+01688     4C B6 F1 B6 
+0168c     97 B7 3D B8 | 	byte	$c1, $b3, $63, $b4, $05, $b5, $a8, $b5, $4c, $b6, $f1, $b6, $97, $b7, $3d, $b8
+01690     E4 B8 8B B9 
+01694     33 BA DC BA 
+01698     86 BB 30 BC 
+0169c     DB BC 86 BD | 	byte	$e4, $b8, $8b, $b9, $33, $ba, $dc, $ba, $86, $bb, $30, $bc, $db, $bc, $86, $bd
+016a0     32 BE DF BE 
+016a4     8D BF 3B C0 
+016a8     E9 C0 98 C1 
+016ac     48 C2 F9 C2 | 	byte	$32, $be, $df, $be, $8d, $bf, $3b, $c0, $e9, $c0, $98, $c1, $48, $c2, $f9, $c2
+016b0     AA C3 5B C4 
+016b4     0E C5 C0 C5 
+016b8     74 C6 27 C7 
+016bc     DC C7 91 C8 | 	byte	$aa, $c3, $5b, $c4, $0e, $c5, $c0, $c5, $74, $c6, $27, $c7, $dc, $c7, $91, $c8
+016c0     46 C9 FC C9 
+016c4     B3 CA 6A CB 
+016c8     21 CC DA CC 
+016cc     92 CD 4B CE | 	byte	$46, $c9, $fc, $c9, $b3, $ca, $6a, $cb, $21, $cc, $da, $cc, $92, $cd, $4b, $ce
+016d0     05 CF BF CF 
+016d4     79 D0 34 D1 
+016d8     EF D1 AB D2 
+016dc     67 D3 24 D4 | 	byte	$05, $cf, $bf, $cf, $79, $d0, $34, $d1, $ef, $d1, $ab, $d2, $67, $d3, $24, $d4
+016e0     E1 D4 9F D5 
+016e4     5D D6 1B D7 
+016e8     DA D7 99 D8 
+016ec     58 D9 18 DA | 	byte	$e1, $d4, $9f, $d5, $5d, $d6, $1b, $d7, $da, $d7, $99, $d8, $58, $d9, $18, $da
+016f0     D8 DA 99 DB 
+016f4     5A DC 1B DD 
+016f8     DD DD 9F DE 
+016fc     61 DF 23 E0 | 	byte	$d8, $da, $99, $db, $5a, $dc, $1b, $dd, $dd, $dd, $9f, $de, $61, $df, $23, $e0
+01700     E6 E0 A9 E1 
+01704     6D E2 31 E3 
+01708     F5 E3 B9 E4 
+0170c     7E E5 42 E6 | 	byte	$e6, $e0, $a9, $e1, $6d, $e2, $31, $e3, $f5, $e3, $b9, $e4, $7e, $e5, $42, $e6
+01710     07 E7 CD E7 
+01714     92 E8 58 E9 
+01718     1E EA E4 EA 
+0171c     AB EB 71 EC | 	byte	$07, $e7, $cd, $e7, $92, $e8, $58, $e9, $1e, $ea, $e4, $ea, $ab, $eb, $71, $ec
+01720     38 ED FF ED 
+01724     C6 EE 8E EF 
+01728     55 F0 1D F1 
+0172c     E4 F1 AC F2 | 	byte	$38, $ed, $ff, $ed, $c6, $ee, $8e, $ef, $55, $f0, $1d, $f1, $e4, $f1, $ac, $f2
+01730     74 F3 3C F4 
+01734     05 F5 CD F5 
+01738     96 F6 5E F7 
+0173c     27 F8 EF F8 | 	byte	$74, $f3, $3c, $f4, $05, $f5, $cd, $f5, $96, $f6, $5e, $f7, $27, $f8, $ef, $f8
+01740     B8 F9 81 FA 
+01744     4A FB 13 FC 
+01748     DC FC A5 FD 
+0174c     6E FE 37 FF | 	byte	$b8, $f9, $81, $fa, $4a, $fb, $13, $fc, $dc, $fc, $a5, $fd, $6e, $fe, $37, $ff
+01750                 | 	alignl
+01750                 | __system__dat_
 01750     00 00 00 00 
-01754     00 00 00 00 
-01758     00 00 00 00 | 	byte	$03, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
-0175c                 | objmem
+01754     00 00 00 00 | 	byte	$00[8]
+01758     03 00 00 00 
 0175c     00 00 00 00 
+01760     00 00 00 00 
+01764     00 00 00 00 | 	byte	$03, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00, $00
+01768                 | objmem
+01768     00 00 00 00 
       ...             
-01874     00 00 00 00 
-01878     00 00 00 00 | 	long	0[72]
-0187c                 | stackspace
-0187c     00 00 00 00 | 	long	0[1]
-01880 0e2             | 	org	COG_BSS_START
-01880 0e2             | arg01
-01880 0e2             | 	res	1
-01880 0e3             | arg02
-01880 0e3             | 	res	1
-01880 0e4             | arg03
-01880 0e4             | 	res	1
-01880 0e5             | arg04
-01880 0e5             | 	res	1
-01880 0e6             | local01
-01880 0e6             | 	res	1
-01880 0e7             | local02
-01880 0e7             | 	res	1
-01880 0e8             | local03
-01880 0e8             | 	res	1
-01880 0e9             | local04
-01880 0e9             | 	res	1
-01880 0ea             | local05
-01880 0ea             | 	res	1
-01880 0eb             | local06
-01880 0eb             | 	res	1
-01880 0ec             | local07
-01880 0ec             | 	res	1
-01880 0ed             | local08
-01880 0ed             | 	res	1
-01880 0ee             | local09
-01880 0ee             | 	res	1
-01880 0ef             | muldiva_
-01880 0ef             | 	res	1
-01880 0f0             | muldivb_
-01880 0f0             | 	res	1
-01880 0f1             | 	fit	480
-01880 0f1             | 
+01880     00 00 00 00 
+01884     00 00 00 00 | 	long	0[72]
+01888                 | stackspace
+01888     00 00 00 00 | 	long	0[1]
+0188c 0e2             | 	org	COG_BSS_START
+0188c 0e2             | arg01
+0188c 0e2             | 	res	1
+0188c 0e3             | arg02
+0188c 0e3             | 	res	1
+0188c 0e4             | arg03
+0188c 0e4             | 	res	1
+0188c 0e5             | arg04
+0188c 0e5             | 	res	1
+0188c 0e6             | local01
+0188c 0e6             | 	res	1
+0188c 0e7             | local02
+0188c 0e7             | 	res	1
+0188c 0e8             | local03
+0188c 0e8             | 	res	1
+0188c 0e9             | local04
+0188c 0e9             | 	res	1
+0188c 0ea             | local05
+0188c 0ea             | 	res	1
+0188c 0eb             | local06
+0188c 0eb             | 	res	1
+0188c 0ec             | local07
+0188c 0ec             | 	res	1
+0188c 0ed             | local08
+0188c 0ed             | 	res	1
+0188c 0ee             | local09
+0188c 0ee             | 	res	1
+0188c 0ef             | muldiva_
+0188c 0ef             | 	res	1
+0188c 0f0             | muldivb_
+0188c 0f0             | 	res	1
+0188c 0f1             | 	fit	480
+0188c 0f1             | 
