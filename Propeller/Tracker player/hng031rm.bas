@@ -66,7 +66,7 @@
 
  
 
-' We use 200*Atari 8bit / 100*Paula / 50*classic Amiga clock and 960x540 in PAL based 50 Hz modes, 848x480 in NTSC based 60 Hz modes
+' We use 200*Atari 8bit / 100*Paula / 50*classic Amiga clock and 960x540 in PAL based 50 Hz modes, 848x480 in NTSC based 60rr=getrnd() mod 540 Hz modes
 ' Modes can be bordered or borderless. Bordered modes are 896x496 50 Hz and 800x480 60 Hz
 ' There is also classic Atari/Amiga mode for emulation using 160x Atari 8bit clock. 768x576 50 Hz or 768x480 60 Hz, 912 pixel per line  
 

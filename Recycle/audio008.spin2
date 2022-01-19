@@ -1,5 +1,5 @@
 ' A Paula inspired sample based synthesizer/audio driver for a P2
-' v. 0.07 alpha - 20220102
+' v. 0.09 alpha - 20220103
 ' MIT license
 ' Piotr Kardasz pik33@o2.pl
 '-------------------------------------------------------------------
@@ -352,23 +352,25 @@ loop        setq    #8              ' Read channel regs from the hub
             cmp     qq,front wcz
     if_e    jmp     #loop           ' If the buffer is full, do nothing               
       
-            mov     cn,#0           ' Find the channel to compute
+            mov     cn,#p201           ' Find the channel to compute
             mov     ct,time1        ' with the lowest next sample time
             fle     ct,time2 wcz    ' TODO: THIS WILL FAIL AFTER 1210 (or 605? )seconds when overflow
-    if_c    mov     cn,#1   
+    if_c    mov     cn,#p202 
             fle     ct,time3 wcz
-    if_c    mov     cn,#2        
+    if_c    mov     cn,#p203     
             fle     ct,time4 wcz
-    if_c    mov     cn,#3 
+    if_c    mov     cn,#p204
             fle     ct,time5 wcz
-    if_c    mov     cn,#4 
+    if_c    mov     cn,#p205 
             fle     ct,time6 wcz
-    if_c    mov     cn,#5 
+    if_c    mov     cn,#p206
             fle     ct,time7 wcz
-    if_c    mov     cn,#6 
+    if_c    mov     cn,#p207
             fle     ct,time8 wcz
-    if_c    mov     cn,#7 
+    if_c    mov     cn,#p208 
  
+            jmp     cn
+  {{          
             cmp     cn,#0 wz'
     if_z    jmp     #p201       
             cmp     cn,#1 wz
@@ -385,7 +387,7 @@ loop        setq    #8              ' Read channel regs from the hub
     if_z    jmp     #p207       
             cmp     cn,#7 wz
     if_z    jmp     #p208       
-           
+    }}       
 '----------------------------------------------------------------------------------
 '------------- Compute channel samples --------------------------------------------
 '----------------------------------------------------------------------------------

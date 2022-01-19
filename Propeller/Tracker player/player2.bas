@@ -3,6 +3,35 @@
 startmachine
 startvideo
 
+
+#include "dir.inc"
+
+dim name$ as string
+dim cdir as class using "shell.c"
+
+a$=space$(100)
+mount "/sd",  _vfs_open_sdcard()
+chdir ("/sd")
+kwas=chdir("MOD")
+cls
+a$=cdir.cwd2()
+print a$
+
+getcwd(a$,100)
+print a$
+/'
+name$ = cdir.dir("*.mod", 0)
+do
+ if name$ == "" then exit loop
+   print name$
+   ' get the next name, using the parameters set up by the first dir() call
+   name$ = cdir.dir()
+loop
+print "done"
+'/
+waitms(5000)
+
+
 cls
 mainvolume=128 '1..128..(255)
 
@@ -32,6 +61,10 @@ cog,base=paula.start()
 
 old1=0 : old2=0 :old3=0 : old4=0
 
+dim dlcopy(540) as ulong
+dltest=v030.dl_ptr
+for i=0 to 539 : dlcopy(i)=lpeek(dltest+4*i):next i 
+
 do
 'channel+0  long current spl pointer 
 'channel+4  long sample
@@ -47,10 +80,9 @@ do
     waitvbl
     tracker.tick
     
-    dltest=v030.dl_ptr
-    dlentry=lpeek(dltest)
-    for i=0 to 539: lpoke dltest+4*i, lpeek(dltest+4*i+4) :next i
-    lpoke dltest+4*539,dlentry 
+    rr=getrnd() mod 540
+    
+'    dlentry=lpeek(dltest) : for i=0 to 539:   rr=(2*i) mod 540+(2*i)/ 540 : lpoke dltest+4*i, dlcopy(rr) :next i 
      
     if tracker.trigger(0)<>old1 then 
  '        lpoke base,0
