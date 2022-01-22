@@ -5,6 +5,17 @@ startvideo
 
 
 cls
+
+dim dlcopy(540) as ulong
+dltest=v030.dl_ptr
+for i=0 to 539 : dlcopy(i)=lpeek(dltest+4*i):next i 
+
+' replace lines $27,28,29,30 with 4bbb graphics. 
+
+'3 hline 4 vline 5 T 6 up T 7 -| 8 |- 9rup 10 lup 11 rdown 12 ldown 13 cross
+
+
+
 mainvolume=128 '1..128..(255)
 
   SF_CS  = 61  '{ O }                                            ' serial flash
@@ -36,11 +47,10 @@ cog,base=paula.start()
 
 old1=0 : old2=0 :old3=0 : old4=0
 
-dim dlcopy(540) as ulong
-dltest=v030.dl_ptr
-for i=0 to 539 : dlcopy(i)=lpeek(dltest+4*i):next i 
-position 0,26 : v030.writeln(ss$)
-print"123456789012345678901234567890"
+
+
+'position 0,26 : v030.writeln(ss$)
+'print"123456789012345678901234567890"
 do
 'channel+0  long current spl pointer 
 'channel+4  long sample
@@ -203,6 +213,6 @@ end sub
 
 
 asm shared
-module file "/home/pik33/mod/ballada.mod"
+module file "ballada.mod"
 
 end asm
