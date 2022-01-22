@@ -40,7 +40,7 @@ int is_directory(const char *filename)
 
 char* cwd2(){
     static char* tempname1[100];
-    getcwd(tempname1);
+    getcwd(tempname1,100);
     return (char *) &tempname1;
     }
 

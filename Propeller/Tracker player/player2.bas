@@ -12,7 +12,7 @@ dim cdir as class using "shell.c"
 a$=space$(100)
 mount "/sd",  _vfs_open_sdcard()
 chdir ("/sd")
-kwas=chdir("MOD")
+
 cls
 a$=cdir.cwd2()
 print a$
