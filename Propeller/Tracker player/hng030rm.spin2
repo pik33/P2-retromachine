@@ -372,6 +372,8 @@ pub box(x1,y1,x2,y2,c) |yy
 repeat yy from y1 to y2
   line(x1,yy,x2,yy,c)
 
+pub line1(x1,y1,x2,y2,c) | d,dx,dy,ai,bi,xi,yi,x,y
+line(x1,y1,x2,y2,c)
 
 pub line(x1,y1,x2,y2,c) | d,dx,dy,ai,bi,xi,yi,x,y
 
@@ -491,7 +493,7 @@ if ((x>=0) & (x<32*cpl) & (y>=0) & (y<lines))
 pub putpixel2(x,y,c) |byte b
 
 
-if ((x>=0) & (x<16*cpl) & (y>=0) & (y<lines))
+if ((x>=0) && (x<16*cpl) && (y>=0) && (y<lines))
     b:=byte[buf_ptr+4*cpl*y+(x>>2)]
     b:=b & !(%11<<((x//4)<<1))
     b:=b |(c<<((x//4)<<1))
@@ -662,6 +664,11 @@ pub setbordercolor(r,g,b) | color
 
 color:=r<<24+g<<16+b<<8
 bordercolor:=color
+
+pub setbordercolor2(color) 
+
+bordercolor:=color
+
 
 ''---------- Set colors for putchar, write and writeln
 
@@ -941,7 +948,8 @@ if (j<>0)
 q:=@n_string
 return q
 
-
+pub plot(x,y,c)
+putpixel(x,y,c)
 
 '*************************************************************************
 '                                                                        *
@@ -1417,6 +1425,9 @@ p102            getword t1,m_border,#0
                         xor     lutaddr,#32             ' use LUT #0-1 and 32-33                    '20
 
                         djnz   cpl2,#p400
+                        
+
+                        
  p401                   jmp    #p103
 
 ''------------------------------------------------------------------------------------------------------------

@@ -4,15 +4,203 @@ startmachine
 startvideo
 
 
-cls
+' Prepare a new displaylist:
+' - first line, double size, double height: title
+' - several border lines under the title - this will eat 3 text lines. 4 text lines will be eaten for the scope
+' 24 line of normal text: 22 lines+ scope+ 2 lines
 
 dim dlcopy(540) as ulong
 dltest=v030.dl_ptr
-for i=0 to 539 : dlcopy(i)=lpeek(dltest+4*i):next i 
+palettetest=v030.palette_ptr
+dim title(28) as ulong
 
-' replace lines $27,28,29,30 with 4bbb graphics. 
+' create a new screen
+' 22 lines std border
+' 32 lines of big title. As it is constant we fill it manually, lines 22..53
+' 4 lines border lines 54..57
+' 22x16=352 lines of text lines 58..409
+' 6 lines of border at 410..415
+' 64 lines of 4bpp oscilloscope at 416..479 ' todo: make it 2bpp. The driver has a bug: the timings[5] is not controlled by DL - TODO.
+' 6 lines of border at 480..485
+' 2x16=32 lines of text at 486- 517
+' standard border at 518-539
+
+' We need 10752 bytes for text and 28672 bytes for graphics = 25088 bytes
+' graphic starts at 79000
+' text start at 76600
+
+for i=0 to 539 : dlcopy(i)=lpeek(dltest+4*i):next i ' let it be here for debug
+
+' Prepare the title
+
+for i=0 to 28: title(i)=$77710000 : next i
+title(6)=title(6)+asc("P")
+title(7)=title(7)+asc("r")
+title(8)=title(8)+asc("o")
+title(9)=title(9)+asc("p")
+title(10)=title(10)+asc("2")
+title(11)=title(11)+asc("p")
+title(12)=title(12)+asc("l")
+title(13)=title(13)+asc("a")
+title(14)=title(14)+asc("y")
+title(16)=title(16)+asc("v")
+title(17)=title(17)+asc(".")
+title(18)=title(18)+asc("0")
+title(19)=title(19)+asc(".")
+title(20)=title(20)+asc("0")
+title(21)=title(21)+asc("1")
+
+' 22 lines of upper border
+
+for i=0 to 21 : dlcopy(i)=0: next i
+
+' big text titlle logo. Tell the driver via DL that it should display the text from "title" table
+
+for i=0 to 15
+  for j=0 to 1
+    dlcopy(22+2*i+j)=((addr(title(0))) shl 12)+%10_0000_0000_00_01+(i shl 8)
+  next j
+next i  
+
+' 4 empty lines under the logo
+
+for i=54 to 57 : dlcopy(i)= dlcopy(0) : next i 
+
+' Now make 22 text lines starting at 79e00
+
+address=$76600
+for i=0 to 21
+  for j=0 to 15
+     dlcopy(58+16*i+j)=(address shl 12)+ (j shl 8) + (i shl 2) + 1
+  next j
+  address=address+448
+next i
+
+' and add 2 text lines at the bottpm
+
+for i=0 to 1
+  for j=0 to 15
+    dlcopy(486+16*i+j)=(address shl 12)+ (j shl 8) + ((22+i) shl 2) + 1
+  next j
+  address=address+448
+next i
+
+' add 6 empty lines over the scope area
+
+for i=410 to 415 : dlcopy(i)=0 : next i
+
+' the scope area, 4 bpp graphics
+
+address=$79000   
+
+for i=416 to 479: dlcopy(i)= ((address+448*(i-416)) shl 12) + %1010 : next i
+
+' add 6 empty lines under the scope area
+
+for i=480 to 485 : dlcopy(i)=0 : next i
+
+' 22 standard border lines at bottom
+
+for i=518 to 539 : dlcopy(i)=0 : next i
+
+' tell the driver where is the new dl and buffer
+
+v030.dl_ptr=addr(dlcopy) 
+v030.buf_ptr=$76600
+cls
+for i=$79000 to $7FFFC step 4 : lpoke i,0 : next i
+
+v030.putpixel=v030.p4
+
+v030.setcolor(0,0,0,0)
+v030.setcolor(1,0,0,255)
+v030.setcolor(2,0,255,0)
+v030.setcolor(3,255,0,0)
+v030.buf_ptr=$79000
+waitms(100)
+v030.cpl=112
+v030.lines=64
+for i=0 to 100: v030.putpixel(i,4,3) : next i
+
+
+v030.fcircle(20,20,10,1)
+v030.outtextxycg(10,10,"Abcdef",3,0)
+for i=1 to 100 : v030.plot(i,10,3) : next i
+v030.line1(0,32,447,33,3)
+v030.plot(250,10,1)
+
+v030.buf_ptr=$76600
+v030.cpl=112
+' make the scope area dark greem
+
+'lpoke palettetest,lpeek(palettetest+193*4) ' set color #0 to the same as #147
+' make upper line big    
+
+' move all text from thesecond line of text 36 pixels down
+
+'for i=517 to 56 step -1 : dlcopy(i)=dlcopy (i-20) : next i
+
+' move lines 22,23 to the bottom
+
+'for i=517 to 486 step -1 : dlcopy(i)=
+
+' replace lines 22..53 with big text
+ 
+ 
+
+'now add 4 lines of border
+ 
+'for i=54 to 57 : dlcopy(i)= dlcopy(0) : next i 
+
+' replace lines $25,26,27,28 with 2bbb graphics.  64 lines @ 896 pixels
+'We will need 14336 bytes for this, instead of 1792 bytes of char mode
+'starting at 432 + 22x border line=454
+' new addr=dlptr-14336
+
+
+
+
+'osc_start=dltest-14336
+'for i=422 to 486: dlcopy(i)= ((osc_start+224*(i-22)) shl 12) + %0110 : next i
+'lpoke palettetest,lpeek(palettetest+147*4) ' set color #0 to the same as #147
+' make upper line big
+
+
+'v'030.dl_ptr=addr(dlcopy) ' we have now dl in the var, so upper mem is free of it
+
+c113=v030.getpalettecolor(113)
+v030.setbordercolor2(c113)
+'v030.setwritecolors(40,113): position 0,0: print "      Prop2Play v.0.01      " : v030.setwritecolors(154,147)
+
+'position 1,0: for i=1 to 110: v030.write(chr$(3)) : next i
 
 '3 hline 4 vline 5 T 6 up T 7 -| 8 |- 9rup 10 lup 11 rdown 12 ldown 13 cross
+' dl:
+' A standard display list entry:
+
+' - display the character mode line: %aaaa_aaaa_aaaa_aaaa_aazz_nnnn_llll_ll_01 
+'    aaaa_aaaa_aaaa_aaaa_aa00 - address of the display data, aligned to long
+'    zz - zoom (horizontal, vertical zoom is done by repeating the same line) 00-1x, 01 - 2x, 10 - 4x, 11 - blank line 
+'    nnnn - font line # 
+'    llllll - character line #. This is used to place a "hardware" blinking text cursor.
+ 
+' - display the graphics line: aaaa_aaaa_aaaa_aaaa_aazz_rrrr_rrrr_cc_10
+'    aaaa_aaaa_aaaa_aaaa_aa00 - address of the display data, aligned to long
+'    zz - zoom (horizontal, vertical zoom is done by repeating the same line)
+'    r - reserved, now unused bits
+'    cc - color depth, 1/2/4/8 bpp
+
+' - extended entry:
+
+'' - repeat                 %nnnn_nnnn_nnnn_qqqq_mmmm_mmmm_mmmm_0111    repeat the next dl line n times, after q lines add offset m (works)
+'' TODO, planned:
+'' - reload palette         %mmmm_mmmm_nnnn_nnnn_qqqq_qqqq_qqqq_1011    reload n palette entries from m color from palette_ptr+q
+'' - set border color       %rrrr_rrrr_gggg_gggg_bbbb_bbbb_0001_0011    set border to rgb
+'' - set border color       %0000_0000_0000_0000_pppp_pppp_0001_1011    set border color to palette entry #p
+'' - set fine hscroll       %0000_0000_0000_0000_000s_pppp_0001_1111    set the horizontal fine scroll, +- 15 px, I don't know if doable at all 
+
+' Only repeat implemented now (as in v0.31)
+
 
 
 
@@ -154,14 +342,14 @@ loop
 sub test 
 
  '   kk=getcnt()
-    position 5,29:   v030.write(sn$(tracker.currsamplenr(0))) : v030.write(emptystr$)
-    position 1,29 :  v030.write(v030.inttostr2(tracker.currperiod(0)+tracker.deltaperiod(0),3))
-    position 32,29:  v030.write(sn$(tracker.currsamplenr(1))) : v030.write(emptystr$)
-    position 28,29 : v030.write(v030.inttostr2(tracker.currperiod(1)+tracker.deltaperiod(1),3))
-    position 60,29:  v030.write(sn$(tracker.currsamplenr(2))) : v030.write(emptystr$)
-    position 56,29 : v030.write(v030.inttostr2(tracker.currperiod(2)+tracker.deltaperiod(2),3))
-    position 84,29 : v030.write(v030.inttostr2(tracker.currperiod(3)+tracker.deltaperiod(3),3))
-    position 88,29:  v030.write(sn$(tracker.currsamplenr(3))) : v030.write(emptystr$)
+    position 5,22:   v030.write(sn$(tracker.currsamplenr(0))) : v030.write(emptystr$)
+    position 1,22 :  v030.write(v030.inttostr2(tracker.currperiod(0)+tracker.deltaperiod(0),3))
+    position 32,22:  v030.write(sn$(tracker.currsamplenr(1))) : v030.write(emptystr$)
+    position 28,22 : v030.write(v030.inttostr2(tracker.currperiod(1)+tracker.deltaperiod(1),3))
+    position 60,22:  v030.write(sn$(tracker.currsamplenr(2))) : v030.write(emptystr$)
+    position 56,22 : v030.write(v030.inttostr2(tracker.currperiod(2)+tracker.deltaperiod(2),3))
+    position 84,22 : v030.write(v030.inttostr2(tracker.currperiod(3)+tracker.deltaperiod(3),3))
+    position 88,22:  v030.write(sn$(tracker.currsamplenr(3))) : v030.write(emptystr$)
 '    position 90,1: v030.write("Counter: ") : v030.write(v030.inttohex(lpeek($80),8))
 '    kk=getcnt()-kk
     
@@ -213,6 +401,6 @@ end sub
 
 
 asm shared
-module file "ballada.mod"
+module file "/home/pik33/mod/BAJEREK.MOD"
 
 end asm
