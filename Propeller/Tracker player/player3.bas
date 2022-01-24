@@ -401,6 +401,6 @@ end sub
 
 
 asm shared
-module file "/home/pik33/mod/BAJEREK.MOD"
+module file "ballada.mod"
 
 end asm

@@ -1,5 +1,5 @@
 00000                 | 
-00000                 | #line 1 "/home/pik33/P2-Retromachine/Propeller/Tracker player/audio019.p2asm"
+00000                 | #line 1 "/home/pik33/Dokumenty/GitHub/P2-retromachine/Propeller/Tracker player/audio019.p2asm"
 00000                 | ' 
 00000                 | ' '319220550    =3546895, change to NTSC freq if needed
 00000                 | ' '322159050 ' This is 90x Amiga NTSC = 3579545
@@ -8,10 +8,10 @@
 00000                 | 	_clkfreq = 354693878
 00000                 | ' ' audio pins TODO: make a variable for start() instead of const
 00000                 | ' 
-00000                 | ' left= 8
-00000                 | 	left = 8
-00000                 | ' right=9
-00000                 | 	right = 9
+00000                 | ' left= 14
+00000                 | 	left = 14
+00000                 | ' right=15
+00000                 | 	right = 15
 00000                 | ' 
 00000                 | ' 
 00000                 | ' c4=262
@@ -599,12 +599,12 @@
 00c18                 | 
 00c18                 | audio       org     0
 00c18     00 F2 07 F6 | 			mov     ptrb,#0
-00c1c     08 7A 05 FC |             wrpin   dac,#left       ' Noise dither DACs at clk/90
-00c20     08 C8 1C FC |             wxpin   #100,#left
-00c24     09 7A 05 FC |             wrpin   dac,#right
-00c28     09 C8 1C FC |             wxpin   #100,#right
-00c2c     41 90 64 FD |             dirh    #left addpins 1
-00c30     20 90 64 FD |             setse1  #%001<<6 + left ' Set the event - DAC empty
+00c1c     0E 7A 05 FC |             wrpin   dac,#left       ' Noise dither DACs at clk/90
+00c20     0E C8 1C FC |             wxpin   #100,#left
+00c24     0F 7A 05 FC |             wrpin   dac,#right
+00c28     0F C8 1C FC |             wxpin   #100,#right
+00c2c     41 9C 64 FD |             dirh    #left addpins 1
+00c30     20 9C 64 FD |             setse1  #%001<<6 + left ' Set the event - DAC empty
 00c34     75 E8 07 F6 |             mov     ijmp1,#isr1     ' Init the interrupt
 00c38     25 08 64 FD |             setint1 #4              ' Interrupt from DAC empty event
 00c3c                 |             
@@ -779,8 +779,8 @@
 00dec                 | '------ Output the sample, get the next one if exists ---------------------
 00dec                 | '--------------------------------------------------------------------------
 00dec                 | 
-00dec     08 28 25 FC | isr1        wypin   lsample,#left        '2     The sample has to be outputted every 100 cycles     
-00df0     09 2A 25 FC |             wypin   rsample,#right       '4
+00dec     0E 28 25 FC | isr1        wypin   lsample,#left        '2     The sample has to be outputted every 100 cycles     
+00df0     0F 2A 25 FC |             wypin   rsample,#right       '4
 00df4                 |            
 00df4     91 F2 1B F2 |             cmp     ptrb,front wcz       '6    If the buffer is empty, do nothing 
 00df8     F5 FF 3B AB |     if_e    reti1                        '8/10

@@ -3,7 +3,6 @@
 startmachine
 startvideo
 
-
 cls
 mainvolume=128 '1..128..(255)
 
@@ -203,6 +202,6 @@ end sub
 
 
 asm shared
-module file "/home/pik33/mod/ballada.mod"
 
+module file "ballada.mod"
 end asm

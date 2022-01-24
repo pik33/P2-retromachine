@@ -6,10 +6,10 @@ con
 	_clkfreq = 354693878
 ' ' audio pins TODO: make a variable for start() instead of const
 ' 
-' left= 8
-	left = 8
-' right=9
-	right = 9
+' left= 14
+	left = 14
+' right=15
+	right = 15
 ' 
 ' 
 ' c4=262
@@ -567,17 +567,17 @@ _dat_
 '-' 			mov     ptrb,#0
 	byte	$00, $f2, $07, $f6
 '-'             wrpin   dac,#left       ' Noise dither DACs at clk/90
-	byte	$08, $7a, $05, $fc
+	byte	$0e, $7a, $05, $fc
 '-'             wxpin   #100,#left
-	byte	$08, $c8, $1c, $fc
+	byte	$0e, $c8, $1c, $fc
 '-'             wrpin   dac,#right
-	byte	$09, $7a, $05, $fc
+	byte	$0f, $7a, $05, $fc
 '-'             wxpin   #100,#right
-	byte	$09, $c8, $1c, $fc
+	byte	$0f, $c8, $1c, $fc
 '-'             dirh    #left addpins 1
-	byte	$41, $90, $64, $fd
+	byte	$41, $9c, $64, $fd
 '-'             setse1  #%001<<6 + left ' Set the event - DAC empty
-	byte	$20, $90, $64, $fd
+	byte	$20, $9c, $64, $fd
 '-'             mov     ijmp1,#isr1     ' Init the interrupt
 	byte	$75, $e8, $07, $f6
 '-'             setint1 #4              ' Interrupt from DAC empty event
@@ -861,9 +861,9 @@ _dat_
 '-' '--------------------------------------------------------------------------
 '-' 
 '-' isr1        wypin   lsample,#left        '2     The sample has to be outputted every 100 cycles     
-	byte	$08, $28, $25, $fc
+	byte	$0e, $28, $25, $fc
 '-'             wypin   rsample,#right       '4
-	byte	$09, $2a, $25, $fc
+	byte	$0f, $2a, $25, $fc
 '-'            
 '-'             cmp     ptrb,front wcz       '6    If the buffer is empty, do nothing 
 	byte	$91, $f2, $1b, $f2

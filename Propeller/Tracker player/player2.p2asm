@@ -1858,71 +1858,68 @@ _hng030rm_spin2_putpixel1_ret
 ' 
 ' pub putpixel2(x,y,c) |byte b
 _hng030rm_spin2_putpixel2
+	mov	_var01, arg01
+	mov	_var02, arg02
+	mov	_var03, arg03
 ' 
 ' 
-' if ((x>=0) & (x<16*cpl) & (y>=0) & (y<lines))
-	mov	_var01, #0
-	cmps	arg01, #0 wcz
- if_ae	neg	_var01, #1
-	mov	_var02, #0
+' if ((x>=0) && (x<16*cpl) && (y>=0) && (y<lines))
+	cmps	_var01, #0 wcz
+ if_b	jmp	#LR__0021
 	add	objptr, #144
-	rdlong	_var03, objptr
-	shl	_var03, #4
-	cmps	arg01, _var03 wcz
- if_b	neg	_var02, #1
-	and	_var01, _var02
-	mov	_var04, #0
-	cmps	arg02, #0 wcz
- if_ae	neg	_var04, #1
-	and	_var01, _var04
-	mov	_var05, #0
-	add	objptr, #4
-	rdlong	_var06, objptr
+	rdlong	_var04, objptr
+	sub	objptr, #144
+	shl	_var04, #4
+	cmps	_var01, _var04 wcz
+ if_ae	jmp	#LR__0021
+	cmps	_var02, #0 wcz
+ if_b	jmp	#LR__0021
+	add	objptr, #148
+	rdlong	_var05, objptr
 	sub	objptr, #148
-	cmps	arg02, _var06 wcz
- if_b	neg	_var05, #1
-	test	_var01, _var05 wz
- if_e	jmp	#LR__0021
+	cmps	_var02, _var05 wcz
+ if_ae	jmp	#LR__0021
 '     b:=byte[buf_ptr+4*cpl*y+(x>>2)]
-	rdlong	_var01, objptr
+	rdlong	_var04, objptr
 	add	objptr, #144
-	rdlong	_var02, objptr
+	rdlong	_var06, objptr
 	sub	objptr, #144
-	shl	_var02, #2
-	qmul	_var02, arg02
+	shl	_var06, #2
+	qmul	_var06, _var02
 	getqx	_var07
-	add	_var01, _var07
-	mov	_var04, arg01
-	shr	_var04, #2
-	add	_var01, _var04
-	rdbyte	_var08, _var01
+	add	_var04, _var07
+	mov	_var08, _var01
+	shr	_var08, #2
+	add	_var04, _var08
+	rdbyte	_var09, _var04
 '     b:=b & !(%11<<((x//4)<<1))
-	abs	_var03, arg01 wc
-	and	_var03, #3
- if_b	neg	_var03, _var03
-	shl	_var03, #1
-	mov	_var02, #3
-	shl	_var02, _var03
-	andn	_var08, _var02
+	abs	_var10, _var01 wc
+	and	_var10, #3
+ if_b	neg	_var10, _var10
+	shl	_var10, #1
+	mov	_var06, #3
+	shl	_var06, _var10
+	andn	_var09, _var06
 '     b:=b |(c<<((x//4)<<1))
-	abs	_var03, arg01 wc
-	and	_var03, #3
- if_b	neg	_var03, _var03
-	shl	_var03, #1
-	shl	arg03, _var03
-	or	_var08, arg03
+	abs	_var10, _var01 wc
+	and	_var10, #3
+ if_b	neg	_var10, _var10
+	shl	_var10, #1
+	shl	_var03, _var10
+	or	_var09, _var03
 '     byte[buf_ptr+4*cpl*y+(x>>2)]:=b
-	rdlong	_var01, objptr
+	rdlong	_var04, objptr
 	add	objptr, #144
-	rdlong	_var02, objptr
+	rdlong	_var06, objptr
 	sub	objptr, #144
-	shl	_var02, #2
-	qmul	_var02, arg02
+	shl	_var06, #2
+	qmul	_var06, _var02
 	getqx	_var07
-	add	_var01, _var07
-	shr	arg01, #2
-	add	_var01, arg01
-	wrbyte	_var08, _var01
+	add	_var04, _var07
+	mov	_var08, _var01
+	shr	_var08, #2
+	add	_var04, _var08
+	wrbyte	_var09, _var04
 LR__0021
 _hng030rm_spin2_putpixel2_ret
 	ret
@@ -2817,8 +2814,6 @@ LR__0063
 _hng030rm_spin2_inttostr2_ret
 	ret
 
-' 
-' 
 ' 
 ' '*************************************************************************
 ' '                                                                        *
@@ -7347,7 +7342,7 @@ __system___txraw
 	mov	local01, arg01
 	rdlong	local02, ptr___system__dat__ wz
  if_ne	jmp	#LR__0247
-	mov	arg01, ##2000000
+	mov	arg01, ##921600
 	call	#__system___setbaud
 LR__0247
 	wypin	local01, #62
@@ -7370,7 +7365,7 @@ __system___rxraw
 	mov	local01, arg01
 	rdlong	local02, ptr___system__dat__ wz
  if_ne	jmp	#LR__0250
-	mov	arg01, ##2000000
+	mov	arg01, ##921600
 	call	#__system___setbaud
 LR__0250
 	cmp	local01, #0 wz
@@ -10120,7 +10115,8 @@ LR__0465
 	byte	0
 	alignl
 _dat_
-'-' module file "/home/pik33/mod/ballada.mod"
+'-' 
+'-' module file "ballada.mod"
 	byte	$23, $23, $20, $62, $61, $6c, $6c, $61, $64, $61, $20, $23, $23, $00, $00, $00
 	byte	$00, $00, $00, $00, $78, $74, $64, $20, $2f, $20, $75, $6e, $69, $6f, $6e, $20
 	byte	$28, $63, $69, $61, $29, $00, $00, $00, $00, $00, $0a, $ed, $00, $40, $0a, $66
@@ -14715,6 +14711,9 @@ _hng030rm_spin2_dat_
 '-' 
 '-'                         djnz   cpl2,#p400
 	byte	$eb, $0f, $6f, $fb
+'-'                         
+'-' 
+'-'                         
 '-'  p401                   jmp    #p103
 	byte	$28, $01, $90, $fd
 '-' 
@@ -15729,17 +15728,17 @@ _audio019_spin2_dat_
 '-' 			mov     ptrb,#0
 	byte	$00, $f2, $07, $f6
 '-'             wrpin   dac,#left       ' Noise dither DACs at clk/90
-	byte	$08, $7a, $05, $fc
+	byte	$0e, $7a, $05, $fc
 '-'             wxpin   #100,#left
-	byte	$08, $c8, $1c, $fc
+	byte	$0e, $c8, $1c, $fc
 '-'             wrpin   dac,#right
-	byte	$09, $7a, $05, $fc
+	byte	$0f, $7a, $05, $fc
 '-'             wxpin   #100,#right
-	byte	$09, $c8, $1c, $fc
+	byte	$0f, $c8, $1c, $fc
 '-'             dirh    #left addpins 1
-	byte	$41, $90, $64, $fd
+	byte	$41, $9c, $64, $fd
 '-'             setse1  #%001<<6 + left ' Set the event - DAC empty
-	byte	$20, $90, $64, $fd
+	byte	$20, $9c, $64, $fd
 '-'             mov     ijmp1,#isr1     ' Init the interrupt
 	byte	$75, $e8, $07, $f6
 '-'             setint1 #4              ' Interrupt from DAC empty event
@@ -16023,9 +16022,9 @@ _audio019_spin2_dat_
 '-' '--------------------------------------------------------------------------
 '-' 
 '-' isr1        wypin   lsample,#left        '2     The sample has to be outputted every 100 cycles     
-	byte	$08, $28, $25, $fc
+	byte	$0e, $28, $25, $fc
 '-'             wypin   rsample,#right       '4
-	byte	$09, $2a, $25, $fc
+	byte	$0f, $2a, $25, $fc
 '-'            
 '-'             cmp     ptrb,front wcz       '6    If the buffer is empty, do nothing 
 	byte	$91, $f2, $1b, $f2
