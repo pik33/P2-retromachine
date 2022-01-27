@@ -67,20 +67,21 @@ for i=0 to 15
 next i  
 
 dlcopy(55)=  %0000_0000_0000_0000_0000_0011_0011_0011
+dlcopy(56)= v030.getfontaddr(3) shl 12+%0000_0100_0011
 
 ' 4 empty lines under the logo
 
-for i=56 to 59 : dlcopy(i)= dlcopy(0) : next i 
+for i=57 to 60 : dlcopy(i)= dlcopy(0) : next i 
 
 ' Now make 22 text lines starting at 79e00
 
 address=$76600
 for i=0 to 43
   for j=0 to 7
-     dlcopy(60+10*i+j)=(address shl 12)+ (j shl 8) + (i shl 2) + 1
+     dlcopy(61+10*i+j)=(address shl 12)+ (j shl 8) + (i shl 2) + 1
   next j
   for j=8 to 9
-    dlcopy(60+10*i+j)=(address shl 12)+ %0000_0000_0000_0000_0011_0000_0000_0000+ 0 + (i shl 2) + 1
+    dlcopy(61+10*i+j)=(address shl 12)+ %0000_0000_0000_0000_0011_0000_0000_0000+ 0 + (i shl 2) + 1
       next j  
   address=address+448
 next i
@@ -89,7 +90,7 @@ next i
 
 for i=0 to 3
   for j=0 to 7
-    dlcopy(488+8*i+j)=(address shl 12)+ (j shl 8) + ((22+i) shl 2) + 1
+    dlcopy(489+8*i+j)=(address shl 12)+ (j shl 8) + ((22+i) shl 2) + 1
   next j
   address=address+448
 next i
@@ -102,15 +103,15 @@ for i=412 to 417 : dlcopy(i)=0 : next i
 
 address=$79000   
 
-for i=418 to 481: dlcopy(i)= ((address+448*(i-416)) shl 12) + %1010 : next i
+for i=419 to 482: dlcopy(i)= ((address+448*(i-416)) shl 12) + %1010 : next i
 
 ' add 6 empty lines under the scope area
 
-for i=482 to 487 : dlcopy(i)=0 : next i
+for i=483 to 488 : dlcopy(i)=0 : next i
 
 ' 22 standard border lines at bottom
 
-for i=520 to 541 : dlcopy(i)=0 : next i
+for i=521 to 542 : dlcopy(i)=0 : next i
 
 ' tell the driver where is the new dl and buffer
 
