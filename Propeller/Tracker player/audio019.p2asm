@@ -568,12 +568,12 @@ _dat_
 	byte	$00, $f2, $07, $f6
 '-'             wrpin   dac,#left       ' Noise dither DACs at clk/90
 	byte	$0e, $7a, $05, $fc
-'-'             wxpin   #100,#left
-	byte	$0e, $c8, $1c, $fc
+'-'             wxpin   #200,#left
+	byte	$0e, $90, $1d, $fc
 '-'             wrpin   dac,#right
 	byte	$0f, $7a, $05, $fc
-'-'             wxpin   #100,#right
-	byte	$0f, $c8, $1c, $fc
+'-'             wxpin   #200,#right
+	byte	$0f, $90, $1d, $fc
 '-'             dirh    #left addpins 1
 	byte	$41, $9c, $64, $fd
 '-'             setse1  #%001<<6 + left ' Set the event - DAC empty

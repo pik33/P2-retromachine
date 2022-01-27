@@ -1,7 +1,7 @@
 'const _clkfreq = 319_215_686  'PAL*90
 const _clkfreq = 354693878
 option implicit
-dim v030 as class using "hng030rm.spin2"
+dim v030 as class using "hng033rm.spin2"
 dim rm as class using "retrocog.spin2"
 
 
@@ -15,14 +15,17 @@ v030.setbordercolor(0,0,0)
 open SendRecvDevice(@v030.putchar, nil, nil) as #0
 end function
 
-function startmachine()' todo return a cog
-c=rm.start()
-return c
-end function
+'function startmachine()' todo return a cog
+'c=rm.start()
+'return c
+'end function
 
-sub putpixel(x,y,c)
-v030.putpixel8(x,y,c)
-end sub
+#define startmachine rm.start
+#define plot v030.plot1
+
+'sub putpixel(x,y,c)
+'v030.putpixel8(x,y,c)
+'end sub
 
 function peek(addr) as ubyte
 dim r as ubyte

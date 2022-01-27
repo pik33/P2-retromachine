@@ -600,9 +600,9 @@
 00c18                 | audio       org     0
 00c18     00 F2 07 F6 | 			mov     ptrb,#0
 00c1c     0E 7A 05 FC |             wrpin   dac,#left       ' Noise dither DACs at clk/90
-00c20     0E C8 1C FC |             wxpin   #100,#left
+00c20     0E 90 1D FC |             wxpin   #200,#left
 00c24     0F 7A 05 FC |             wrpin   dac,#right
-00c28     0F C8 1C FC |             wxpin   #100,#right
+00c28     0F 90 1D FC |             wxpin   #200,#right
 00c2c     41 9C 64 FD |             dirh    #left addpins 1
 00c30     20 9C 64 FD |             setse1  #%001<<6 + left ' Set the event - DAC empty
 00c34     75 E8 07 F6 |             mov     ijmp1,#isr1     ' Init the interrupt

@@ -9,7 +9,7 @@ startvideo
 ' - several border lines under the title - this will eat 3 text lines. 4 text lines will be eaten for the scope
 ' 24 line of normal text: 22 lines+ scope+ 2 lines
 
-dim dlcopy(540) as ulong
+dim dlcopy(600) as ulong
 dltest=v030.dl_ptr
 palettetest=v030.palette_ptr
 dim title(28) as ulong
@@ -52,56 +52,65 @@ title(21)=title(21)+asc("1")
 
 ' 22 lines of upper border
 
+
+
 for i=0 to 21 : dlcopy(i)=0: next i
+
+dlcopy(22)= %0000_0000_0000_0000_0000_0100_0011_0011
 
 ' big text titlle logo. Tell the driver via DL that it should display the text from "title" table
 
 for i=0 to 15
   for j=0 to 1
-    dlcopy(22+2*i+j)=((addr(title(0))) shl 12)+%10_0000_0000_00_01+(i shl 8)
+    dlcopy(23+2*i+j)=((addr(title(0))) shl 12)+%10_0000_0000_00_01+(i shl 8)
   next j
 next i  
 
+dlcopy(55)=  %0000_0000_0000_0000_0000_0011_0011_0011
+
 ' 4 empty lines under the logo
 
-for i=54 to 57 : dlcopy(i)= dlcopy(0) : next i 
+for i=56 to 59 : dlcopy(i)= dlcopy(0) : next i 
 
 ' Now make 22 text lines starting at 79e00
 
 address=$76600
-for i=0 to 21
-  for j=0 to 15
-     dlcopy(58+16*i+j)=(address shl 12)+ (j shl 8) + (i shl 2) + 1
+for i=0 to 43
+  for j=0 to 7
+     dlcopy(60+10*i+j)=(address shl 12)+ (j shl 8) + (i shl 2) + 1
   next j
+  for j=8 to 9
+    dlcopy(60+10*i+j)=(address shl 12)+ %0000_0000_0000_0000_0011_0000_0000_0000+ 0 + (i shl 2) + 1
+      next j  
   address=address+448
 next i
 
 ' and add 2 text lines at the bottpm
 
-for i=0 to 1
-  for j=0 to 15
-    dlcopy(486+16*i+j)=(address shl 12)+ (j shl 8) + ((22+i) shl 2) + 1
+for i=0 to 3
+  for j=0 to 7
+    dlcopy(488+8*i+j)=(address shl 12)+ (j shl 8) + ((22+i) shl 2) + 1
   next j
   address=address+448
 next i
 
 ' add 6 empty lines over the scope area
 
-for i=410 to 415 : dlcopy(i)=0 : next i
+for i=412 to 417 : dlcopy(i)=0 : next i
 
 ' the scope area, 4 bpp graphics
 
 address=$79000   
 
-for i=416 to 479: dlcopy(i)= ((address+448*(i-416)) shl 12) + %1010 : next i
+for i=418 to 481: dlcopy(i)= ((address+448*(i-416)) shl 12) + %1010 : next i
 
 ' add 6 empty lines under the scope area
 
-for i=480 to 485 : dlcopy(i)=0 : next i
+for i=482 to 487 : dlcopy(i)=0 : next i
 
 ' 22 standard border lines at bottom
 
-for i=518 to 539 : dlcopy(i)=0 : next i
+for i=520 to 541 : dlcopy(i)=0 : next i
 
 ' tell the driver where is the new dl and buffer
 
@@ -120,14 +129,14 @@ v030.buf_ptr=$79000
 waitms(100)
 v030.cpl=112
 v030.lines=64
-for i=0 to 100: v030.putpixel(i,4,3) : next i
+for i=0 to 100: plot(i,4,3) : next i
 
 
 v030.fcircle(20,20,10,1)
 v030.outtextxycg(10,10,"Abcdef",3,0)
-for i=1 to 100 : v030.plot(i,10,3) : next i
+for i=1 to 100 : plot(i,10,3) : next i
 v030.line1(0,32,447,33,3)
-v030.plot(250,10,1)
+plot(250,10,1)
 
 v030.buf_ptr=$76600
 v030.cpl=112
@@ -271,7 +280,7 @@ do
   
     dpoke base+20, (tracker.currVolume(0)+tracker.deltavolume(0))*mainvolume
     dpoke base+22, 8192-2048
-    dpoke base+24, tracker.currPeriod(0)+tracker.deltaperiod(0)
+    dpoke base+24, 10*(tracker.currPeriod(0)+tracker.deltaperiod(0))/10
     dpoke base+26, 1
 
  
@@ -287,7 +296,7 @@ do
       
     dpoke 32+base+20, (tracker.currVolume(1)+tracker.deltavolume(1))*mainvolume
     dpoke 32+base+22, 8192+2048
-    dpoke 32+base+24, tracker.currPeriod(1)+tracker.deltaperiod(1)
+    dpoke 32+base+24, 10*(tracker.currPeriod(1)+tracker.deltaperiod(1))/10
     dpoke 32+base+26, 1
 
    if tracker.trigger(2) <> old3  then
@@ -301,7 +310,7 @@ do
     
     dpoke 64+base+20, (tracker.currVolume(2)+tracker.deltavolume(2))*mainvolume
     dpoke 64+base+22, 8192+2048
-    dpoke 64+base+24, tracker.currPeriod(2)+tracker.deltaperiod(2)
+    dpoke 64+base+24, 10*(tracker.currPeriod(2)+tracker.deltaperiod(2))/10
     dpoke 64+base+26, 1
 
     if tracker.trigger(3) <> old4 then
@@ -314,7 +323,7 @@ do
     endif
     dpoke 96+base+20, (tracker.currVolume(3)+tracker.deltavolume(3))*mainvolume
     dpoke 96+base+22, 8192-2048
-    dpoke 96+base+24, tracker.currPeriod(3)+tracker.deltaperiod(3)
+    dpoke 96+base+24, 10*(tracker.currPeriod(3)+tracker.deltaperiod(3))/10
     dpoke 96+base+26, 1
 
  '   if tracker.trigger(3) <> old4 then lpoke base+8+96,  tracker.currSamplePtr(3) or $40000000 :old4=tracker.trigger(3)
@@ -401,6 +410,6 @@ end sub
 
 
 asm shared
-module file "ballada.mod"
+module file "/home/pik33/mod/CDTV2.MOD"
 
 end asm
