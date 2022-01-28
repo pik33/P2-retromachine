@@ -1,7 +1,7 @@
 'const _clkfreq = 319_215_686  'PAL*90
 const _clkfreq = 354693878
 option implicit
-dim v030 as class using "hng033rm.spin2"
+dim v030 as class using "hng034rm.spin2"
 dim rm as class using "retrocog.spin2"
 
 

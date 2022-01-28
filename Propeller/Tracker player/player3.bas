@@ -9,116 +9,13 @@ startvideo
 ' - several border lines under the title - this will eat 3 text lines. 4 text lines will be eaten for the scope
 ' 24 line of normal text: 22 lines+ scope+ 2 lines
 
-dim dlcopy(600) as ulong
-dltest=v030.dl_ptr
-palettetest=v030.palette_ptr
-dim title(28) as ulong
-
-' create a new screen
-' 22 lines std border
-' 32 lines of big title. As it is constant we fill it manually, lines 22..53
-' 4 lines border lines 54..57
-' 22x16=352 lines of text lines 58..409
-' 6 lines of border at 410..415
-' 64 lines of 4bpp oscilloscope at 416..479 ' todo: make it 2bpp. The driver has a bug: the timings[5] is not controlled by DL - TODO.
-' 6 lines of border at 480..485
-' 2x16=32 lines of text at 486- 517
-' standard border at 518-539
-
-' We need 10752 bytes for text and 28672 bytes for graphics = 25088 bytes
-' graphic starts at 79000
-' text start at 76600
-
-for i=0 to 539 : dlcopy(i)=lpeek(dltest+4*i):next i ' let it be here for debug
-
-' Prepare the title
-
-for i=0 to 28: title(i)=$77710000 : next i
-title(6)=title(6)+asc("P")
-title(7)=title(7)+asc("r")
-title(8)=title(8)+asc("o")
-title(9)=title(9)+asc("p")
-title(10)=title(10)+asc("2")
-title(11)=title(11)+asc("p")
-title(12)=title(12)+asc("l")
-title(13)=title(13)+asc("a")
-title(14)=title(14)+asc("y")
-title(16)=title(16)+asc("v")
-title(17)=title(17)+asc(".")
-title(18)=title(18)+asc("0")
-title(19)=title(19)+asc(".")
-title(20)=title(20)+asc("0")
-title(21)=title(21)+asc("1")
-
-' 22 lines of upper border
-
-
-
-for i=0 to 21 : dlcopy(i)=0: next i
-
-dlcopy(22)= %0000_0000_0000_0000_0000_0100_0011_0011
-
-' big text titlle logo. Tell the driver via DL that it should display the text from "title" table
-
-for i=0 to 15
-  for j=0 to 1
-    dlcopy(23+2*i+j)=((addr(title(0))) shl 12)+%10_0000_0000_00_01+(i shl 8)
-  next j
-next i  
-
-dlcopy(55)=  %0000_0000_0000_0000_0000_0011_0011_0011
-dlcopy(56)= v030.getfontaddr(3) shl 12+%0000_0100_0011
-
-' 4 empty lines under the logo
-
-for i=57 to 60 : dlcopy(i)= dlcopy(0) : next i 
-
-' Now make 22 text lines starting at 79e00
-
-address=$76600
-for i=0 to 43
-  for j=0 to 7
-     dlcopy(61+10*i+j)=(address shl 12)+ (j shl 8) + (i shl 2) + 1
-  next j
-  for j=8 to 9
-    dlcopy(61+10*i+j)=(address shl 12)+ %0000_0000_0000_0000_0011_0000_0000_0000+ 0 + (i shl 2) + 1
-      next j  
-  address=address+448
-next i
-
-' and add 2 text lines at the bottpm
-
-for i=0 to 3
-  for j=0 to 7
-    dlcopy(489+8*i+j)=(address shl 12)+ (j shl 8) + ((22+i) shl 2) + 1
-  next j
-  address=address+448
-next i
-
-' add 6 empty lines over the scope area
-
-for i=412 to 417 : dlcopy(i)=0 : next i
-
-' the scope area, 4 bpp graphics
-
-address=$79000   
-
-for i=419 to 482: dlcopy(i)= ((address+448*(i-416)) shl 12) + %1010 : next i
-
-' add 6 empty lines under the scope area
-
-for i=483 to 488 : dlcopy(i)=0 : next i
-
-' 22 standard border lines at bottom
-
-for i=521 to 542 : dlcopy(i)=0 : next i
-
-' tell the driver where is the new dl and buffer
-
-v030.dl_ptr=addr(dlcopy) 
-v030.buf_ptr=$76600
 cls
 for i=$79000 to $7FFFC step 4 : lpoke i,0 : next i
+dim dlcopy(1200) as ulong
+dim title(28) as ulong
+framenum=0
+
+makedl
 
 v030.putpixel=v030.p4
 
@@ -223,7 +120,7 @@ mainvolume=128 '1..128..(255)
   RD_DATA      = $03
 
 dim tracker as class using "trackerplayer.spin2"
-dim paula as class using "audio019.spin2"
+dim paula as class using "audio020.spin2"
 
 dim sn$(32)
 dim cog,base as ulong
@@ -263,7 +160,7 @@ do
 
     waitvbl
     tracker.tick
-    
+    framenum+=1
     rr=getrnd() mod 540
     
 '    dlentry=lpeek(dltest) : for i=0 to 539:   rr=(2*i) mod 540+(2*i)/ 540 : lpoke dltest+4*i, dlcopy(rr) :next i 
@@ -350,7 +247,7 @@ loop
 
 
 sub test 
-
+movedl
  '   kk=getcnt()
     position 5,22:   v030.write(sn$(tracker.currsamplenr(0))) : v030.write(emptystr$)
     position 1,22 :  v030.write(v030.inttostr2(tracker.currperiod(0)+tracker.deltaperiod(0),3))
@@ -364,7 +261,7 @@ sub test
 '    kk=getcnt()-kk
     
  '   position 51,30: v030.write(v030.inttostr(kk/320))  
-      
+ 
 end sub
 
 
@@ -409,8 +306,109 @@ print
 
 end sub
 
+sub movedl
+
+
+olddl=dlcopy(61) ' and %1111_1111_1111_1111_1111_0000_0000_1111) +  (((framenum / 2) mod 56) shl 4)
+
+for i=0 to 476 step 2
+  dlcopy(61+i)=dlcopy(61+i+2)' and %1111_1111_1111_1111_1111_0000_0000_1111) + (((framenum / 2) mod 56) shl 4)
+next i
+dlcopy(61+478)=olddl
+end sub  
+
+
+
+
+
+sub makedl
+
+dltest=v030.dl_ptr
+palettetest=v030.palette_ptr
+
+' create a new screen
+' 22 lines std border
+' 32 lines of big title. As it is constant we fill it manually, lines 22..53
+' 4 lines border lines 54..57
+' 22x16=352 lines of text lines 58..409
+' 6 lines of border at 410..415
+' 64 lines of 4bpp oscilloscope at 416..479 ' todo: make it 2bpp. The driver has a bug: the timings[5] is not controlled by DL - TODO.
+' 6 lines of border at 480..485
+' 2x16=32 lines of text at 486- 517
+' standard border at 518-539
+
+' We need 10752 bytes for text and 28672 bytes for graphics = 25088 bytes
+' graphic starts at 79000
+' text start at 76600
+
+for i=0 to 539 : dlcopy(i)=lpeek(dltest+4*i):next i ' let it be here for debug
+
+' Prepare the title
+
+for i=0 to 28: title(i)=$77710000 : next i
+title(6)=title(6)+asc("P")
+title(7)=title(7)+asc("r")
+title(8)=title(8)+asc("o")
+title(9)=title(9)+asc("p")
+title(10)=title(10)+asc("2")
+title(11)=title(11)+asc("p")
+title(12)=title(12)+asc("l")
+title(13)=title(13)+asc("a")
+title(14)=title(14)+asc("y")
+title(16)=title(16)+asc("v")
+title(17)=title(17)+asc(".")
+title(18)=title(18)+asc("0")
+title(19)=title(19)+asc(".")
+title(20)=title(20)+asc("0")
+title(21)=title(21)+asc("1")
+
+' 22 lines of upper border
+
+for i=0 to 21 : dlcopy(i)=0: next i
+
+dlcopy(21)=%1111_1111_1111_1111
+
+dlcopy(22)= %0000_0000_0000_0000_0000_0100_0011_0011   ' set font height to 16, default font (=ST mono)
+
+' 32 lines of big text titlle logo. Tell the driver via DL that it should display the text from "title" table
+
+'%nnnn_nnnn_nnnn_qqqq_mmmm_mmmm_mmmm_0111 
+
+for i=0 to 15
+  for j=0 to 1
+    dlcopy(23+2*i+j)=((addr(title(0))) shl 12)+%10_0000_0000_00_01+(i shl 8)
+  next j
+next i  
+
+dlcopy(55)=  %0000_0000_0000_0000_0000_0011_0011_0011      'set font height to 8
+dlcopy(56)= v030.getfontaddr(3) shl 12+%0000_0100_0011     'set font pointer to atari8 8x8 font
+
+' 4 empty lines under the logo
+'' dlcopy(57)=((addr(title(0))) shl 14) +%0000_0000_1100_1111
+for i=57 to 60 : dlcopy(i)= dlcopy(0) : next i 
+
+' Now make 22 text lines starting at 79e00
+
+address=$76600
+for i=0 to 30
+  for j=0 to 7
+     dlcopy(61+20*i+2*j+0)=(address shl 14)+ %0000_0000_0000_1111+(55 shl 4) + j shl 12
+     dlcopy(61+20*i+2*j+1)=(address shl 12)+ (j shl 8) + (i shl 2) + 1
+  next j
+  for j=8 to 9
+     dlcopy(61+20*i+2*j+0)=(address shl 14)+ %0000_0000_0000_1111 + (55 shl 4) + 0 shl 12
+ 
+     dlcopy(61+20*i+2*j+1)=(address shl 12)+ (0 shl 8) + (i shl 2) + 1
+      next j  
+  address=address+448
+next i
+
+for i=680 to 1199 : dlcopy(i)=0 : next i
+v030.dl_ptr=addr(dlcopy) 
+v030.buf_ptr=$76600
+end sub
 
 asm shared
-module file "/home/pik33/mod/CDTV2.MOD"
+module file "/home/pik33/mod/ballada.mod"
 
 end asm
