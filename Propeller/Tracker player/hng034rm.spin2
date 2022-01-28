@@ -1364,7 +1364,7 @@ p303           ' mov     framebuf2,dl                    ' read a line start in 
                 shr     framebuf2,#12
                 shl     framebuf2,#2
 
-                getbyte t1,dl,#0
+                getnib t1,dl,#0
                 cmp     t1,#0 wz
     if_z        jmp     #borderline
 
@@ -1451,63 +1451,45 @@ p102            getword t1,m_border,#0
 
                    '
  ''---------------------------------------------------------------------------------------------------------
- p400                  
- 
-                        cmp cpl2,lc_char wz       '5
+ p400                   cmp cpl2,lc_char wz            ' check if switch needed '5
             
-                        if_nz skipf #%111
-                         sub t2,fontline      '6
-                         add t2,lc_fontline   '6
-                         mov framebuf2,lc_address '8
- 
- 
-                      rdlong  char,framebuf2          ' read a long char                          '1
-                        getbyte backcolor,char,#2       ' byte #2 - background color                '2
-                        getbyte charcolor,char,#3       ' byte #3 - foreground color                '3
-                        getbyte char,char, #0           ' word #0 - char code                       '4
+                        if_nz skipf #%111              ' if not, skip. Make skip instead of if_nz or jmp saves a nop
+                         sub t2,fontline               ' switch the fontline
+                         add t2,lc_fontline     
+                         mov framebuf2,lc_address      ' update the address
+    
+                        rdlong  char,framebuf2          ' read a long char                          
+                        getbyte backcolor,char,#2       ' byte #2 - background color                
+                        getbyte charcolor,char,#3       ' byte #3 - foreground color                
+                        getbyte char,char, #0           ' word #0 - char code                       
                         
-
+                        add     framebuf2,#4            ' point to the next long                    
                         
-
+                        shl     char,fontsize           ' 1 char=8 or 16 bytes in font def          
+                        add     char,t2                 ' add this to font/line pointer             
+                        rdbyte  t1,char                 ' and get 8 pixels prom there               
+                                                
+                        setbyte rolbuf,t1,#3
+                        shr    rolbuf, #24 ' (24-scroll)   fine hscroll. Todo: regs and DL entry for this
+                        mov t1,rolbuf
+                        shl  rolbuf,   #16   '(16-scroll)
                         
-                        add     framebuf2,#4            ' point to the next long                    '5
-                        
-                        
-                        
-
-                        
-                        
-                        
-                        shl     char,fontsize         ' 1 char=16 bytes in font def               '6
-                        add     char,t2                 ' add this to font/line pointer             '7
-                        rdbyte  t1,char                 ' and get 8 pixels prom there               '8
-                        
-                        
-                       setbyte rolbuf,t1,#3
-                        shr    rolbuf,#24 ' (24-scroll)   fine scroll. Where to find 2 nops?? 
-                       mov t1,rolbuf
-                       shl  rolbuf,#16   '(16-scroll)
-
-                        
-                        sub     cursorpos,#1 wz         ' if there is a cursor                      '9
-                  if_z  xor     t1, #$FF                ' reverse the colors                        '10
+                        sub     cursorpos,#1 wz         ' if there is a cursor                       
+                  if_z  xor     t1, #$FF                ' reverse the colors                       
 
                         xcont m_lut2,t1
 
-                        rdlut   t5,backcolor            ' read a background color from palette      '13
-                        wrlut   t5,lutaddr              ' and write it to LUT #0 or #32             '14
-                        add     lutaddr,#1                                                          '15
-                        rdlut   t5,charcolor            ' the same for the foreground               '16
-                        wrlut   t5,lutaddr                                                          '17
+                        rdlut   t5,backcolor            ' read a background color from palette        
+                        wrlut   t5,lutaddr              ' and write it to LUT #0 or #32               
+                        add     lutaddr,#1                                                          
+                        rdlut   t5,charcolor            ' the same for the foreground               
+                        wrlut   t5,lutaddr                                                           
                         sub     lutaddr,#1
 
                         bitnot  m_lut2,#16                                                          '19
-        '                bitnot  m_lut1,#16                                                          '19
                         xor     lutaddr,#32             ' use LUT #0-1 and 32-33                    '20
 
                         djnz   cpl2,#p400
-                        
-
                         
  p401                   jmp    #p103
 

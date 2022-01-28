@@ -184,7 +184,7 @@ sub test
 '    position 90,1: v030.write("Counter: ") : v030.write(v030.inttohex(lpeek($80),8))
 '    kk=getcnt()-kk
     
-    position 51,37: v030.write(v030.inttostr(40))  
+    position 51,37: v030.write(v030.inttostr(37))  
  
 end sub
 
@@ -250,23 +250,6 @@ sub makedl
 dltest=v030.dl_ptr
 palettetest=v030.palette_ptr
 
-' create a new screen
-' 22 lines std border
-' 32 lines of big title. As it is constant we fill it manually, lines 22..53
-' 4 lines border lines 54..57
-' 22x16=352 lines of text lines 58..409
-' 6 lines of border at 410..415
-' 64 lines of 4bpp oscilloscope at 416..479 ' todo: make it 2bpp. The driver has a bug: the timings[5] is not controlled by DL - TODO.
-' 6 lines of border at 480..485
-' 2x16=32 lines of text at 486- 517
-' standard border at 518-539
-
-' We need 10752 bytes for text and 28672 bytes for graphics = 25088 bytes
-' graphic starts at 79000
-' text start at 76600
-
-for i=0 to 539 : dlcopy(i)=lpeek(dltest+4*i):next i ' let it be here for debug
-
 ' Prepare the title
 
 for i=0 to 28: title(i)=$77710000 : next i
@@ -293,31 +276,34 @@ title(21)=title(21)+asc("1")
 ' 43 lines of fnt8 =344 ' 384
 ' down: 4 lines border, 16 lines status/help, 4 border, 128 lines scope, 4 border = 156
 
-for i=0 to 3 : dlcopy(i)=0: next i
+dlcopy(0)=0' %0000_0000_0100_0000_0000_0000_0000_0111 
+dlcopy(1)=%0
 
-dlcopy(4)= %0000_0000_0000_0000_0000_0100_0011_0011   ' set font height to 16, default font (=ST mono)
+dlcopy(2)= %0000_0000_0000_0000_0000_0100_0011_0011   ' set font height to 16, default font (=ST mono)
 
 ' 32 lines of big text titlle logo. Tell the driver via DL that it should display the text from "title" table
 
-'%nnnn_nnnn_nnnn_qqqq_mmmm_mmmm_mmmm_0111 
 
 for i=0 to 15
   for j=0 to 1
-    dlcopy(5+2*i+j)=((addr(title(0))) shl 12)+%10_0000_0000_00_01+(i shl 8)
+    dlcopy(3+2*i+j)=((addr(title(0))) shl 12)+%10_0000_0000_00_01+(i shl 8)
   next j
 next i  
+
+dlcopy(35)=0' %0000_0000_0100_0000_0000_0000_0000_0111 
+dlcopy(36)=0
 
 dlcopy(37)=  %0000_0000_0000_0000_0000_0011_0011_0011      'set font height to 8
 dlcopy(38)= v030.getfontaddr(3) shl 12+%0000_0100_0011     'set font pointer to atari8 8x8 font
 
 ' 4 empty lines under the logo
 '' dlcopy(57)=((addr(title(0))) shl 14) +%0000_0000_1100_1111
-for i=39 to 1199 : dlcopy(i)= dlcopy(0) : next i 
-address=$7b4c0
-dlcopy(43)=%0001_0101_1000_0111_0001_1100_0000_0111 
-dlcopy(44)=(address shl 12)+ 1
 
-' Now make 22 text lines starting at 79e00
+address=$7b4c0
+dlcopy(39)=%0001_0101_1000_1000_0001_1100_0000_0111 
+dlcopy(40)=(address shl 12)+ 1
+
+for i=41 to 1199 : dlcopy(i)= dlcopy(0) : next i 
 
 
 
@@ -325,7 +311,7 @@ v030.dl_ptr=addr(dlcopy)
 end sub
 
 asm shared
-module file "/home/pik33/mod/jamaica.mod"
+module file "/home/pik33/mod/lotus_9.mod"
 
 end asm
 
