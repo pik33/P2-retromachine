@@ -10,8 +10,8 @@ con
 _clkfreq = 354693878  ' This is 100x Amiga PAL 3546895
 ' audio pins TODO: make a variable for start() instead of const
 
-left= 14
-right=15
+left= 7
+right=8
 
 
 c4=262

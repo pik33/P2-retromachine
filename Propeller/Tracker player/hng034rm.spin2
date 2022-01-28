@@ -1279,8 +1279,13 @@ p301            cmp rcnt,#0 wz
         if_z    jmp #p306
                 sub rcnt,#1
                 mov dl,rdl
+                getnib t1,dl,#2 ' fontline, unused in graphmode
+                add t1,#1
                 incmod rcnt2a,rcnt2 wz
    if_z         add dl,roffset  
+   if_z        mov t1,#0             
+               setnib dl,t1,#2
+                
                 mov rdl,dl
                 jmp #p307          
           
@@ -1343,8 +1348,8 @@ p391             getnib dlc,framebuf2,#1
 
 
 p390             rdlong rdl,dlptr2
-                 getword rcnt,framebuf2,#1   ' nnnn_nnnn_nnqq_qqmm_mmmm_mmmm_mm01_1100
-                 shr rcnt,#4                 ' nnnn_nnnn_nnqq_qqmm ->4 =0000_nnnn_nnnn_nnnn_nnqq (!)
+                 getword rcnt,framebuf2,#1    
+                 shr rcnt,#4                  
              
                  getnib rcnt2,framebuf2,#4
                  getword roffset,framebuf2,#0
@@ -1479,9 +1484,9 @@ p102            getword t1,m_border,#0
                         
                         
                        setbyte rolbuf,t1,#3
-                        shr    rolbuf,#8 ' (24-scroll)   fine scroll. Where to find 2 nops?? 
+                        shr    rolbuf,#24 ' (24-scroll)   fine scroll. Where to find 2 nops?? 
                        mov t1,rolbuf
-                       shl  rolbuf,#0   '(16-scroll)
+                       shl  rolbuf,#16   '(16-scroll)
 
                         
                         sub     cursorpos,#1 wz         ' if there is a cursor                      '9
