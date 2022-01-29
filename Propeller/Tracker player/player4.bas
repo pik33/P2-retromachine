@@ -22,7 +22,7 @@ v030.buflen=43*442
 
 
 
-
+/'
 mount "/sd", _vfs_open_sdcard()
 
 chdir ("/sd/mod")
@@ -32,7 +32,7 @@ while filename$ <> "" and filename$ <> nil
   waitms(10)
   filename$ = dir$()      ' continue scan
 end while
-
+'/
 cls
 c113=v030.getpalettecolor(113)
 v030.setbordercolor2(c113)
@@ -66,7 +66,7 @@ cog,base=paula.start()
 
 old1=0 : old2=0 :old3=0 : old4=0
 
-
+max=0
 
 'position 0,26 : v030.writeln(ss$)
 'print"123456789012345678901234567890"
@@ -181,7 +181,8 @@ sub test
     position 56,22 : v030.write(v030.inttostr2(tracker.currperiod(2)+tracker.deltaperiod(2),3))
     position 84,22 : v030.write(v030.inttostr2(tracker.currperiod(3)+tracker.deltaperiod(3),3))
     position 88,22:  v030.write(sn$(tracker.currsamplenr(3))) : v030.write(emptystr$)
-'    position 90,1: v030.write("Counter: ") : v030.write(v030.inttohex(lpeek($80),8))
+    if lpeek($60)>max then max=lpeek($60)
+    position 40,1: v030.write("Counter: ") : v030.write(v030.inttostr(max))
 '    kk=getcnt()-kk
     
     position 51,37: v030.write(v030.inttostr(37))  
@@ -311,7 +312,7 @@ v030.dl_ptr=addr(dlcopy)
 end sub
 
 asm shared
-module file "/home/pik33/mod/lotus_9.mod"
+module file "/home/pik33/mod/aurora.mod"
 
 end asm
 
