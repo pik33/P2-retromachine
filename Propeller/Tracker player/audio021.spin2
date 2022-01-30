@@ -8,7 +8,7 @@ con
 
 '319220550    =3546895, change to NTSC freq if needed
 '322159050 ' This is 90x Amiga NTSC = 3579545
-_clkfreq = 354693878  ' This is 100x Amiga PAL 3546895
+_clkfreq = 354693878  ' This is 100x Amiga PAL 3546895  352800000 for 44100*80 355200000 for 48k*74
 ' audio pins TODO: make a variable for start() instead of const
 
 left= 8
@@ -281,8 +281,7 @@ p403        setq #1
 
 p101        cmp     oldt0,time0 wz '  If 2 samples have the same time, update instead of write
     if_z    decmod front, ##511        ' 
- '   if_z    and     front,#511     
-           
+          
             wrlong front,#$60
 
             mov     rs,#0            ' Mix all channels to rs and ls
@@ -327,22 +326,22 @@ p101        cmp     oldt0,time0 wz '  If 2 samples have the same time, update in
             bitnot  rs,#15		      ' and these with $FFFF if a filter should be applied
 		    
             setword rs,ls,#1         ' Pack L and R to one long    		
-            mov oldsample, newsample
-            mov newsample, rs
+            mov     oldsample, newsample
+            mov     newsample, rs
 
             mov     oldt0,time0      ' update global time
             add     time0,dt0    
                                       ' now push dt0 samples to the buffer
-            cmp      dt0,#0 wz
-    if_z    jmp      #loop1
-            mov      t1,dt0
+            cmp     dt0,#0 wz
+    if_z    jmp     #loop1
+            mov     t1,dt0
   
 p301        alts    ptrb,#511          ' checking if the buffer is full - Wuerfel_21's magic stuff
             cmpr    front, #0-0 wcz
     if_e    jmp     #p301    
 			    
             wrlut   oldsample, front
-       incmod front, ##511
+            incmod  front, ##511
             djnz    t1,#p301
             
             jmp     #loop            'loop
@@ -360,13 +359,10 @@ isr1        wypin   lsample,#left        '2     The sample has to be outputted e
             wypin   rsample,#right       '4
            
             cmp     ptrb,front wcz       '6    If the buffer is empty, do nothing 
-    if_e    reti1                        '8/10
-
-            rdlut   lsnext,ptrb++        '11    else read the sample and its time from LUT
-        '    wrlong  ptrb,#$60
-            and     ptrb, #511
-            getword rsample,lsnext,#1    '13
-            getword lsample,lsnext,#0    '15
+    if_ne   rdlut   lsnext,ptrb          '9   else read the sample and its time from LUT
+    if_ne   incmod  ptrb, #511           '11
+    if_ne   getword rsample,lsnext,#1    '13
+    if_ne   getword lsample,lsnext,#0    '15
             reti1                        '17/19 
           
 '---------------------------------------------------------------------------

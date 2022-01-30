@@ -8,9 +8,7 @@ dim title(28) as ulong
 framenum=0
 
 makedl
-v030.buf_ptr=$7b4c0
-v030.lines=43
-v030.buflen=43*442
+
 
 '' new displaylist
 ' 4 lines border, 32 lines title, 4 lines border = 40
@@ -37,7 +35,7 @@ cls
 c113=v030.getpalettecolor(113)
 v030.setbordercolor2(c113)
 
-mainvolume=128 '1..128..(255)
+mainvolume=127 '1..128..(255)
 
   SF_CS  = 61  '{ O }                                            ' serial flash
   SF_SCK = 60  '{ O }
@@ -173,19 +171,19 @@ loop
 sub test 
 'movedl
  '   kk=getcnt()
-    position 5,22:   v030.write(sn$(tracker.currsamplenr(0))) : v030.write(emptystr$)
-    position 1,22 :  v030.write(v030.inttostr2(tracker.currperiod(0)+tracker.deltaperiod(0),3))
-    position 32,22:  v030.write(sn$(tracker.currsamplenr(1))) : v030.write(emptystr$)
-    position 28,22 : v030.write(v030.inttostr2(tracker.currperiod(1)+tracker.deltaperiod(1),3))
-    position 60,22:  v030.write(sn$(tracker.currsamplenr(2))) : v030.write(emptystr$)
-    position 56,22 : v030.write(v030.inttostr2(tracker.currperiod(2)+tracker.deltaperiod(2),3))
-    position 84,22 : v030.write(v030.inttostr2(tracker.currperiod(3)+tracker.deltaperiod(3),3))
-    position 88,22:  v030.write(sn$(tracker.currsamplenr(3))) : v030.write(emptystr$)
+    position 5,20:   v030.write(sn$(tracker.currsamplenr(0))) : v030.write(emptystr$)
+    position 1,20 :  v030.write(v030.inttostr2(tracker.currperiod(0)+tracker.deltaperiod(0),3))
+    position 32,20:  v030.write(sn$(tracker.currsamplenr(1))) : v030.write(emptystr$)
+    position 28,20 : v030.write(v030.inttostr2(tracker.currperiod(1)+tracker.deltaperiod(1),3))
+    position 60,20:  v030.write(sn$(tracker.currsamplenr(2))) : v030.write(emptystr$)
+    position 56,20 : v030.write(v030.inttostr2(tracker.currperiod(2)+tracker.deltaperiod(2),3))
+    position 84,20 : v030.write(v030.inttostr2(tracker.currperiod(3)+tracker.deltaperiod(3),3))
+    position 88,20:  v030.write(emptystr$) : position 88,20: v030.write(sn$(tracker.currsamplenr(3)))
     if lpeek($60)>max then max=lpeek($60)
-    position 40,1: v030.write("Counter: ") : v030.write(v030.inttostr(max))
+ '   position 40,1: v030.write("Counter: ") : v030.write(v030.inttostr(max))
 '    kk=getcnt()-kk
     
-    position 51,37: v030.write(v030.inttostr(37))  
+
  
 end sub
 
@@ -251,6 +249,8 @@ sub makedl
 dltest=v030.dl_ptr
 palettetest=v030.palette_ptr
 
+
+
 ' Prepare the title
 
 for i=0 to 28: title(i)=$77710000 : next i
@@ -269,46 +269,51 @@ title(18)=title(18)+asc("0")
 title(19)=title(19)+asc(".")
 title(20)=title(20)+asc("0")
 title(21)=title(21)+asc("1")
-
 ' 22 lines of upper border
 
-'' new displaylist
-' 4 lines border, 32 lines title, 4 lines border = 40
-' 43 lines of fnt8 =344 ' 384
-' down: 4 lines border, 16 lines status/help, 4 border, 128 lines scope, 4 border = 156
+for i=0 to 21 : dlcopy(i)=0: next i
 
-dlcopy(0)=0' %0000_0000_0100_0000_0000_0000_0000_0111 
-dlcopy(1)=%0
+dlcopy(21)=%1111_1111_1111_1111
 
-dlcopy(2)= %0000_0000_0000_0000_0000_0100_0011_0011   ' set font height to 16, default font (=ST mono)
+dlcopy(22)= %0000_0000_0000_0000_0000_0100_0011_0011   ' set font height to 16, default font (=ST mono)
 
 ' 32 lines of big text titlle logo. Tell the driver via DL that it should display the text from "title" table
 
+'%nnnn_nnnn_nnnn_qqqq_mmmm_mmmm_mmmm_0111 
 
 for i=0 to 15
   for j=0 to 1
-    dlcopy(3+2*i+j)=((addr(title(0))) shl 12)+%10_0000_0000_00_01+(i shl 8)
+    dlcopy(23+2*i+j)=((addr(title(0))) shl 12)+%10_0000_0000_00_01+(i shl 8)
   next j
 next i  
 
-dlcopy(35)=0' %0000_0000_0100_0000_0000_0000_0000_0111 
-dlcopy(36)=0
-
-dlcopy(37)=  %0000_0000_0000_0000_0000_0011_0011_0011      'set font height to 8
-dlcopy(38)= v030.getfontaddr(3) shl 12+%0000_0100_0011     'set font pointer to atari8 8x8 font
+dlcopy(55)=  %0000_0000_0000_0000_0000_0011_0011_0011      'set font height to 8
+dlcopy(56)= v030.getfontaddr(3) shl 12+%0000_0100_0011     'set font pointer to atari8 8x8 font
 
 ' 4 empty lines under the logo
 '' dlcopy(57)=((addr(title(0))) shl 14) +%0000_0000_1100_1111
+for i=57 to 60 : dlcopy(i)= dlcopy(0) : next i 
 
-address=$7b4c0
-dlcopy(39)=%0001_0101_1000_1000_0001_1100_0000_0111 
-dlcopy(40)=(address shl 12)+ 1
+' Now make 22 text lines starting at 79e00
 
-for i=41 to 1199 : dlcopy(i)= dlcopy(0) : next i 
+address=$76600
+for i=0 to 30
+  for j=0 to 7
+     dlcopy(61+20*i+2*j+0)=(address shl 14)+ %0000_0000_0000_1111+(55 shl 4) + j shl 12
+     dlcopy(61+20*i+2*j+1)=(address shl 12)+ (j shl 8) + (i shl 2) + 1
+  next j
+  for j=8 to 9
+     dlcopy(61+20*i+2*j+0)=(address shl 14)+ %0000_0000_0000_1111 + (55 shl 4) + 0 shl 12
+ 
+     dlcopy(61+20*i+2*j+1)=(address shl 12)+ (0 shl 8) + (i shl 2) + 1
+      next j  
+  address=address+448
+next i
 
-
-
+for i=680 to 1199 : dlcopy(i)=0 : next i
 v030.dl_ptr=addr(dlcopy) 
+v030.buf_ptr=$76600
+
 end sub
 
 asm shared
