@@ -100,7 +100,7 @@ do
   
     dpoke base+20, (tracker.currVolume(0)+tracker.deltavolume(0))*mainvolume
     dpoke base+22, 8192-2048
-    dpoke base+24, 10*(tracker.currPeriod(0)+tracker.deltaperiod(0))/10
+                                                                                        dpoke base+24, 10*(tracker.currPeriod(0)+tracker.deltaperiod(0))/10
     dpoke base+26, 1
 
  
@@ -115,8 +115,8 @@ do
       endif
       
     dpoke 32+base+20, (tracker.currVolume(1)+tracker.deltavolume(1))*mainvolume
-    dpoke 32+base+22, 8192+2048
-    dpoke 32+base+24, 10*(tracker.currPeriod(1)+tracker.deltaperiod(1))/10
+    dpoke 32+base+22, 8192+1024
+                                                                                          dpoke 32+base+24, 10*(tracker.currPeriod(1)+tracker.deltaperiod(1))/10
     dpoke 32+base+26, 1
 
    if tracker.trigger(2) <> old3  then
@@ -130,7 +130,7 @@ do
     
     dpoke 64+base+20, (tracker.currVolume(2)+tracker.deltavolume(2))*mainvolume
     dpoke 64+base+22, 8192+2048
-    dpoke 64+base+24, 10*(tracker.currPeriod(2)+tracker.deltaperiod(2))/10
+                                                                                      dpoke 64+base+24, 10*(tracker.currPeriod(2)+tracker.deltaperiod(2))/10
     dpoke 64+base+26, 1
 
     if tracker.trigger(3) <> old4 then
@@ -142,8 +142,8 @@ do
     lpoke 96+base+16,tracker.currsamplelength(3)
     endif
     dpoke 96+base+20, (tracker.currVolume(3)+tracker.deltavolume(3))*mainvolume
-    dpoke 96+base+22, 8192-2048
-    dpoke 96+base+24, 10*(tracker.currPeriod(3)+tracker.deltaperiod(3))/10
+    dpoke 96+base+22, 8192-1024
+                                                                                         dpoke 96+base+24, 10*(tracker.currPeriod(3)+tracker.deltaperiod(3))/10
     dpoke 96+base+26, 1
 
  '   if tracker.trigger(3) <> old4 then lpoke base+8+96,  tracker.currSamplePtr(3) or $40000000 :old4=tracker.trigger(3)
@@ -170,18 +170,16 @@ loop
 
 sub test 
 'movedl
- '   kk=getcnt()
-    position 5,20:   v030.write(sn$(tracker.currsamplenr(0))) : v030.write(emptystr$)
-    position 1,20 :  v030.write(v030.inttostr2(tracker.currperiod(0)+tracker.deltaperiod(0),3))
-    position 32,20:  v030.write(sn$(tracker.currsamplenr(1))) : v030.write(emptystr$)
-    position 28,20 : v030.write(v030.inttostr2(tracker.currperiod(1)+tracker.deltaperiod(1),3))
-    position 60,20:  v030.write(sn$(tracker.currsamplenr(2))) : v030.write(emptystr$)
-    position 56,20 : v030.write(v030.inttostr2(tracker.currperiod(2)+tracker.deltaperiod(2),3))
-    position 84,20 : v030.write(v030.inttostr2(tracker.currperiod(3)+tracker.deltaperiod(3),3))
-    position 88,20:  v030.write(emptystr$) : position 88,20: v030.write(sn$(tracker.currsamplenr(3)))
-    if lpeek($60)>max then max=lpeek($60)
- '   position 40,1: v030.write("Counter: ") : v030.write(v030.inttostr(max))
-'    kk=getcnt()-kk
+
+    position 5,23:   v030.write(sn$(tracker.currsamplenr(0))) : v030.write(emptystr$)
+    position 1,23 :  v030.write(v030.inttostr2(tracker.currperiod(0)+tracker.deltaperiod(0),3))
+    position 32,23:  v030.write(sn$(tracker.currsamplenr(1))) : v030.write(emptystr$)
+    position 28,23 : v030.write(v030.inttostr2(tracker.currperiod(1)+tracker.deltaperiod(1),3))
+    position 60,23:  v030.write(sn$(tracker.currsamplenr(2))) : v030.write(emptystr$)
+    position 56,23 : v030.write(v030.inttostr2(tracker.currperiod(2)+tracker.deltaperiod(2),3))
+    position 84,23 : v030.write(v030.inttostr2(tracker.currperiod(3)+tracker.deltaperiod(3),3))
+    position 88,23:  v030.write(emptystr$) : position 88,23: v030.write(sn$(tracker.currsamplenr(3)))
+
     
 
  
@@ -287,37 +285,37 @@ for i=0 to 15
   next j
 next i  
 
-dlcopy(55)=  %0000_0000_0000_0000_0000_0011_0011_0011      'set font height to 8
-dlcopy(56)= v030.getfontaddr(3) shl 12+%0000_0100_0011     'set font pointer to atari8 8x8 font
+'dlcopy(55)=  %0000_0000_0000_0000_0000_0011_0011_0011      'set font height to 8
+'dlcopy(56)= v030.getfontaddr(3) shl 12+%0000_0100_0011     'set font pointer to atari8 8x8 font
 
 ' 4 empty lines under the logo
 '' dlcopy(57)=((addr(title(0))) shl 14) +%0000_0000_1100_1111
-for i=57 to 60 : dlcopy(i)= dlcopy(0) : next i 
+for i=55 to 58 : dlcopy(i)= dlcopy(0) : next i 
 
 ' Now make 22 text lines starting at 79e00
 
 address=$76600
-for i=0 to 30
-  for j=0 to 7
-     dlcopy(61+20*i+2*j+0)=(address shl 14)+ %0000_0000_0000_1111+(55 shl 4) + j shl 12
-     dlcopy(61+20*i+2*j+1)=(address shl 12)+ (j shl 8) + (i shl 2) + 1
+for i=0 to 24
+  for j=0 to 15
+     dlcopy(58+30*i+2*j+0)=(address shl 14)+ %0000_0000_0000_1111+(0 shl 4) + j shl 12
+     dlcopy(58+30*i+2*j+1)=(address shl 12)+ (j shl 8) + (i shl 2) + 1
   next j
-  for j=8 to 9
-     dlcopy(61+20*i+2*j+0)=(address shl 14)+ %0000_0000_0000_1111 + (55 shl 4) + 0 shl 12
- 
-     dlcopy(61+20*i+2*j+1)=(address shl 12)+ (0 shl 8) + (i shl 2) + 1
-      next j  
+'  for j=8 to 9
+ '    dlcopy(61+20*i+2*j+0)=(address shl 14)+ %0000_0000_0000_1111 + (0 shl 4) + 0 shl 12 '0 shl 4 = switch pos
+ '
+  '   dlcopy(61+20*i+2*j+1)=(address shl 12)+ (0 shl 8) + (i shl 2) + 1
+ '     next j  
   address=address+448
 next i
 
-for i=680 to 1199 : dlcopy(i)=0 : next i
+for i=788 to 1199 : dlcopy(i)=0 : next i
 v030.dl_ptr=addr(dlcopy) 
 v030.buf_ptr=$76600
 
 end sub
 
 asm shared
-module file "/home/pik33/mod/jamaica.mod"
+module file "/home/pik33/mod/party1.mod"
 
 end asm
 

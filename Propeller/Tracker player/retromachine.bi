@@ -4,7 +4,7 @@ option implicit
 dim v030 as class using "hng034rm.spin2"
 dim rm as class using "retrocog.spin2"
 dim tracker as class using "trackerplayer.spin2"
-dim paula as class using "audio023.spin2"
+dim paula as class using "audio024.spin2"
 #include "dir.bi"
 
 sub cls(fg=154,bg=147)
