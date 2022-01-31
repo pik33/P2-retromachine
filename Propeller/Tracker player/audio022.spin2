@@ -14,7 +14,6 @@ _clkfreq = 354693878  ' This is 100x Amiga PAL 3546895
 left= 14
 right=15
 
-
 var
 
 'channel+0  long current spl pointer - bit31=1 when 8bit spl
@@ -213,9 +212,9 @@ p403        setq #1                          ' write new pointer and sample valu
             mov     oldt0,time0               ' update global time
             add     time0,dt0    
                                      
-            cmp      dt0,#0 wz                ' now push dt0 samples to the buffer
-    if_z    jmp      #loop1
-            mov      t1,dt0
+            cmp     dt0,#0 wz                ' now push dt0 samples to the buffer
+    if_z    jmp     #loop1
+            mov     qq,dt0
   
 p301        alts    ptrb,#511                ' checking if the buffer is full - Wuerfel_21's magic stuff
             cmpr    front, #0-0 wcz
@@ -223,7 +222,7 @@ p301        alts    ptrb,#511                ' checking if the buffer is full - 
 			    
             wrlut   oldsample, front         ' if there is a free slot, put the sample into the buffer
             incmod  front, ##511
-            djnz    t1,#p301
+            djnz    qq,#p301
             
             jmp     #loop            'loop
 
@@ -271,46 +270,40 @@ time6       long 6
 time7       long 7
 time8       long 8
 time9       long 9
-time10       long 10
-time11       long 11
+time10      long 10
+time11      long 11
 time12      long 12
-time13       long 13
-time14       long 14
+time13      long 13
+time14      long 14
 time15      long 15
 time16      long 16
 
 
 oldsample long 0
 newsample long 0
-'
-t1 long 0
-t2 long 0
-'
+
 nrsample long 0
 nlsample long 0
-'
-channeladd long 0
 
+channeladd long 0
 
 front       long 0
 
 ' temporary variables 
-'
+ 
 qq          long 0
 spl         long 0
 
-
-
 ' Interrupt ISR variables
-
 
 lsample     long 0
 rsample     long 0
 lsnext      long 0
 rsnext      long 0 
 
+' channel parameter block
 
-pointer0    long 0
+pointer0    long 0     
 sample0     long 0
 sstart0     long 0     ' start pointer and type at bit 31
 lstart0     long 0
@@ -330,12 +323,12 @@ ct          long 0
 dt0         long 0
 
 ' Samples
-oldls long 0
-oldrs long 0
+oldls       long 0
+oldrs       long 0
 
 ls0         long 0
 rs0         long 0
-channel     long 0
+'channel     long 0
 ls          long 0    ' Global sample variable
 rs          long 0
 
@@ -350,6 +343,4 @@ dac         long %10111_00000000_01_00010_0     'random dither, as 90 cycles per
 
 '
 dat 
-
 null  			long 	0,0           ' for channel reset
-'sinewave 		file 	"sinus.s2"    ' for testing
