@@ -317,7 +317,7 @@ v030.buf_ptr=$76600
 end sub
 
 asm shared
-module file "/home/pik33/mod/aurora.mod"
+module file "/home/pik33/mod/ballada.mod"
 
 end asm
 
