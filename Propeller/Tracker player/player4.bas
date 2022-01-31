@@ -312,7 +312,7 @@ v030.dl_ptr=addr(dlcopy)
 end sub
 
 asm shared
-module file "/home/pik33/mod/aurora.mod"
+module file "/home/pik33/mod/ballada.mod"
 
 end asm
 

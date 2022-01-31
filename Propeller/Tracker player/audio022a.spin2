@@ -211,24 +211,30 @@ loop1       mov     cn,#0             ' Find the channel to compute
 '----------------------------------------------------------------------------------
 
 
-p401        mov     channeladd,cn              ' todo: reset channel times to enable proper streamed stereo audio
+p401        mov     channeladd,cn              '
             shl     channeladd,#5
             add     ptra,channeladd
 
             setq    #7               
             rdlong  pointer0,ptra
-            
+            getword oldls,sample0,#0
+            getword oldrs,sample0,#1
+
      	    getword apan0,volpan0,#1           ' extract vol,pan,skip and freq from longs 
     	    getword avol0,volpan0,#0
-	    getword askip0,freqskip0,#1    	    
-	    getword afreq0,freqskip0,#0
+	        getword askip0,freqskip0,#1    	    
+	        getword afreq0,freqskip0,#0
 
-            alts    cn, #time1
-            mov     dt0,0-0   
-            sub     dt0,time0
+          alts    cn, #time1
+          mov     dt0,0-0   
+          sub     dt0,time0
 
-            altd    cn, #time1
-            add     0-0,afreq0  	
+   
+
+
+
+           altd    cn, #time1
+           add     0-0,afreq0  	
 
             add     pointer0,askip0
             cmp     pointer0,lend0 wcz
@@ -249,17 +255,18 @@ p401        mov     channeladd,cn              ' todo: reset channel times to en
             scas    spl,apan0
             mov     ls0,0-0
  
-            altd    cn,#ls1
-            mov     0-0,ls0
              
             mov     qq,##16384
             sub     qq,apan0
             scas    spl,qq
             mov     rs0, 0-0
 
-            altd    cn,#rs1
-            mov     0-0,rs0
-
+   
+            sub rs,oldrs
+            add rs,rs0
+            sub ls,oldls
+            add ls,ls0
+   
             setword sample0,rs0,#1
             setword sample0,ls0,#0
             
@@ -285,50 +292,14 @@ p101        cmp     oldt0,time0 wz '  If 2 samples have the same time, update in
            
             wrlong front,#$60
 
-            mov     rs,#0            ' Mix all channels to rs and ls
-            mov     ls,#0
-            add     rs,rs1
-            add     rs,rs2            'todo: in channel computing, mov rs to oldrs, hrer sub oldrs, abb newrs
-            add     rs,rs3
-            add     rs,rs4
-            add     rs,rs5
-            add     rs,rs6
-            add     rs,rs7
-            add     rs,rs8
-            add     rs,rs9
-            add     rs,rs10
-            add     rs,rs11
-            add     rs,rs12
-            add     rs,rs13
-            add     rs,rs14
-            add     rs,rs15
-            add     rs,rs16
-
-           
-            add     ls,ls1
-            add     ls,ls2
-            add     ls,ls3
-            add     ls,ls4
-            add     ls,ls5
-            add     ls,ls6
-            add     ls,ls7
-            add     ls,ls8
-            add     ls,ls9
-            add     ls,ls10
-            add     ls,ls11
-            add     ls,ls12
-            add     ls,ls13
-            add     ls,ls14
-            add     ls,ls15
-            add     ls,ls16
-
- 		
-            bitnot  ls,#15            ' convert to unsigned. TODO: compute and apply the gain for samples to not exceed 16 bit range
-            bitnot  rs,#15		      ' and these with $FFFF if a filter should be applied
+           mov oldls, ls
+ 		    mov oldrs,rs
+            bitnot  oldls,#15            ' convert to unsigned. TODO: compute and apply the gain for samples to not exceed 16 bit range
+            bitnot  oldrs,#15		      ' and these with $FFFF if a filter should be applied
 		    
-            setword rs,ls,#1         ' Pack L and R to one long    		
+            setword oldrs,oldls,#1         ' Pack L and R to one long    		
             mov oldsample, newsample
-            mov newsample, rs
+            mov newsample, oldrs
 
             mov     oldt0,time0      ' update global time
             add     time0,dt0    
@@ -342,7 +313,7 @@ p301        alts    ptrb,#511          ' checking if the buffer is full - Wuerfe
     if_e    jmp     #p301    
 			    
             wrlut   oldsample, front
-       incmod front, ##511
+            incmod front, ##511
             djnz    t1,#p301
             
             jmp     #loop            'loop
@@ -358,14 +329,11 @@ p301        alts    ptrb,#511          ' checking if the buffer is full - Wuerfe
 
 isr1        wypin   lsample,#left        '2     The sample has to be outputted every 100 cycles     
             wypin   rsample,#right       '4
-           
             cmp     ptrb,front wcz       '6    If the buffer is empty, do nothing 
-    if_e    reti1                        '8/10
-
-            rdlut   lsnext,ptrb          '11    else read the sample and its time from LUT
-            incmod  ptrb,#511
-            getword rsample,lsnext,#1    '13
-            getword lsample,lsnext,#0    '15
+    if_ne   rdlut   lsnext,ptrb          '11    else read the sample and its time from LUT
+    if_ne   incmod  ptrb,#511
+    if_ne   getword rsample,lsnext,#1    '13
+    if_ne   getword lsample,lsnext,#0    '15
             reti1                        '17/19 
           
 '---------------------------------------------------------------------------
@@ -379,9 +347,6 @@ isr1        wypin   lsample,#left        '2     The sample has to be outputted e
 
 ' constants
 
-hp long 0
-lp long 0
-bp long 0
 a20000000   long $10000000
 a21000000   long $11000000  ' this const has to be immediately before time0 due to djnz loop initial pointer pointing one long before
 
@@ -425,10 +390,7 @@ front       long 0
 qq          long 0
 spl         long 0
 
-' circular buffer in LUT
 
-
-'
 
 ' Interrupt ISR variables
 
@@ -446,7 +408,7 @@ lstart0     long 0
 lend0       long 0
 volpan0     long 0
 freqskip0   long 0
-dummy0      long 0
+ctime0      long 0
 
 afreq0      long 0
 askip0      long 0
@@ -459,47 +421,14 @@ ct          long 0
 dt0         long 0
 
 ' Samples
+oldls long 0
+oldrs long 0
+
 ls0         long 0
 rs0         long 0
 channel     long 0
 ls          long 0    ' Global sample variable
 rs          long 0
-
-ls1         long 0    ' Channel samples
-ls2         long 0
-ls3         long 0
-ls4         long 0
-ls5         long 0
-ls6         long 0
-ls7         long 0
-ls8         long 0
-ls9         long 0    ' Channel samples
-ls10         long 0
-ls11         long 0
-ls12        long 0
-ls13         long 0
-ls14         long 0
-ls15        long 0
-ls16        long 0
-
-
-rs1         long 0
-rs2         long 0
-rs3         long 0
-rs4         long 0
-rs5         long 0
-rs6         long 0
-rs7         long 0
-rs8         long 0
-rs9         long 0
-rs10        long 0
-rs11        long 0
-rs12         long 0
-rs13         long 0
-rs14        long 0
-rs15         long 0
-rs16        long 0
-
 
 
 
