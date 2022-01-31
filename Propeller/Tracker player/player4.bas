@@ -149,7 +149,7 @@ do
  '   if tracker.trigger(3) <> old4 then lpoke base+8+96,  tracker.currSamplePtr(3) or $40000000 :old4=tracker.trigger(3)
  '   if tracker.trigger(0) <> old1 then lpoke base+8,  tracker.currSamplePtr(0)or $40000000 :  old1=tracker.trigger(0)
  '  if tracker.trigger(1) <> old2 then lpoke base+8+32, tracker.currSamplePtr(1) or $40000000 :  old2=tracker.trigger(1)
-  '  if tracker.trigger(2) <> old3 then lpoke base+8+64,  tracker.currSamplePtr(2) or $40000000 :  old3=tracker.trigger(2)
+ '  if tracker.trigger(2) <> old3 then lpoke base+8+64,  tracker.currSamplePtr(2) or $40000000 :  old3=tracker.trigger(2)
 
   '  e=0
    
@@ -317,7 +317,7 @@ v030.buf_ptr=$76600
 end sub
 
 asm shared
-module file "/home/pik33/mod/ballada.mod"
+module file "/home/pik33/mod/jamaica.mod"
 
 end asm
 

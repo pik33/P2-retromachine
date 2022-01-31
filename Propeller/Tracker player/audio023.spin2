@@ -1,8 +1,8 @@
 ' A Paula inspired sample based synthesizer/audio driver for a P2
-' v. 0.22 alpha - 20220131
+' v. 0.23 alpha - 20220131
 ' MIT license
 ' Piotr Kardasz pik33@o2.pl with the help from P2 forum community :) 
-' 16 16-bit channels now and no more channel mixer :)
+' 32 16-bit channels now and no more channel mixer :)
 '-------------------------------------------------------------------
 con
 
@@ -46,6 +46,22 @@ long channel13[8]
 long channel14[8]
 long channel15[8]
 long channel16[8]
+long channel17[8]
+long channel18[8]
+long channel19[8]
+long channel20[8]
+long channel21[8]
+long channel22[8]
+long channel23[8]
+long channel24[8]
+long channel25[8]
+long channel26[8]
+long channel27[8]
+long channel28[8]
+long channel29[8]
+long channel30[8]
+long channel31[8]
+long channel32[8]
 
 '--------------------------------------------------------------
 '---------- Init the variables, start the cog. ----------------
@@ -55,7 +71,7 @@ pub start() :cog,base | iii
 
 base:=@channel1[0]
 
-repeat iii from 0 to 15
+repeat iii from 0 to 31
   long[base+32*iii]:=0
   long[base+32*iii+4]:=0
   long[base+32*iii+12]:=0
@@ -79,9 +95,9 @@ dat
 audio       org     0
             mov     ptrb,#0             ' A tail pointer for the buffer
             wrpin   dac,#left           ' Noise dither DACs at clk/100
-            wxpin   #50,#left       
+            wxpin   #100,#left       
             wrpin   dac,#right
-            wxpin   #50,#right    
+            wxpin   #100,#right    
             dirh    #left addpins 1
             setse1  #%001<<6 + left     ' Set the event - DAC empty
             mov     ijmp1,#isr1         ' Init the interrupt
@@ -94,7 +110,7 @@ audio       org     0
 loop        cmp     time0,a41000000 wc  ' time counter overflow protection
       if_c  jmp     #loop1
   
-            mov     cn,#17              ' Substract $40000000 from all the channel times and the main timer
+            mov     cn,#33             ' Substract $40000000 from all the channel times and the main timer
 p402        altd    cn,#a41000000       ' this has to be done at once
             sub     0-0,a40000000
             djnz    cn,#p402
@@ -131,6 +147,39 @@ loop1       mov     cn,#0               ' Find the channel to compute
     if_c    mov     cn,#14
             fle     ct,time16 wcz
     if_c    mov     cn,#15
+            fle     ct,time17 wcz
+    if_c    mov     cn,#16
+            fle     ct,time18 wcz
+    if_c    mov     cn,#17
+            fle     ct,time19 wcz
+    if_c    mov     cn,#18
+            fle     ct,time20 wcz
+    if_c    mov     cn,#19
+            fle     ct,time21 wcz
+    if_c    mov     cn,#20
+            fle     ct,time22 wcz
+    if_c    mov     cn,#21
+            fle     ct,time23 wcz
+    if_c    mov     cn,#22
+            fle     ct,time24 wcz
+    if_c    mov     cn,#23
+            fle     ct,time25 wcz
+    if_c    mov     cn,#24
+            fle     ct,time26 wcz
+    if_c    mov     cn,#25
+            fle     ct,time27 wcz
+    if_c    mov     cn,#26
+            fle     ct,time28 wcz
+    if_c    mov     cn,#27
+            fle     ct,time29 wcz
+    if_c    mov     cn,#28
+            fle     ct,time30 wcz
+    if_c    mov     cn,#29
+            fle     ct,time31 wcz
+    if_c    mov     cn,#30
+            fle     ct,time32 wcz
+    if_c    mov     cn,#31
+
 
 
 '----------------------------------------------------------------------------------
@@ -278,6 +327,22 @@ time13      long 13
 time14      long 14
 time15      long 15
 time16      long 16
+time17      long 17
+time18      long 18
+time19      long 19
+time20      long 20
+time21      long 21
+time22      long 22
+time23      long 23
+time24      long 24
+time25      long 25
+time26      long 26
+time27      long 27
+time28      long 28
+time29      long 29
+time30      long 30
+time31      long 31
+time32      long 32
 
 
 
