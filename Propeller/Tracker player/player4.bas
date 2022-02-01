@@ -92,7 +92,7 @@ do
     endif
     dpoke base+20, (tracker.currVolume(0)+tracker.deltavolume(0))*mainvolume
     dpoke base+22, 8192-2048
-    dpoke base+24, 20*(tracker.currPeriod(0)+tracker.deltaperiod(0))/10
+    dpoke base+24, tracker.currPeriod(0)+tracker.deltaperiod(0)
     dpoke base+26, 1
 
  
@@ -108,7 +108,7 @@ do
       
     dpoke 32+base+20, (tracker.currVolume(1)+tracker.deltavolume(1))*mainvolume
     dpoke 32+base+22, 8192+1024
-                                                                                          dpoke 32+base+24, 20*(tracker.currPeriod(1)+tracker.deltaperiod(1))/10
+                                                                                          dpoke 32+base+24, tracker.currPeriod(1)+tracker.deltaperiod(1)
     dpoke 32+base+26, 1
 
    if tracker.trigger(2) <> old3  then
@@ -122,7 +122,7 @@ do
     
     dpoke 64+base+20, (tracker.currVolume(2)+tracker.deltavolume(2))*mainvolume
     dpoke 64+base+22, 8192+2048
-                                                                                      dpoke 64+base+24, 20*(tracker.currPeriod(2)+tracker.deltaperiod(2))/10
+                                                                                      dpoke 64+base+24, tracker.currPeriod(2)+tracker.deltaperiod(2)
     dpoke 64+base+26, 1
 
     if tracker.trigger(3) <> old4 then
@@ -135,7 +135,7 @@ do
     endif
     dpoke 96+base+20, (tracker.currVolume(3)+tracker.deltavolume(3))*mainvolume
     dpoke 96+base+22, 8192-1024
-                                                                                         dpoke 96+base+24, 20*(tracker.currPeriod(3)+tracker.deltaperiod(3))/10
+                                                                                         dpoke 96+base+24, tracker.currPeriod(3)+tracker.deltaperiod(3)
     dpoke 96+base+26, 1
 
  '   if tracker.trigger(3) <> old4 then lpoke base+8+96,  tracker.currSamplePtr(3) or $40000000 :old4=tracker.trigger(3)
