@@ -12,6 +12,14 @@ _clkfreq = 354693878  ' This is 100x Amiga PAL 3546895
 left= 14
 right=15
 
+c4=262
+d4=294
+e4=330
+f4=349
+g4=392
+a4=440
+h4=494
+
 var
 
 'channel+0  long current spl pointer
@@ -36,6 +44,54 @@ long channel7[8]
 long channel8[8]
 
 
+pub test
+
+ 
+start()
+waitms(500)
+repeat
+  play(c4,500,16384)
+  play(d4,500,16384)
+  play(e4,500,16384)
+  play(f4,500,16384)
+  play(g4,500,16384)
+  play(a4,500,16384)
+  play(h4,500,16384)
+  play(2*c4,500,16384)
+  play(c4,500,0)
+  play(2*c4,500,16384)
+  play(h4,500,16384)
+  play(a4,500,16384)
+  play(g4,500,16384)
+  play(f4,500,16384)
+  play(e4,500,16384)
+  play(d4,500,16384)
+  play(c4,500,16384)
+  play(c4,500,0)
+
+
+
+pub play(ff,time,vol) |ilss,ss,ssf,base,iii
+
+' Test play 
+
+ss:=64
+ssf:=(ss*3568945)/(ff*2048)
+
+
+
+base:=@channel1[0]
+
+repeat iii from 0 to 7
+  long[base+32*iii+12]:=16
+  long[base+32*iii+16]:=2048+16
+  word[base+32*iii+20]:=vol/(2*(iii+1))
+  word[base+32*iii+22]:=8192
+  word[base+32*iii+24]:=ssf
+  word[base+32*iii+26]:=ss*(iii+1)
+  long [base+32*iii+8]:=@sinewave | $C0000000  
+repeat time
+    waitms(1)
 '--------------------------------------------------------------
 '---------- Init the variables, start the cog. ----------------
 '--------------------------------------------------------------
@@ -313,3 +369,4 @@ dac         long %10111_00000000_01_00010_0     'random dither, as 90 cycles per
 '
 dat 
 null  			long 	0,0           ' for channel reset
+sinewave 		file 	"sinus.s2"    ' for testing

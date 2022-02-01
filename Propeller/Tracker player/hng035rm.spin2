@@ -1312,7 +1312,7 @@ p307            mov     framebuf2,dl wcz                  'move this to framebuf
 '' - set font size          %0000_0000_0000_0000_0000_ssss_0011_0011    ssss - bit for font size, 3=8, 4=16
 '' - set font pointer       %aaaa_aaaa_aaaa_aaaa_aaaa_0000_0100_0011
 '' - set live change        %aaaa_aaaa_aaaa_aaaa_nnnn_cccc_cccc_1111    a: 16 bit addr. 00 added to 18 aligned, 2 upper bits=11; nnnn: new font line if charmode cccc cpl to change
-'' - set hscroll            %0000_0000_0000_0000_0000_ssss_0100_0011
+'' - set hscroll            %0000_0000_0000_0000_0000_ssss_0101_0011
 
 '' todo: set horizontal scroll (if needed)
 
@@ -1322,7 +1322,7 @@ p307            mov     framebuf2,dl wcz                  'move this to framebuf
                  cmp dlc,#%0100 wz            ' %01 special command=repeat
                  if_z jmp #p390              ' start interpreting 'repeat' at p390
                  
-                 cmp dlc,#0 wz                  ' 00 - set border/font
+                 cmp dlc,#0 wz                  ' 00 - set border/font/scroll
                  if_z jmp #p391
                  
                 cmp dlc,#%1100 wz
@@ -1351,6 +1351,11 @@ p391             getnib dlc,framebuf2,#1
         if_z     shr framebuf2,#12
         if_z     mov fontbuf,framebuf2
         if_z    jmp #p301
+        
+                  cmp dlc,#%0101 wz
+        if_z      getbyte hscroll2,framebuf2,#1
+        	  mov hscroll1,hscroll2
+        	  add hscroll1,#8         
         
                   jmp #p301    ' not implemented yet
         
@@ -1479,9 +1484,9 @@ p102            getword t1,m_border,#0
                         rdbyte  t1,char                 ' and get 8 pixels prom there               
                                                 
                         setbyte rolbuf,t1,#3
-                        shr    rolbuf, #24 ' (24-scroll)   fine hscroll. Todo: regs and DL entry for this
+                        ror    rolbuf, hscroll1 ' (24-scroll)   fine hscroll. Todo: regs and DL entry for this
                         mov t1,rolbuf
-                        shl  rolbuf,   #16   '(16-scroll)
+                        rol  rolbuf,   hscroll2  '(16-scroll)
                         
                         sub     cursorpos,#1 wz         ' if there is a cursor                       
                   if_z  xor     t1, #$FF                ' reverse the colors                       
@@ -1901,6 +1906,8 @@ lc_fontline     long 0
 lc_address      long 0
 bitmask long 0
 rolbuf long 0
+hscroll1 long 24
+hscroll2 long 16
 aend             long 0
                 fit     496                     '
 

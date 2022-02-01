@@ -47,8 +47,13 @@ loop
 ' ---------------- end of program -------------------------------------------
 
 sub scrollstatus(amount)
+'statusline(0)=peek(addr(statusline$(0))+(0+amount) mod 220)+$71710000
+'statusline(111)=peek(addr(statusline$(0))+(111+amount) mod 220)+$71710000
+'statusline(112)=peek(addr(statusline$(0))+(112+amount) mod 220)+$71710000
 
-for i=0 to 112 : statusline(i)=peek(addr(statusline$(0))+(i+amount) mod 220)+$77710000: next i
+dlcopy(727)=%0000_0000_0000_0000_0000_0000_0101_0011 + (((amount mod 8)+8) shl 8) 
+
+'for i=1 to 110 : statusline(i)=peek(addr(statusline$(0))+(i+amount) mod 220)+$77710000: next i
 end sub
 
 
@@ -142,7 +147,12 @@ title(19)=title(19)+asc(".")
 title(20)=title(20)+asc("0")
 title(21)=title(21)+asc("6")
 
-for i=0 to 112 : statusline(i)=peek(addr(statusline$(0))+i)+$77710000: next i
+for i=2 to 111 : statusline(i)=peek(addr(statusline$(0))+i-2)+$77710000: next i
+statusline(0)=$71710000
+statusline(1)=$71710000
+statusline(2)=$71710000
+statusline(3)=$71710000
+statusline(112)=$71710000
 
 '4
 '32     36
@@ -187,13 +197,15 @@ dlcopy(720)=%0000_1000_0000_0001_0001_1100_0000_0111  ' repeat 128, every second
 address=addr(graphicbuf)
 dlcopy(721)=address shl 12 +%00_0000_0000_1010
 
-for i=722 to 727 : dlcopy(i)=0 : next i
-
-address=addr(statusline)+4
-dlcopy(728)=%0000_0001_0000_1111_0000_0000_0000_0111  ' repeat 16
-dlcopy(729)=address shl 12+ %00_0000_0000_0001         ' text line
-for i=730 to 73: dlcopy(i)=0 : next i
-
+for i=722 to 726 : dlcopy(i)=0 : next i
+dlcopy(727)=%0000_0000_0000_0000_0001_0000_0101_0011
+dlcopy(728)=0
+address=addr(statusline)+12
+dlcopy(729)=%0000_0001_0000_1111_0000_0000_0000_0111  ' repeat 16
+dlcopy(730)=address shl 12+ %00_0000_0000_0001         ' text line
+for i=731 to 734: dlcopy(i)=0 : next i
+dlcopy(0)=%0000_0000_0000_0000_0001_0000_0101_0011
+dlcopy(736)=0 : dlcopy(737)=0
 v030.dl_ptr=addr(dlcopy) 
 v030.buf_ptr=$76600
 v030.s_buf_ptr=$76600
