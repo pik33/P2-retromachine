@@ -1,6 +1,6 @@
 '********************************************************************************************
 ' Nostalgic displaylisted HDMI for P2 Retromachine
-' Version 0.35 alpha -20220201
+' Version 0.34 alpha -20211227
 ' 1 cog,text and graphics with or without border, 8x16 selectable and redefinable font
 ' The P2 Retromachine version
 ' (c) 2012-2021 Piotr Kardasz pik33@o2.pl
@@ -69,9 +69,14 @@ CON
 hdmi_base       = 0            'must be a multiple of 8
 _clkfreq        = 320_000_000    'start safe, hubset will do the rest. The clock will be changed to:
 
-' 354_689_500   200x Atari 8-bit PAL,  50x Amiga PAL  - real settings: 49,869-> 354_693_878  - 1.0000123 - mode 0 
+' 354_689_500   200x Atari 8-bit PAL,  50x Amiga PAL  - real settings: 49,869-> 354_693_878  - 1.0000123 - mode 0 and 192
 ' 357_954_500   200x Atari 8-bit NTSC, 50x Amiga NTSC - real settings: 49,877-> 357_959_184  - 1.0000131 - mode 256
 
+' 319_220_550   180x PAL  - real settings: 51,814-> 319_215_686 - 0.9999848 - mode 64
+' 322_159_050   180x NTSC - real settings: 37,596-> 322_162_162 - 1.0000097 - mode 320 and 448
+
+' 283_751_600   160x PAL  - real settings: 64,908-> 283_750_000 - 0.9999944 - mode 128
+' 286_363_600   160x NTSC - real settings: 22,315-> 286_363_636 - 1.0000001 - mode 384
 
 ''--------- VGA DOS color definition constants
 
@@ -131,12 +136,6 @@ long streamer[6]       'streamer constants
 byte colors[16]        'vga colors
 long graphmode
 long font_family
-
-long s_buf_ptr
-long s_font_ptr
-long s_lines
-long s_cpl
-long s_buflen
 
 long xzoom, yzoom, azoom
 long putpixel
@@ -482,38 +481,38 @@ repeat iii from 0 to strsize(text)-1
 pub putpixel1(x,y,c) |byte b
 
 
-if ((x>=0) & (x<32*s_cpl) & (y>=0) & (y<s_lines))
-    b:=byte[buf_ptr+4*s_cpl*y+(x>>3)]
+if ((x>=0) & (x<32*cpl) & (y>=0) & (y<lines))
+    b:=byte[buf_ptr+4*cpl*y+(x>>3)]
     if (c==0)
       b:=b & !(1<<(x//8))
     else
       b:=b |(1<<(x//8))
-    byte[buf_ptr+4*s_cpl*y+(x>>3)]:=b
+    byte[buf_ptr+4*cpl*y+(x>>3)]:=b
 
 
 pub putpixel2(x,y,c) |byte b
 
 
-if ((x>=0) && (x<16*s_cpl) && (y>=0) && (y<s_lines))
-    b:=byte[buf_ptr+4*s_cpl*y+(x>>2)]
+if ((x>=0) && (x<16*cpl) && (y>=0) && (y<lines))
+    b:=byte[buf_ptr+4*cpl*y+(x>>2)]
     b:=b & !(%11<<((x//4)<<1))
     b:=b |(c<<((x//4)<<1))
-    byte[buf_ptr+4*s_cpl*y+(x>>2)]:=b
+    byte[buf_ptr+4*cpl*y+(x>>2)]:=b
 
 
 pub putpixel4(x,y,c) |byte b
 
-if ((x>=0) & (x<16*s_cpl) & (y>=0) & (y<s_lines))
-    b:=byte[buf_ptr+4*s_cpl*y+(x>>1)]
+if ((x>=0) & (x<16*cpl) & (y>=0) & (y<lines))
+    b:=byte[buf_ptr+4*cpl*y+(x>>1)]
     b:=b & !(%1111<<((x//2)<<2))
     b:=b |(c<<((x//2)<<2))
-    byte[buf_ptr+4*s_cpl*y+(x>>1)]:=b
+    byte[buf_ptr+4*cpl*y+(x>>1)]:=b
 
 
 pub putpixel8(x,y,c)
 
-if ((x>=0) & (x<4*s_cpl) & (y>=0) & (y<s_lines))
-    byte[buf_ptr+4*s_cpl*y+x]:=c
+if ((x>=0) & (x<4*cpl) & (y>=0) & (y<lines))
+    byte[buf_ptr+4*cpl*y+x]:=c
 
 
 
@@ -632,32 +631,32 @@ pub setscreencolors(ff,bb) | c ,i
 
 c:=ff<<24+bb<<16
 
-repeat i from 0 to s_buflen-1
-   long[s_buf_ptr+4*i]:= (long[s_buf_ptr+4*i] & $FFFF) |  c
+repeat i from 0 to buflen-1
+   long[buf_ptr+4*i]:= (long[buf_ptr+4*i] & $FFFF) |  c
 
 ''---------- Set the color for the character at line y and position x
 
 pub setcharcolor(x,y,c) | place, color
 
-place:=(x)+(y*s_cpl)
+place:=(x)+(y*cpl)
 
-if (place>s_buflen-1)
-  place:=s_buflen-1
+if (place>buflen-1)
+  place:=buflen-1
 
-color:=(long[s_buf_ptr+4*place] &$FFFFFF) | (c<<24)
-long[s_buf_ptr+4*place]:=color
+color:=(long[buf_ptr+4*place] &$FFFFFF) | (c<<24)
+long[buf_ptr+4*place]:=color
 
 ''---------- Set the background color at line y and position x
 
 pub setbackcolor(x,y,c) | place, color
 
-place:=(x)+(y*s_cpl)
+place:=(x)+(y*cpl)
 
-if (place>s_buflen-1)
-  place:=s_buflen-1
+if (place>buflen-1)
+  place:=buflen-1
 
-color:=(long[s_buf_ptr+4*place] &$FF00FFFF) | (c<<16)
-long[s_buf_ptr+4*place]:=color
+color:=(long[buf_ptr+4*place] &$FF00FFFF) | (c<<16)
+long[buf_ptr+4*place]:=color
 
 ''---------- Set the border color, o is upper border, lines+1 is lower border
 
@@ -699,7 +698,7 @@ pub cls(fc,bc)   :c
 
 if (graphmode<512)
   c:=fc<<24+bc<<16+$20
-  longfill(s_buf_ptr,c,s_buflen)
+  longfill(buf_ptr,c,buflen)
 else
   if (graphmode & 48) ==48
     c:=bc
@@ -712,7 +711,7 @@ else
       c:=255
     else
       c:=0
-  bytefill(s_buf_ptr,c,s_buflen*4)
+  bytefill(buf_ptr,c,buflen*4)
 setwritecolors(fc,bc)
 cursor_x:=0
 cursor_y:=0
@@ -721,22 +720,22 @@ cursor_y:=0
 
 pub putcharxy(x,y,achar) | c
 
-long[s_buf_ptr+4*(s_cpl*y+x)]:=(long[s_buf_ptr+4*(s_cpl*y+x)] & $FFFFFF00)  |(achar & $000000FF)
+long[buf_ptr+4*(cpl*y+x)]:=(long[buf_ptr+4*(cpl*y+x)] & $FFFFFF00)  |(achar & $000000FF)
 
 ''---------- Output a char at x,y and colors f,b, don't change a cursor position
 
 pub putcharxyct(x,y,achar,f,b) | c
 
 c:=f<<24+b<<16
-long[s_buf_ptr+4*(s_cpl*y+x)]:=long[s_buf_ptr+4*(s_cpl*y+x)] &$FFFF | c
-long[s_buf_ptr+4*(s_cpl*y+x)]:=(long[s_buf_ptr+4*(s_cpl*y+x)] & $FFFFFF00)  |(achar & $000000FF)
+long[buf_ptr+4*(cpl*y+x)]:=long[buf_ptr+4*(cpl*y+x)] &$FFFF | c
+long[buf_ptr+4*(cpl*y+x)]:=(long[buf_ptr+4*(cpl*y+x)] & $FFFFFF00)  |(achar & $000000FF)
 
 ''--------- Output a string at position x,y without changing colors
 
 pub outtextxy(x,y,text) | iii
 
 repeat iii from 0 to strsize(text)-1
-  long[s_buf_ptr+4*(s_cpl*y+x+iii)]:=(long[s_buf_ptr+4*(s_cpl*y+x+iii)] & $FFFFFF00)  | byte[text+iii]
+  long[buf_ptr+4*(cpl*y+x+iii)]:=(long[buf_ptr+4*(cpl*y+x+iii)] & $FFFFFF00)  | byte[text+iii]
 
 
 ''--------- Output a string at position x,y and colors b,f
@@ -745,8 +744,8 @@ pub outtextxyct(x,y,text,f,b) | iii,c
 
 c:=f<<24+b<<16
 repeat iii from 0 to strsize(text)-1
-  long[s_buf_ptr+4*(s_cpl*y+x+iii)]:=(long[s_buf_ptr+4*(s_cpl*y+x+iii)] & $FFFFFF00)  | byte[text+iii]
-  long[s_buf_ptr+4*(s_cpl*y+x+iii)]:=(long[s_buf_ptr+4*(s_cpl*y+x+iii)] & $0000FFFF)  | c
+  long[buf_ptr+4*(cpl*y+x+iii)]:=(long[buf_ptr+4*(cpl*y+x+iii)] & $FFFFFF00)  | byte[text+iii]
+  long[buf_ptr+4*(cpl*y+x+iii)]:=(long[buf_ptr+4*(cpl*y+x+iii)] & $0000FFFF)  | c
 
 ''---------- Output a char at the cursor position, move the cursor
 
@@ -758,30 +757,30 @@ else
   x:=cursor_x
   y:=cursor_y
   c:=write_color<<24+write_background<<16
-  long[s_buf_ptr+4*(s_cpl*y+x)]:=long[s_buf_ptr+4*(s_cpl*y+x)] &$FFFF | c
-  long[s_buf_ptr+4*(s_cpl*y+x)]:=(long[s_buf_ptr+4*(s_cpl*y+x)] & $FFFFFF00)  |(achar & $000000FF)
+  long[buf_ptr+4*(cpl*y+x)]:=long[buf_ptr+4*(cpl*y+x)] &$FFFF | c
+  long[buf_ptr+4*(cpl*y+x)]:=(long[buf_ptr+4*(cpl*y+x)] & $FFFFFF00)  |(achar & $000000FF)
   cursor_x+=1
-  if cursor_x==s_cpl
+  if cursor_x==cpl
     cursor_x:=0
     cursor_y+=1
-    if cursor_y>s_lines-1
+    if cursor_y>lines-1
       scrollup()
-      cursor_y:=s_lines-1
+      cursor_y:=lines-1
     
 pub putchar2(achar) | c,x,y
 
 x:=cursor_x
 y:=cursor_y
 c:=write_color<<24+write_background<<16
-long[s_buf_ptr+4*(s_cpl*y+x)]:=long[s_buf_ptr+4*(s_cpl*y+x)] &$FFFF | c
-long[s_buf_ptr+4*(s_cpl*y+x)]:=(long[s_buf_ptr+4*(s_cpl*y+x)] & $FFFFFF00)  |(achar & $000000FF)
+long[buf_ptr+4*(cpl*y+x)]:=long[buf_ptr+4*(cpl*y+x)] &$FFFF | c
+long[buf_ptr+4*(cpl*y+x)]:=(long[buf_ptr+4*(cpl*y+x)] & $FFFFFF00)  |(achar & $000000FF)
 cursor_x+=1
-if cursor_x==s_cpl
+if cursor_x==cpl
   cursor_x:=0
   cursor_y+=1
-  if cursor_y>s_lines-1
+  if cursor_y>lines-1
     scrollup()
-    cursor_y:=s_lines-1    
+    cursor_y:=lines-1    
 
 ''--------- Output a string at the cursor position, move the cursor
 
@@ -791,17 +790,17 @@ c:=write_color<<24+write_background<<16
 'debug(uhex_long(write_color))
 ncy:=cursor_y
 ncx:=cursor_x+strsize(text)
-repeat while ncx>s_cpl-1
-  ncx-=s_cpl
+repeat while ncx>cpl-1
+  ncx-=cpl
   ncy+=1
-repeat while ncy>s_lines-1
+repeat while ncy>lines-1
   ncy-=1
   scrollup()
   cursor_y-=1
 
 repeat iii from 0 to strsize(text)-1
 
-  long[s_buf_ptr+4*(s_cpl*cursor_y+cursor_x+iii)]:=long[s_buf_ptr+4*(s_cpl*cursor_y+cursor_x+iii)] &$FFFF | c
+  long[buf_ptr+4*(cpl*cursor_y+cursor_x+iii)]:=long[buf_ptr+4*(cpl*cursor_y+cursor_x+iii)] &$FFFF | c
 
 outtextxy(cursor_x,cursor_y,text)
 
@@ -815,25 +814,25 @@ pub writeln(text)
 write(text)
 cursor_x:=0
 cursor_y+=1
-if (cursor_y>s_lines-1)
+if (cursor_y>lines-1)
   scrollup()
-  cursor_y:=s_lines-1
+  cursor_y:=lines-1
 
 ''-----------  Scroll the screen one line up
 
 pub scrollup() | i
 
-longmove(s_buf_ptr,buf_ptr+4*s_cpl,s_buflen-s_cpl)
-repeat i from s_buflen-s_cpl to s_buflen-1
-  long[s_buf_ptr+4*i]:=(long[s_buf_ptr+4*i] & $FFFF0000) | 32
+longmove(buf_ptr,buf_ptr+4*cpl,buflen-cpl)
+repeat i from buflen-cpl to buflen-1
+  long[buf_ptr+4*i]:=(long[buf_ptr+4*i] & $FFFF0000) | 32
 
 ''----------- Scroll the screen one line down
 
 pub scrolldown() | i
 
-longmove(s_buf_ptr+s_cpl*4,s_buf_ptr,s_buflen-s_cpl)
-repeat i from 0 to s_cpl-1
-  long[s_buf_ptr+4*i]:=(long[s_buf_ptr+4*i] & $FFFF0000) | 32
+longmove(buf_ptr+cpl*4,buf_ptr,buflen-cpl)
+repeat i from 0 to cpl-1
+  long[buf_ptr+4*i]:=(long[buf_ptr+4*i] & $FFFF0000) | 32
 
 ''----------- Set cursor at the first character in a new line, scroll if needed
 
@@ -841,9 +840,9 @@ pub crlf()
 
 cursor_x:=0
 cursor_y+=1
-if cursor_y>s_lines-1
+if cursor_y>lines-1
   scrollup()
-  cursor_y:=s_lines-1
+  cursor_y:=lines-1
 
 ''---------- Backspace. Move the cursor back, clear a character
 
@@ -851,7 +850,7 @@ pub bksp()
 
 cursor_x-=1
 if cursor_x==255
-  cursor_x:=s_cpl-1
+  cursor_x:=cpl-1
   cursor_y-=1
   if cursor_y==255
     cursor_y:=0
@@ -1042,11 +1041,7 @@ buf_ptr:=$80000-4*buflen
 mode_ptr:=@timings
 graphmode:=mode
 makedl(mode)
-s_buf_ptr:=buf_ptr
-s_font_ptr:=font_ptr
-s_lines:=lines
-s_cpl:=cpl
-s_buflen:=buflen
+
 
 
 
@@ -1173,6 +1168,7 @@ setbordercolor(0,0,128)
 setwritecolors(c_green,c_black)
 
 return cog
+
 pub getfontaddr(num)
 
 if num==1
@@ -1282,18 +1278,16 @@ p101
                 mov rcnt2a,#0
 
 
-p301                
-                cmp rcnt,#0 wz
+p301            cmp rcnt,#0 wz
         if_z    jmp #p306
-                sub dlptr2,#4
                 sub rcnt,#1
                 mov dl,rdl
                 getnib t1,dl,#2 ' fontline, unused in graphmode
                 add t1,#1
                 incmod rcnt2a,rcnt2 wz
    if_z         add dl,roffset  
-   if_z         mov t1,#0             
-                setnib dl,t1,#2
+   if_z        mov t1,#0             
+               setnib dl,t1,#2
                 
                 mov rdl,dl
                 jmp #p307          
