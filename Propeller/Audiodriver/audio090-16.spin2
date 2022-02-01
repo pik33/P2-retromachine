@@ -1,24 +1,20 @@
 ' A Paula inspired sample based synthesizer/audio driver for a P2
-' v. 0.23 alpha - 20220131
+' v. 0.90 beta - 20220131
 ' MIT license
 ' Piotr Kardasz pik33@o2.pl with the help from P2 forum community :) 
-' 32 16-bit channels now and no more channel mixer :)
+' 16 channel version
 '-------------------------------------------------------------------
 con
 
-'319220550    =3546895, change to NTSC freq if needed
-' 302672109 if 256/3, too low
-' 36320665 if 512/5, too high...
-'322159050 ' This is 90x Amiga NTSC = 3579545
 _clkfreq = 354693878  ' This is 100x Amiga PAL 3546895
-' audio pins TODO: make a variable for start() instead of const
 
-left= 8
-right=9
+
+left= 14
+right=15
 
 var
 
-'channel+0  long current spl pointer - bit31=1 when 8bit spl
+'channel+0  long current spl pointer  
 'channel+4  long sample
 'channel+8  long sample start 
 'channel+12 long loop start
@@ -46,22 +42,7 @@ long channel13[8]
 long channel14[8]
 long channel15[8]
 long channel16[8]
-'long channel17[8]
-'long channel18[8]
-'long channel19[8]
-'long channel20[8]
-'long channel21[8]
-'long channel22[8]
-'long channel23[8]
-'long channel24[8]
-'long channel25[8]
-'long channel26[8]
-'long channel27[8]
-'long channel28[8]
-'long channel29[8]
-'long channel30[8]
-'long channel31[8]
-'long channel32[8]
+
 
 '--------------------------------------------------------------
 '---------- Init the variables, start the cog. ----------------
@@ -71,7 +52,7 @@ pub start() :cog,base | iii
 
 base:=@channel1[0]
 
-repeat iii from 0 to 15 '31
+repeat iii from 0 to 16
   long[base+32*iii]:=0
   long[base+32*iii+4]:=0
   long[base+32*iii+12]:=0
@@ -110,7 +91,7 @@ audio       org     0
 loop        cmp     time0,a41000000 wc  ' time counter overflow protection
       if_c  jmp     #loop1
   
-            mov     cn,#33             ' Substract $40000000 from all the channel times and the main timer
+            mov     cn,#17             ' Substract $40000000 from all the channel times and the main timer
 p402        altd    cn,#a41000000       ' this has to be done at once
             sub     0-0,a40000000
             djnz    cn,#p402
@@ -147,42 +128,7 @@ loop1       mov     cn,#0               ' Find the channel to compute
     if_c    mov     cn,#14
             fle     ct,time16 wcz
     if_c    mov     cn,#15
- 
-{{ 
-            fle     ct,time17 wcz
-    if_c    mov     cn,#16
-            fle     ct,time18 wcz
-    if_c    mov     cn,#17
-            fle     ct,time19 wcz
-    if_c    mov     cn,#18
-            fle     ct,time20 wcz
-    if_c    mov     cn,#19
-            fle     ct,time21 wcz
-    if_c    mov     cn,#20
-            fle     ct,time22 wcz
-    if_c    mov     cn,#21
-            fle     ct,time23 wcz
-    if_c    mov     cn,#22
-            fle     ct,time24 wcz
-    if_c    mov     cn,#23
-            fle     ct,time25 wcz
-    if_c    mov     cn,#24
-            fle     ct,time26 wcz
-    if_c    mov     cn,#25
-            fle     ct,time27 wcz
-    if_c    mov     cn,#26
-            fle     ct,time28 wcz
-    if_c    mov     cn,#27
-            fle     ct,time29 wcz
-    if_c    mov     cn,#28
-            fle     ct,time30 wcz
-    if_c    mov     cn,#29
-            fle     ct,time31 wcz
-    if_c    mov     cn,#30
-            fle     ct,time32 wcz
-    if_c    mov     cn,#31
 
-}}
 
 '----------------------------------------------------------------------------------
 '------------- Compute channel samples --------------------------------------------
@@ -200,8 +146,8 @@ p401        mov     channeladd,cn             ' compute the pointer to channel p
             getword oldrs,sample0,#1
      	    getword apan0,volpan0,#1          ' extract vol,pan,skip and freq from longs 
     	    getword avol0,volpan0,#0
-	    getword askip0,freqskip0,#1    	    
-	    getword afreq0,freqskip0,#0
+            getword askip0,freqskip0,#1    	    
+	        getword afreq0,freqskip0,#0
 
             alts    cn, #time1                ' compute the time difference between this and previous sample
             mov     dt0,0-0    
@@ -253,7 +199,7 @@ p403        setq #1                          ' write new pointer and sample valu
     if_z    decmod  front, #511          
          
             getword oldls,ls,#0                 ' reuse oldls variable to convert the sample to unsigned
- 	    getword oldrs,rs,#0                    ' getword instead of mov makes the upper bits=0
+ 	        getword oldrs,rs,#0                    ' getword instead of mov makes the upper bits=0
             bitnot  oldls,#15                ' convert to unsigned. TODO: compute and apply the gain for samples to not exceed 16 bit range
             bitnot  oldrs,#15		         ' warning: no filter here (yet) but before applying any, remember to and sample values with $FFFF and use signed samples 
 	    
@@ -333,23 +279,6 @@ time13      long 13
 time14      long 14
 time15      long 15
 time16      long 16
-time17      long 17
-time18      long 18
-time19      long 19
-time20      long 20
-time21      long 21
-time22      long 22
-time23      long 23
-time24      long 24
-time25      long 25
-time26      long 26
-time27      long 27
-time28      long 28
-time29      long 29
-time30      long 30
-time31      long 31
-time32      long 32
-
 
 
 

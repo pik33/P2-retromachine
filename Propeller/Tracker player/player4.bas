@@ -83,24 +83,16 @@ do
     waitvbl
     tracker.tick
     framenum+=1
-    rr=getrnd() mod 540
-    
-'    dlentry=lpeek(dltest) : for i=0 to 539:   rr=(2*i) mod 540+(2*i)/ 540 : lpoke dltest+4*i, dlcopy(rr) :next i 
-     
+
     if tracker.trigger(0)<>old1 then 
- '        lpoke base,0
       old1=tracker.trigger(0)
-      
       lpoke base+8,tracker.currSamplePtr(0) or $40000000
       lpoke base+12,tracker.currsamplelength(0)-tracker.currrepeatLength(0)
       lpoke base+16,tracker.currsamplelength(0)
- 
     endif
-  
-  
     dpoke base+20, (tracker.currVolume(0)+tracker.deltavolume(0))*mainvolume
     dpoke base+22, 8192-2048
-                                                                                        dpoke base+24, 10*(tracker.currPeriod(0)+tracker.deltaperiod(0))/10
+    dpoke base+24, 20*(tracker.currPeriod(0)+tracker.deltaperiod(0))/10
     dpoke base+26, 1
 
  
@@ -116,7 +108,7 @@ do
       
     dpoke 32+base+20, (tracker.currVolume(1)+tracker.deltavolume(1))*mainvolume
     dpoke 32+base+22, 8192+1024
-                                                                                          dpoke 32+base+24, 10*(tracker.currPeriod(1)+tracker.deltaperiod(1))/10
+                                                                                          dpoke 32+base+24, 20*(tracker.currPeriod(1)+tracker.deltaperiod(1))/10
     dpoke 32+base+26, 1
 
    if tracker.trigger(2) <> old3  then
@@ -130,7 +122,7 @@ do
     
     dpoke 64+base+20, (tracker.currVolume(2)+tracker.deltavolume(2))*mainvolume
     dpoke 64+base+22, 8192+2048
-                                                                                      dpoke 64+base+24, 10*(tracker.currPeriod(2)+tracker.deltaperiod(2))/10
+                                                                                      dpoke 64+base+24, 20*(tracker.currPeriod(2)+tracker.deltaperiod(2))/10
     dpoke 64+base+26, 1
 
     if tracker.trigger(3) <> old4 then
@@ -143,7 +135,7 @@ do
     endif
     dpoke 96+base+20, (tracker.currVolume(3)+tracker.deltavolume(3))*mainvolume
     dpoke 96+base+22, 8192-1024
-                                                                                         dpoke 96+base+24, 10*(tracker.currPeriod(3)+tracker.deltaperiod(3))/10
+                                                                                         dpoke 96+base+24, 20*(tracker.currPeriod(3)+tracker.deltaperiod(3))/10
     dpoke 96+base+26, 1
 
  '   if tracker.trigger(3) <> old4 then lpoke base+8+96,  tracker.currSamplePtr(3) or $40000000 :old4=tracker.trigger(3)
@@ -297,25 +289,20 @@ for i=55 to 58 : dlcopy(i)= dlcopy(0) : next i
 address=$76600
 for i=0 to 24
   for j=0 to 15
-     dlcopy(58+30*i+2*j+0)=(address shl 14)+ %0000_0000_0000_1111+(0 shl 4) + j shl 12
-     dlcopy(58+30*i+2*j+1)=(address shl 12)+ (j shl 8) + (i shl 2) + 1
+     dlcopy(59+32*i+2*j+0)=(address shl 14)+ %0000_0000_0000_1111+(0 shl 4) + j shl 12
+     dlcopy(59+32*i+2*j+1)=(address shl 12)+ (j shl 8) + (i shl 2) + 1
   next j
-'  for j=8 to 9
- '    dlcopy(61+20*i+2*j+0)=(address shl 14)+ %0000_0000_0000_1111 + (0 shl 4) + 0 shl 12 '0 shl 4 = switch pos
- '
-  '   dlcopy(61+20*i+2*j+1)=(address shl 12)+ (0 shl 8) + (i shl 2) + 1
- '     next j  
   address=address+448
 next i
 
-for i=788 to 1199 : dlcopy(i)=0 : next i
+for i=827 to 1199 : dlcopy(i)=0 : next i
 v030.dl_ptr=addr(dlcopy) 
 v030.buf_ptr=$76600
 
 end sub
 
 asm shared
-module file "/home/pik33/mod/party1.mod"
+module file "/home/pik33/mod/cdtv2.mod"
 
 end asm
 
