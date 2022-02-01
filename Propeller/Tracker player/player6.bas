@@ -147,12 +147,8 @@ title(19)=title(19)+asc(".")
 title(20)=title(20)+asc("0")
 title(21)=title(21)+asc("6")
 
-for i=2 to 111 : statusline(i)=peek(addr(statusline$(0))+i-2)+$77710000: next i
-statusline(0)=$71710000
-statusline(1)=$71710000
-statusline(2)=$71710000
-statusline(3)=$71710000
-statusline(112)=$71710000
+for i=0 to 111 : statusline(i)=peek(addr(statusline$(0))+i-2)+$710000+ i shl 24: next i
+statusline(3)=(statusline(3) and $FFFF) + $71710000
 
 '4
 '32     36
@@ -200,7 +196,7 @@ dlcopy(721)=address shl 12 +%00_0000_0000_1010
 for i=722 to 726 : dlcopy(i)=0 : next i
 dlcopy(727)=%0000_0000_0000_0000_0001_0000_0101_0011
 dlcopy(728)=0
-address=addr(statusline)+12
+address=addr(statusline)+4
 dlcopy(729)=%0000_0001_0000_1111_0000_0000_0000_0111  ' repeat 16
 dlcopy(730)=address shl 12+ %00_0000_0000_0001         ' text line
 for i=731 to 734: dlcopy(i)=0 : next i
