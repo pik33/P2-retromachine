@@ -41,9 +41,16 @@ do
   framenum+=1
   for i=0 to 3 :setchannel(i,oldtrigs(i)) : next i
   displaysamples
+  scrollstatus((framenum / 8) mod 220)
 loop
 
 ' ---------------- end of program -------------------------------------------
+
+sub scrollstatus(amount)
+
+for i=0 to 112 : statusline(i)=peek(addr(statusline$(0))+(i+amount) mod 220)+$77710000: next i
+end sub
+
 
 ' ---------------- Set channel registers with tracker data -------------------
 
@@ -133,7 +140,9 @@ title(17)=title(17)+asc(".")
 title(18)=title(18)+asc("0")
 title(19)=title(19)+asc(".")
 title(20)=title(20)+asc("0")
-title(21)=title(21)+asc("1")
+title(21)=title(21)+asc("6")
+
+for i=0 to 112 : statusline(i)=peek(addr(statusline$(0))+i)+$77710000: next i
 
 '4
 '32     36
@@ -180,10 +189,10 @@ dlcopy(721)=address shl 12 +%00_0000_0000_1010
 
 for i=722 to 727 : dlcopy(i)=0 : next i
 
-address=$76600 'addr(statusline)+4
+address=addr(statusline)+4
 dlcopy(728)=%0000_0001_0000_1111_0000_0000_0000_0111  ' repeat 16
 dlcopy(729)=address shl 12+ %00_0000_0000_0001         ' text line
-for i=730 to 735: dlcopy(i)=0 : next i
+for i=730 to 73: dlcopy(i)=0 : next i
 
 v030.dl_ptr=addr(dlcopy) 
 v030.buf_ptr=$76600
