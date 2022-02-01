@@ -44,7 +44,7 @@ pub start() :cog,base | iii
 
 base:=@channel1[0]
 
-repeat iii from 0 to 16
+repeat iii from 0 to 7
   long[base+32*iii]:=0
   long[base+32*iii+4]:=0
   long[base+32*iii+12]:=0
@@ -175,7 +175,7 @@ p403        setq #1                          ' write new pointer and sample valu
     if_z    decmod  front, #511          
          
             getword oldls,ls,#0              ' reuse oldls variable to convert the sample to unsigned
- 	    getword oldrs,rs,#0              ' getword instead of mov makes the upper bits=0
+ 	        getword oldrs,rs,#0              ' getword instead of mov makes the upper bits=0
             bitnot  oldls,#15                ' convert to unsigned. TODO: compute and apply the gain for samples to not exceed 16 bit range
             bitnot  oldrs,#15		     ' warning: no filter here (yet) but before applying any, remember to and sample values with $FFFF and use signed samples 
 	    

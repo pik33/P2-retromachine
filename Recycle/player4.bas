@@ -10,16 +10,6 @@ framenum=0
 makedl
 
 
-'' new displaylist
-' 4 lines border, 32 lines title, 4 lines border = 40
-' 43 lines of fnt8 =344 ' 384
-' down: 4 lines border, 16 lines status/help, 4 border, 128 lines scope, 4 border = 156
-
-
-
-
-
-
 /'
 mount "/sd", _vfs_open_sdcard()
 
@@ -37,20 +27,12 @@ v030.setbordercolor2(c113)
 
 mainvolume=127 '1..128..(255)
 
-  SF_CS  = 61  '{ O }                                            ' serial flash
-  SF_SCK = 60  '{ O }
-  SF_SDO = 59  '{ O }
-  SF_SDI = 58  '{ I }
-  RD_DATA      = $03
-
-
 dim sn$(32)
 dim cog,base as ulong
 
 emptystr$="                      "
 ss$=""
 for i=1 to 31 : ss$=ss$+chr$(i) :next i
-
 
 ma=addr(module)
 tracker.initmodule(ma,0)
@@ -64,10 +46,7 @@ cog,base=paula.start()
 
 old1=0 : old2=0 :old3=0 : old4=0
 
-max=0
 
-'position 0,26 : v030.writeln(ss$)
-'print"123456789012345678901234567890"
 do
 'channel+0  long current spl pointer 
 'channel+4  long sample
@@ -80,36 +59,31 @@ do
 'channel+26 word skip
 'channel+28 long reserved
 
-    waitvbl
-    tracker.tick
-    framenum+=1
+  waitvbl
+  tracker.tick
+  framenum+=1
 
-    if tracker.trigger(0)<>old1 then 
-      old1=tracker.trigger(0)
-      lpoke base+8,tracker.currSamplePtr(0) or $40000000
-      lpoke base+12,tracker.currsamplelength(0)-tracker.currrepeatLength(0)
-      lpoke base+16,tracker.currsamplelength(0)
-    endif
-    dpoke base+20, (tracker.currVolume(0)+tracker.deltavolume(0))*mainvolume
-    dpoke base+22, 8192-2048
-    dpoke base+24, tracker.currPeriod(0)+tracker.deltaperiod(0)
-    dpoke base+26, 1
+  if tracker.trigger(0)<>old1 then 
+    old1=tracker.trigger(0)
+    lpoke base+8,tracker.currSamplePtr(0) or $40000000
+    lpoke base+12,tracker.currsamplelength(0)-tracker.currrepeatLength(0)
+    lpoke base+16,tracker.currsamplelength(0)
+  endif
+  dpoke base+20, (tracker.currVolume(0)+tracker.deltavolume(0))*mainvolume
+  dpoke base+22, 8192-2048
+  dpoke base+24, tracker.currPeriod(0)+tracker.deltaperiod(0)
+  dpoke base+26, 1
 
- 
-    if tracker.trigger(1) <> old2  then
- '         lpoke base+32,0
-      old2=tracker.trigger(1)
-      lpoke base+8+32,tracker.currSamplePtr(1) or $40000000
-      lpoke 32+base+12,tracker.currsamplelength(1)-tracker.currrepeatLength(1)
-      lpoke 32+base+16,tracker.currsamplelength(1)
-
- 
-      endif
-      
-    dpoke 32+base+20, (tracker.currVolume(1)+tracker.deltavolume(1))*mainvolume
-    dpoke 32+base+22, 8192+1024
-                                                                                          dpoke 32+base+24, tracker.currPeriod(1)+tracker.deltaperiod(1)
-    dpoke 32+base+26, 1
+  if tracker.trigger(1) <> old2  then
+    old2=tracker.trigger(1)
+    lpoke base+8+32,tracker.currSamplePtr(1) or $40000000
+    lpoke 32+base+12,tracker.currsamplelength(1)-tracker.currrepeatLength(1)
+    lpoke 32+base+16,tracker.currsamplelength(1)
+  endif
+  dpoke 32+base+20, (tracker.currVolume(1)+tracker.deltavolume(1))*mainvolume
+  dpoke 32+base+22, 8192+1024
+  dpoke 32+base+24, tracker.currPeriod(1)+tracker.deltaperiod(1)
+  dpoke 32+base+26, 1
 
    if tracker.trigger(2) <> old3  then
  '   lpoke base+64,0 
@@ -302,7 +276,7 @@ v030.buf_ptr=$76600
 end sub
 
 asm shared
-module file "/home/pik33/mod/cdtv2.mod"
+module file "/home/pik33/mod/gummis.mod"
 
 end asm
 

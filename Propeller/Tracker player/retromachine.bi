@@ -1,11 +1,17 @@
 'const _clkfreq = 319_215_686  'PAL*90
 const _clkfreq = 354693878
 option implicit
-dim v030 as class using "hng034rm.spin2"
+dim v030 as class using "hng035rm.spin2"
 dim rm as class using "retrocog.spin2"
 dim tracker as class using "trackerplayer.spin2"
 dim paula as class using "audio090-8.spin2"
 #include "dir.bi"
+
+dim audiocog,videocog,base as ulong
+
+sub startaudio
+audiocog,base=paula.start()
+end sub 
 
 sub cls(fg=154,bg=147)
 v030.cls(fg,bg)
