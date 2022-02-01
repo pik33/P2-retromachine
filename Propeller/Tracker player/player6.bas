@@ -41,19 +41,20 @@ do
   framenum+=1
   for i=0 to 3 :setchannel(i,oldtrigs(i)) : next i
   displaysamples
-  scrollstatus((framenum / 8) mod 220)
+  scrollstatus((framenum) mod (8*220))
 loop
 
 ' ---------------- end of program -------------------------------------------
 
 sub scrollstatus(amount)
-'statusline(0)=peek(addr(statusline$(0))+(0+amount) mod 220)+$71710000
-'statusline(111)=peek(addr(statusline$(0))+(111+amount) mod 220)+$71710000
-'statusline(112)=peek(addr(statusline$(0))+(112+amount) mod 220)+$71710000
+
+statusline(0)=peek(addr(statusline$(0))+(0+amount/8) mod 220)+$71710000
+statusline(1)=peek(addr(statusline$(0))+(1+amount/8) mod 220)+$71710000
+statusline(112)=peek(addr(statusline$(112))+(112+amount/8) mod 220)+$71710000
 
 dlcopy(727)=%0000_0000_0000_0000_0000_0000_0101_0011 + (((amount mod 8)+8) shl 8) 
 
-'for i=1 to 110 : statusline(i)=peek(addr(statusline$(0))+(i+amount) mod 220)+$77710000: next i
+for i=2 to 111 : statusline(i)=peek(addr(statusline$(0))+(i+(amount/8)) mod 220)+$77710000: next i
 end sub
 
 
@@ -148,7 +149,7 @@ title(20)=title(20)+asc("0")
 title(21)=title(21)+asc("6")
 
 for i=0 to 111 : statusline(i)=peek(addr(statusline$(0))+i-2)+$710000+ i shl 24: next i
-statusline(3)=(statusline(3) and $FFFF) + $71710000
+statusline(2)=(statusline(2) and $FFFF) + $71710000
 
 '4
 '32     36
@@ -210,7 +211,7 @@ end sub
 '--- module
 
 asm shared
-module file "/home/pik33/mod/synth11.mod"
+module file "/home/pik33/mod/ballada.mod"
 end asm
 
 
