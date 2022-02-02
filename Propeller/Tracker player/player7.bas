@@ -6,9 +6,9 @@ dim statusline(114) as ulong  '112 visible chars + 2 chars for scrolling
 dim oldtrigs(4) as ulong
 dim pan(4)
 dim sn$(32)
-dim infobuf(26*34) as ulong       ' scrollable file info, 34 lines of text
+declare infobuf alias $7ee80 as ulong(28*40)       ' scrollable file info, 34 lines of text
 dim graphicbuf(448*66) as ubyte    ' 64 lines of 4bpp graphics
-dim mainbuf(86*21) as ulong       ' main text field, 86 charx21 lines
+dim mainbuf(84*21) as ulong       ' main text field, 86 charx21 lines
 startmachine
 startvideo
 startaudio
@@ -22,18 +22,17 @@ pan(0)=8192+1024 : pan(1)=8192-1024 : pan(2)=8192-2048 : pan(3)=8192+2048
 mainvolume=127 '1..128..(255)
 
 for i=0 to 63: for j=0 to 447:  graphicbuf(i*448+j)=i mod 16 + 16*(i mod 16) : next j :next i
-for i=0 to 33: for j=0 to 25:   infobuf(i*26+j)=$28220020 : next j : next i
+for i=0 to 39: for j=0 to 27:   infobuf(i*28+j)=$9a930020 : next j : next i
 makedl
-cls
-c113=v030.getpalettecolor(113)
-v030.setbordercolor2(c113)
+cls($c8,$c1)
+for i=0 to 20: for j=42 to 83:  mainbuf(84*i+j)=$28210020 :next j : next i
+c113=v.getpalettecolor(113)
+v.setbordercolor2(c113)
 
 ma=addr(module)
 tracker.initmodule(ma,0)
 
-position 1,1 :for i=ma to ma+19 : print chr$(peek(i)); : next i
 samples=15: if peek(ma+1080)=asc("M") and peek(ma+1082)=asc("K") then samples=31
-position 1,2 : print samples;" ";"samples module"
 getinfo(ma,samples)
 
 ' ------------------ main loop ------------------------
@@ -44,7 +43,8 @@ do
   framenum+=1
   for i=0 to 3 :setchannel(i,oldtrigs(i)) : next i
   displaysamples
-  scrollstatus((framenum) mod (8*220))
+  scrollstatus((framenum) mod (8*245))
+  movedl
 loop
 
 ' ---------------- end of program -------------------------------------------
@@ -81,66 +81,84 @@ end sub
 
 sub displaysamples 
 
-position 5,18:   v030.write(sn$(tracker.currsamplenr(0))) : v030.write(emptystr$)
-position 1,18 :  v030.write(v030.inttostr2(tracker.currperiod(0)+tracker.deltaperiod(0),3))
-position 32,18:  v030.write(sn$(tracker.currsamplenr(1))) : v030.write(emptystr$)
-position 28,18 : v030.write(v030.inttostr2(tracker.currperiod(1)+tracker.deltaperiod(1),3))
-position 5,19:  v030.write(sn$(tracker.currsamplenr(2))) : v030.write(emptystr$)
-position 1,19 : v030.write(v030.inttostr2(tracker.currperiod(2)+tracker.deltaperiod(2),3))
+position 5,18:   v.write(sn$(tracker.currsamplenr(0))) : v.write(emptystr$)
+position 1,18 :  v.write(v.inttostr2(tracker.currperiod(0)+tracker.deltaperiod(0),3))
+position 32,18:  v.write(sn$(tracker.currsamplenr(1))) : v.write(emptystr$)
+position 28,18 : v.write(v.inttostr2(tracker.currperiod(1)+tracker.deltaperiod(1),3))
+position 5,19:  v.write(sn$(tracker.currsamplenr(2))) : v.write(emptystr$)
+position 1,19 : v.write(v.inttostr2(tracker.currperiod(2)+tracker.deltaperiod(2),3))
 
-position 32,19:  v030.write(emptystr$) : position 32,19: v030.write(sn$(tracker.currsamplenr(3))) :position 28,19 : v030.write(v030.inttostr2(tracker.currperiod(3)+tracker.deltaperiod(3),3))
+position 32,19:  v.write(emptystr$) : position 32,19: v.write(sn$(tracker.currsamplenr(3))) :position 28,19 : v.write(v.inttostr2(tracker.currperiod(3)+tracker.deltaperiod(3),3))
 end sub
 
 '---------------- Get and display module information --------------------------
 
 sub getinfo(ma,num)
-v030.s_buf_ptr=addr(infobuf)
-v030.s_lines=34
-v030.s_cpl=26
-v030.s_buflen=34*26
-v030.setwritecolors(40,34)
+
+
+
+v.s_buf_ptr=addr(infobuf)
+v.s_lines=40
+v.s_cpl=28
+v.s_buflen=40*28
+v.setwritecolors($9a,$93)
+
+'position 2,5 :for i=ma to ma+19 : print chr$(peek(i) mod 128); : next i
+
+position 2,3 : print "Amiga module: "; samples;" samples"
+position 3,0 : print "File info"
+v.setwritecolors($93,$9a): position 2,2 : print "test1234.mod            " :v.setwritecolors($9a,$93)
+
+poke addr(infobuf), 10: poke addr(infobuf)+4,3 : for i=13 to 26:poke addr(infobuf)+4*i,3 : next i : poke addr(infobuf)+4*i,9
+poke addr(infobuf)+39*28*4, 12: for i=1 to 26 : poke addr(infobuf)+39*28*4+i*4,3 :  next i : poke addr(infobuf)+39*28*4+4*i,11
+for i=1 to 38: poke addr(infobuf)+112*i,4:  poke addr(infobuf)+112*i+108,4: next i
 'position 1,4: print "Name                   len   ft vol rep   r.len         Name                   len   ft vol rep   r.len "
 for i=0 to 31: sn$(i)="S"+decuns$(i,2)+space$(19) :next i
+c=0
 for i=1 to num
+
   for j=0 to 21
     a=lpeek(addr(sn$(i)))
     b=(peek(ma+20+30*(i-1)+j))
-    if b>=32 then poke a+j,b
+    if b>=32 then poke a+j,b : c=i ' c will be the last named sample
   next j
    sl=2*(256*peek(ma+20+30*(i-1)+22)+ peek(ma+20+30*(i-1)+23))  
   rp=2*(256*peek(ma+20+30*(i-1)+26)+ peek(ma+20+30*(i-1)+27))  
    rl=2*(256*peek(ma+20+30*(i-1)+28)+ peek(ma+20+30*(i-1)+29))  
   ft=peek(ma+20+30*(i-1)+24)
    vl=peek(ma+20+30*(i-1)+25)
-    position 3,i :print sn$(i) 
+
 '  if i>=16 then position 57,i-11 :print sn$(i) : position 80,i-11 : print sl : position 87,i-11 : print ft: position 90,i-11 : print vl :position 93,i-11 : print rp : position 99,i-11 : print rl
 
 '   position 1,2+i: :print sn$(i) 
 next i
-v030.setwritecolors(154,147)
-v030.s_buf_ptr=addr(mainbuf)
-v030.s_lines=21
-v030.s_cpl=86
-v030.s_buflen=21*86'print
+for i=1 to c:    position 2,i+5 :print sn$(i) :next i
+
+v.setwritecolors(154,147)
+v.s_buf_ptr=addr(mainbuf)
+v.s_lines=21
+v.s_cpl=84
+v.s_buflen=21*84'print
+
 end sub
 
 '------------------ A playground for displaylist effects -------------------------
 
 sub movedl
 
-olddl=dlcopy(61) ' and %1111_1111_1111_1111_1111_0000_0000_1111) +  (((framenum / 2) mod 56) shl 4)
-for i=0 to 476 step 2
-  dlcopy(61+i)=dlcopy(61+i+2)' and %1111_1111_1111_1111_1111_0000_0000_1111) + (((framenum / 2) mod 56) shl 4)
+olddl=dlcopy(40) ' and %1111_1111_1111_1111_1111_0000_0000_1111) +  (((framenum / 2) mod 56) shl 4)
+for i=0 to 668 step 2
+  dlcopy(40+i)=dlcopy(40+i+2)' and %1111_1111_1111_1111_1111_0000_0000_1111) + (((framenum / 2) mod 56) shl 4)
 next i
-dlcopy(61+478)=olddl
+dlcopy(40+670)=olddl
 end sub  
 
 '----------------- Prepare a custom displaylist for the player
 
 sub makedl
 
-dltest=v030.dl_ptr
-palettetest=v030.palette_ptr
+dltest=v.dl_ptr
+palettetest=v.palette_ptr
 
 ' Prepare the title
 
@@ -200,12 +218,15 @@ for i=36 to 42: dlcopy(i)=0 : next i
 address=addr(mainbuf)
 address2=addr(infobuf)
 for i=0 to 20
+     if i=20 then address2=addr(infobuf)+39*28*4 'display line 39 here
   for j=0 to 15
-     dlcopy(40+32*i+2*j+0)=(address2 shl 14)+ %0000_0001_1010_1111+(0 shl 4) + j shl 12
+
+     dlcopy(40+32*i+2*j+0)=(address2 shl 14)+ %0000_0001_1100_1111+(0 shl 4) + j shl 12
      dlcopy(40+32*i+2*j+1)=(address shl 12)+ (j shl 8) + (i shl 2) + 1
   next j
-  address=address+86*4
-  address2=address2+26*4
+  address=address+84*4
+  address2=address2+28*4
+
 next i
 dlcopy(714)=%0000_0000_0000_0000_0000_1111_1111_1111     ' remove live change
 for i=715 to 720 : dlcopy(i)=0 : next i
@@ -226,18 +247,18 @@ dlcopy(732)=%0000_0000_0000_0000_0001_0000_0101_0011
 for i=733 to 738: dlcopy(i)=0 : next i
 
 
-v030.dl_ptr=addr(dlcopy) 
-v030.buf_ptr=addr(mainbuf)
-v030.s_buf_ptr=addr(mainbuf)
-v030.s_lines=21
-v030.s_cpl=86
-v030.s_buflen=21*86
+v.dl_ptr=addr(dlcopy) 
+v.buf_ptr=addr(mainbuf)
+v.s_buf_ptr=addr(mainbuf)
+v.s_lines=21
+v.s_cpl=84
+v.s_buflen=21*84
 end sub
 
 '--- module
 
 asm shared
-module file "/home/pik33/mod/synth11.mod"
+module file "/home/pik33/mod/party.mod"
 end asm
 
 

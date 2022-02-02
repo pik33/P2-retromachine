@@ -1,7 +1,7 @@
 'const _clkfreq = 319_215_686  'PAL*90
 const _clkfreq = 354693878
 option implicit
-dim v030 as class using "hng037rm.spin2"
+dim v as class using "hng037rm.spin2"
 dim rm as class using "retrocog.spin2"
 dim tracker as class using "trackerplayer.spin2"
 dim paula as class using "audio090-8.spin2"
@@ -14,13 +14,13 @@ audiocog,base=paula.start()
 end sub 
 
 sub cls(fg=154,bg=147)
-v030.cls(fg,bg)
+v.cls(fg,bg)
 end sub
 
 function startvideo(mode=64, pin=0) 'todo return a cog#
-v030.start(mode,pin)
-v030.setbordercolor(0,0,0)
-open SendRecvDevice(@v030.putchar, nil, nil) as #0
+v.start(mode,pin)
+v.setbordercolor(0,0,0)
+open SendRecvDevice(@v.putchar, nil, nil) as #0
 end function
 
 'function startmachine()' todo return a cog
@@ -29,7 +29,7 @@ end function
 'end function
 
 #define startmachine rm.start
-#define plot v030.plot1
+#define plot v.plot1
 
 'sub putpixel(x,y,c)
 'v030.putpixel8(x,y,c)
@@ -77,15 +77,15 @@ wrlong value, addr
 end asm
 end sub
 
-function addr(byref v as any)
+function addr(byref v as const any)
 
 return(cast(ulong,@v))
 end function
 
 sub position(x,y)
-v030.setcursorpos(x,y)
+v.setcursorpos(x,y)
 end sub
 
 sub waitvbl
-  v030.waitvbl(1)
+  v.waitvbl(1)
 end sub

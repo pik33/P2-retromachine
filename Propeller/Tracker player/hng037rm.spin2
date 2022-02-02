@@ -1875,7 +1875,7 @@ bitmask long 0
 rolbuf long 0
 hscroll1 long 24
 hscroll2 long 16
-hibits long 0
+hibits long %0100_0000_0000_0000_0000
 aend             long 0
                 fit     496                     '
 
