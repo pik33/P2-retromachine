@@ -369,4 +369,4 @@ dac         long %10111_00000000_01_00010_0     'random dither, as 90 cycles per
 '
 dat 
 null  			long 	0,0           ' for channel reset
-sinewave 		file 	"sinus.s2"    ' for testing
+'sinewave 		file 	"sinus.s2"    ' for testing

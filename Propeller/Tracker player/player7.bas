@@ -13,7 +13,8 @@ startmachine
 startvideo
 startaudio
 
-statusline$=" Propeler2 wav/sid/mod player v. 0.06 --- 2022.02.01 --- pik33@o2.pl --- use serial terminal or RPi KBM interface to control --- arrows up,down move - pgup,pgdn move 10 positions - enter selects - tab switches panels --- "
+statusline$=" Propeler2 wav/sid/mod player v. 0.07 --- 2022.02.02 --- pik33@o2.pl --- use serial terminal or RPi KBM interface to control --- arrows up,down move - pgup,pgdn move 10 positions - enter selects - tab switches panels - +,- controls volume ------ "
+sl=len(statusline$) 
 emptystr$="                      "
 framenum=0
 for i=0 to 3 : oldtrigs(i)=0 : next i
@@ -50,13 +51,13 @@ loop
 
 sub scrollstatus(amount)
 
-statusline(0)=peek(addr(statusline$(0))+(0+amount/8) mod 220)+$71710000
-statusline(1)=peek(addr(statusline$(0))+(1+amount/8) mod 220)+$71710000
-statusline(112)=peek(addr(statusline$(112))+(112+amount/8) mod 220)+$71710000
+statusline(0)=peek(addr(statusline$(0))+(0+amount/8) mod 245)+$71710000
+statusline(1)=peek(addr(statusline$(0))+(1+amount/8) mod 245)+$71710000
+statusline(112)=peek(addr(statusline$(112))+(112+amount/8) mod 245)+$71710000
 
 dlcopy(729)=%0000_0000_0000_0000_0000_0000_0101_0011 + (((amount mod 8)+8) shl 8) 
 
-for i=2 to 111 : statusline(i)=peek(addr(statusline$(0))+(i+(amount/8)) mod 220)+$77710000: next i
+for i=2 to 111 : statusline(i)=peek(addr(statusline$(0))+(i+(amount/8)) mod 245)+$77710000: next i
 end sub
 
 
@@ -158,7 +159,7 @@ title(17)=title(17)+asc(".")
 title(18)=title(18)+asc("0")
 title(19)=title(19)+asc(".")
 title(20)=title(20)+asc("0")
-title(21)=title(21)+asc("6")
+title(21)=title(21)+asc("7")
 
 for i=0 to 111 : statusline(i)=peek(addr(statusline$(0))+i-2)+$710000+ i shl 24: next i
 statusline(2)=(statusline(2) and $FFFF) + $71710000
