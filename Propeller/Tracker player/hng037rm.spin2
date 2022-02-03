@@ -461,15 +461,23 @@ if ((x>=0) && (x<16*s_cpl) && (y>=0) && (y<s_lines))
     byte[s_buf_ptr+4*s_cpl*y+(x>>2)]:=b
 
 
-pub putpixel4(x,y,c) |byte b
+pub putpixel4(x,y,c) |byte b,q
 
-if ((x>=0) & (x<16*s_cpl) & (y>=0) & (y<s_lines))
+'if ((x>=0) & (x<16*s_cpl) & (y>=0) & (y<s_lines)) 
     b:=byte[s_buf_ptr+4*s_cpl*y+(x>>1)]
     b:=b & !(%1111<<((x//2)<<2))
     b:=b |(c<<((x//2)<<2))
     byte[s_buf_ptr+4*s_cpl*y+(x>>1)]:=b
 
-
+pub putpixel4a(x,y,c) |byte b
+'todo: inline asm
+if ((x>=0) & (x<16*s_cpl) & (y>=0) & (y<s_lines))
+    b:=byte[s_buf_ptr+4*s_cpl*y+(x>>1)]
+    b:=b & !(%1111<<((x//2)<<2))
+    b:=b |(c<<((x//2)<<2))
+    byte[s_buf_ptr+4*s_cpl*y+(x>>1)]:=b
+    
+    
 pub putpixel8(x,y,c)
 
 if ((x>=0) & (x<4*s_cpl) & (y>=0) & (y<s_lines))

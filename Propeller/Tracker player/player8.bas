@@ -49,14 +49,18 @@ getinfo(ma,samples)
 ' ------------------ main loop ------------------------
 
 do
+
   waitvbl
+
   tracker.tick
+  q=getcnt()
   framenum+=1
   for i=0 to 3 :setchannel(i,oldtrigs(i)) : next i
     movedl
 
   scrollstatus((framenum) mod (8*245))
   displaysamples
+  position 1,1 : v.write(v.inttostr2(((getcnt()-q)/354),8))
 loop
 
 ' ---------------- end of program -------------------------------------------
@@ -96,28 +100,24 @@ sub displaysamples
 v.s_buf_ptr=addr(graphicbuf)
 v.s_cpl=112
 v.s_lines=64
+
 v.putpixel=v.p4
 v.font_family=2
+
 v.outtextxycg8(864,20,v.inttostr2(tracker.currperiod(0)+tracker.deltaperiod(0),3),15,0)
 v.outtextxycg8(864,28,v.inttostr2(tracker.currperiod(1)+tracker.deltaperiod(1),3),15,0)
 v.outtextxycg8(864,36,v.inttostr2(tracker.currperiod(2)+tracker.deltaperiod(2),3),15,0)
 v.outtextxycg8(864,44,v.inttostr2(tracker.currperiod(3)+tracker.deltaperiod(3),3),15,0)
 
-'for i=0 to 63: v.plot1(i,20,0) : next i
-v.outtextxycg8(688,20,sn$(tracker.currsamplenr(0)),15,0)
+v.outtextxycg8(688,20,sn$(tracker.currsamplenr(0)),15,0) 
 v.outtextxycg8(688,28,sn$(tracker.currsamplenr(1)),15,0)
 v.outtextxycg8(688,36,sn$(tracker.currsamplenr(2)),15,0)
 v.outtextxycg8(688,44,sn$(tracker.currsamplenr(3)),15,0)
-'position 1,18 :  v.write(v.inttostr2(tracker.currperiod(0)+tracker.deltaperiod(0),3))
-'position 32,18:  v.write(sn$(tracker.currsamplenr(1))) : v.write(emptystr$)
-'position 28,18 : v.write(v.inttostr2(tracker.currperiod(1)+tracker.deltaperiod(1),3))
-'position 5,19:  v.write(sn$(tracker.currsamplenr(2))) : v.write(emptystr$)
-'position 1,19 : v.write(v.inttostr2(tracker.currperiod(2)+tracker.deltaperiod(2),3))
 
-'position 32,19:  v.write(emptystr$) : position 32,19: v.write(sn$(tracker.currsamplenr(3))) :position 28,19 : v.write(v.inttostr2(tracker.currperiod(3)+tracker.deltaperiod(3),3))
 v.s_buf_ptr=addr(mainbuf)
 v_s_cpl=64
 v_s_lines=21
+
 end sub
 
 '---------------- Get and display module information --------------------------
@@ -136,7 +136,7 @@ position 2,5 :for i=ma to ma+19 : print chr$(peek(i) mod 128); : next i
 
 position 2,3 : print "Amiga module: "; samples;" samples"
 position 3,0 : print "File info"
-v.setwritecolors($93,$9a): position 2,2 : print "party1.mod            " :v.setwritecolors($9a,$93)
+v.setwritecolors($93,$9a): position 2,2 : print "party1.mod              " :v.setwritecolors($9a,$93)
 
 poke addr(infobuf), 10: poke addr(infobuf)+4,3 : for i=13 to 26:poke addr(infobuf)+4*i,3 : next i : poke addr(infobuf)+4*i,9
 poke addr(infobuf)+39*28*4, 12: for i=1 to 26 : poke addr(infobuf)+39*28*4+i*4,3 :  next i : poke addr(infobuf)+39*28*4+4*i,11
@@ -297,7 +297,7 @@ end sub
 '--- module
 
 asm shared
-module file "/home/pik33/mod/party1.mod"
+module file "/home/pik33/mod/ucieczka_z_tropiku.mod"
 end asm
 
 
