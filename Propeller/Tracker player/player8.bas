@@ -13,9 +13,8 @@ startmachine
 startvideo
 startaudio
 
-module$="das.mod"
 
-statusline$=" Propeler2 wav/sid/mod player v. 0.07 --- 2022.02.02 --- pik33@o2.pl --- use serial terminal or RPi KBM interface to control --- arrows up,down move - pgup,pgdn move 10 positions - enter selects - tab switches panels - +,- controls volume ------ "
+statusline$=" Propeler2 wav/sid/mod player v. 0.08 --- 2022.02.03 --- pik33@o2.pl --- use serial terminal or RPi KBM interface to control --- arrows up,down move - pgup,pgdn move 10 positions - enter selects - tab switches panels - +,- controls volume ------ "
 sl=len(statusline$) 
 emptystr$="                      "
 framenum=0
@@ -215,7 +214,7 @@ title(17)=title(17)+asc(".")
 title(18)=title(18)+asc("0")
 title(19)=title(19)+asc(".")
 title(20)=title(20)+asc("0")
-title(21)=title(21)+asc("7")
+title(21)=title(21)+asc("8")
 
 for i=0 to 111 : statusline(i)=peek(addr(statusline$(0))+i-2)+$710000+ i shl 24: next i
 statusline(2)=(statusline(2) and $FFFF) + $71710000

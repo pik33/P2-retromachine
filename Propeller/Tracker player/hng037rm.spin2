@@ -390,6 +390,17 @@ repeat yy from 0 to 15
       putpixel(xx+x,yy+y,f)
     else
       putpixel(xx+x,yy+y,b)
+      
+pub putcharxycg8(x,y,achar,f,b) |xx, yy,bb
+
+repeat yy from 0 to 7
+  bb:=byte[@vga_font+font_family<<10+achar<<3+yy]
+  repeat xx from 0 to 7
+    if (bb&(1<<xx))<>0
+      putpixel(xx+x,yy+y,f)
+    else
+      putpixel(xx+x,yy+y,b)      
+      
 
 pub putcharxycz(x,y,achar,f,b,xz,yz) |xx,xxx,yy,yyy,bb
 
@@ -410,6 +421,11 @@ pub outtextxycg(x,y,text,f,b) | iii,c
 repeat iii from 0 to strsize(text)-1
   putcharxycg(x+8*iii,y,byte[text+iii],f,b)
 
+pub outtextxycg8(x,y,text,f,b) | iii,c
+
+repeat iii from 0 to strsize(text)-1
+  putcharxycg8(x+8*iii,y,byte[text+iii],f,b)
+  
 pub outtextxycf(x,y,text,f) | iii,c
 
 repeat iii from 0 to strsize(text)-1
@@ -427,37 +443,37 @@ pub putpixel1(x,y,c) |byte b
 
 
 if ((x>=0) & (x<32*s_cpl) & (y>=0) & (y<s_lines))
-    b:=byte[buf_ptr+4*s_cpl*y+(x>>3)]
+    b:=byte[s_buf_ptr+4*s_cpl*y+(x>>3)]
     if (c==0)
       b:=b & !(1<<(x//8))
     else
       b:=b |(1<<(x//8))
-    byte[buf_ptr+4*s_cpl*y+(x>>3)]:=b
+    byte[s_buf_ptr+4*s_cpl*y+(x>>3)]:=b
 
 
 pub putpixel2(x,y,c) |byte b
 
 
 if ((x>=0) && (x<16*s_cpl) && (y>=0) && (y<s_lines))
-    b:=byte[buf_ptr+4*s_cpl*y+(x>>2)]
+    b:=byte[s_buf_ptr+4*s_cpl*y+(x>>2)]
     b:=b & !(%11<<((x//4)<<1))
     b:=b |(c<<((x//4)<<1))
-    byte[buf_ptr+4*s_cpl*y+(x>>2)]:=b
+    byte[s_buf_ptr+4*s_cpl*y+(x>>2)]:=b
 
 
 pub putpixel4(x,y,c) |byte b
 
 if ((x>=0) & (x<16*s_cpl) & (y>=0) & (y<s_lines))
-    b:=byte[buf_ptr+4*s_cpl*y+(x>>1)]
+    b:=byte[s_buf_ptr+4*s_cpl*y+(x>>1)]
     b:=b & !(%1111<<((x//2)<<2))
     b:=b |(c<<((x//2)<<2))
-    byte[buf_ptr+4*s_cpl*y+(x>>1)]:=b
+    byte[s_buf_ptr+4*s_cpl*y+(x>>1)]:=b
 
 
 pub putpixel8(x,y,c)
 
 if ((x>=0) & (x<4*s_cpl) & (y>=0) & (y<s_lines))
-    byte[buf_ptr+4*s_cpl*y+x]:=c
+    byte[s_buf_ptr+4*s_cpl*y+x]:=c
 
 
 
@@ -1224,19 +1240,22 @@ p101
 
                 mov linenum,#0
                 mov rcnt,#0
-                mov rcnt2a,#0
+                mov rcnt2a,##$FFFFFFFF ' why?!
 
 p301                
                 cmp rcnt,#0 wz			        ' check the DL repeat counter 				
-        if_z    jmp #p306                               ' no repeat, goto Read and interpret next DL entry
-                sub dlptr2,#4                           ' repeat. DL pointer was incremented while interpreting, now decrement it as it is repeated
-                sub rcnt,#1                             ' decrement the repeat counter
+
+        if_z    jmp #p306 
+                                                        ' no repeat, goto Read and interpret next DL entry
+                sub rcnt,#1 wz                            ' decrement the repeat counter
+   if_nz         sub dlptr2,#4                           ' repeat. DL pointer was incremented while interpreting, now decrement it as it is repeated
+
                 mov dl,rdl                              ' restore repeating DL entry from temporary buffer
                 getnib t1,dl,#2                         ' fontline, unused in graphmode
                 add t1,#1                               ' when character mode line repeat, you have to add #1 to the fontline#
-                incmod rcnt2a,rcnt2 wz                  ' address update counter
-   if_z         add dl,roffset                          ' if it rollovers, add the offset to the data address
-   if_z         mov t1,#0                               ' and reset the font line# - this has no effect for graphic line
+                incmod rcnt2a,rcnt2 wcz                  ' address update counter
+   if_c         add dl,roffset                          ' if it rollovers, add the offset to the data address
+   if_c         mov t1,#0                               ' and reset the font line# - this has no effect for graphic line
                 setnib dl,t1,#2                         ' set the fontline in DL command
                 mov rdl,dl                              ' and save the result
                 jmp #p307                               ' jump over reading new DL line 
@@ -1324,8 +1343,8 @@ p391             getnib dlc,framebuf2,#1                    ' get subcommand fro
 p390             rdlong rdl,dlptr2                         ' read the next DL entry to repeat
                  getword rcnt,framebuf2,#1                 ' read the repeat count
                  shr rcnt,#4                               ' from 12 upper bits
-             
-                 getnib rcnt2,framebuf2,#4                 ' read the pointer update counter
+                 mov rcnt2a,##$FFFFFFFF
+                                  getnib rcnt2,framebuf2,#4                 ' read the pointer update counter
                  getword roffset,framebuf2,#0              ' read the offset to add
                  shr roffset,#4                            ' clean the command field from offset
                  shl roffset,#12                           ' and make it ready to add to the DL entry (address=20 upper bits)
