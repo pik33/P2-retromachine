@@ -12,10 +12,12 @@ dim mainbuf(84*21) as ulong       ' main text field, 86 charx21 lines
 startmachine
 startvideo
 startaudio
+dim sl(0) as ulong
 
 
-statusline$=" Propeler2 wav/sid/mod player v. 0.08 --- 2022.02.03 --- pik33@o2.pl --- use serial terminal or RPi KBM interface to control --- arrows up,down move - pgup,pgdn move 10 positions - enter selects - tab switches panels - +,- controls volume ------ "
-sl=len(statusline$) 
+
+statusline$=" Propeler2 wav/sid/mod player v. 0.08 --- 2022.02.03 --- pik33@o2.pl --- use serial terminal or RPi KBM interface to control --- arrows up,down move - pgup,pgdn move 10 positions - enter selects - tab switches panels - +,- controls volume - R rescans current directory ------"
+sl(0)=len(statusline$) 
 emptystr$="                      "
 framenum=0
 for i=0 to 3 : oldtrigs(i)=0 : next i
@@ -40,6 +42,54 @@ for i=0 to 20: for j=42 to 83:  mainbuf(84*i+j)=$28210020 :next j : next i
 c113=v.getpalettecolor(113)
 v.setbordercolor2(c113)
 
+' mount the SD
+mount "/sd", _vfs_open_sdcard()
+
+chdir "/sd"
+
+print sl(0)
+putchar48(addr(graphicbuf),112,10,10,65,v.font_ptr+2048,$11111111)
+filename$=dir$("*",0)
+while filename$ <> "" and filename$ <> nil
+  print  filename$
+  filename$ = dir$()      ' continue scan
+end while
+goto aaaa
+
+chdir "/sd/mod"
+
+open "dirlist.txt" for append as #4
+print #4,"Test"
+
+filename$=dir$("*",0)
+while filename$ <> "" and filename$ <> nil
+  print #4, filename$
+  print  filename$
+  filename$ = dir$()      ' continue scan
+end while
+
+
+close #4
+
+aaaa:
+
+/'
+currentdir$="/sd/"
+try 
+errmsg=0
+open "/sd/dirlist.txt" for input as #4
+catch errmsg
+print "Creating the directory list"
+
+open currentdir$+"dirlist.txt" for append as #8
+filename$=dir$("*",0)
+while filename$ <> "" and filename$ <> nil
+  print #8,filename$
+  filename$ = dir$()      ' continue scan
+end while
+close #8
+end try
+'/
 ma=addr(module)
 tracker.initmodule(ma,0)
 
@@ -55,21 +105,34 @@ do
   for i=0 to 3 :setchannel(i,oldtrigs(i)) : next i
     movedl
 
-  scrollstatus((framenum) mod (8*245))
+  scrollstatus((framenum) mod (8*sl(0)))
   displaysamples
 loop
 
 ' ---------------- end of program -------------------------------------------
 
+sub putchar48(buf,cpl,x,y,char,font,c)
+
+for i=0 to 7
+dim b as ulong
+b=peek(font+8*char+i)
+b=b*c
+lpoke buf+4*x+4*cpl*(y+i),b
+next i
+end sub
+
+
+
 sub scrollstatus(amount)
 
-statusline(0)=peek(addr(statusline$(0))+(0+amount/8) mod 245)+$71710000
-statusline(1)=peek(addr(statusline$(0))+(1+amount/8) mod 245)+$71710000
-statusline(112)=peek(addr(statusline$(112))+(112+amount/8) mod 245)+$71710000
+
+statusline(0)=peek(addr(statusline$(0))+(0+amount/8) mod sl(0))+$71710000
+statusline(1)=peek(addr(statusline$(0))+(1+amount/8) mod sl(0))+$71710000
+statusline(112)=peek(addr(statusline$(112))+(112+amount/8) mod (0))+$71710000
 
 dlcopy(729)=%0000_0000_0000_0000_0000_0000_0101_0011 + (((amount mod 8)+8) shl 8) 
 
-for i=2 to 111 : statusline(i)=peek(addr(statusline$(0))+(i+(amount/8)) mod 245)+$77710000: next i
+for i=2 to 111 : statusline(i)=peek(addr(statusline$(0))+(i+(amount/8)) mod sl(0))+$77710000: next i
 end sub
 
 
@@ -151,7 +214,7 @@ for i=1 to num
     b=(peek(ma+20+30*(i-1)+j))
     if b>=32 then poke a+j,b : c=i ' c will be the last named sample
   next j
-   sl=2*(256*peek(ma+20+30*(i-1)+22)+ peek(ma+20+30*(i-1)+23))  
+'   sl=2*(256*peek(ma+20+30*(i-1)+22)+ peek(ma+20+30*(i-1)+23))  
   rp=2*(256*peek(ma+20+30*(i-1)+26)+ peek(ma+20+30*(i-1)+27))  
    rl=2*(256*peek(ma+20+30*(i-1)+28)+ peek(ma+20+30*(i-1)+29))  
   ft=peek(ma+20+30*(i-1)+24)
