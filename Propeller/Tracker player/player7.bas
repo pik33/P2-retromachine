@@ -137,7 +137,7 @@ position 2,5 :for i=ma to ma+19 : print chr$(peek(i) mod 128); : next i
 
 position 2,3 : print "Amiga module: "; samples;" samples"
 position 3,0 : print "File info"
-v.setwritecolors($93,$9a): position 2,2 : print "party1.mod            " :v.setwritecolors($9a,$93)
+v.setwritecolors($93,$9a): position 2,2 : print "party1.mod              " :v.setwritecolors($9a,$93)
 
 poke addr(infobuf), 10: poke addr(infobuf)+4,3 : for i=13 to 26:poke addr(infobuf)+4*i,3 : next i : poke addr(infobuf)+4*i,9
 poke addr(infobuf)+39*28*4, 12: for i=1 to 26 : poke addr(infobuf)+39*28*4+i*4,3 :  next i : poke addr(infobuf)+39*28*4+4*i,11
