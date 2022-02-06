@@ -20,6 +20,10 @@ dim sn$(32)
 dim sl as ulong
 
 ' ----------------------------Main program start ------------------------------------
+function himem1() as ulong
+ dim as integer ptr x = __builtin_alloca(4)    
+return (cast(ulong,x))
+end function
     
 mainvolume=127 : mainpan=2048  ' vol: 1..128..(255)  pan 0 (mono)..8192 (full)
 startmachine
@@ -86,7 +90,7 @@ poke mainbuf_ptr+20*84*4, 12: for i=1 to 40 : poke mainbuf_ptr+20*84*4+i*4,3 : n
 for i=15 to 19: poke mainbuf_ptr+84*4*i,4:  poke mainbuf_ptr+(84*4)*i+41*4,4: next i                                                 'Left and right semigraphic
 v.setwritecolors($ea,$e4) : position 2,14 : print " Now playing "                                                                    ' Header
 
-                                                                   ' Header
+ position 3,16: print himem1()                                                                 ' Header
 
 c113=v.getpalettecolor(113)
 v.setbordercolor2(c113)
@@ -397,7 +401,7 @@ end sub
 '--- module
 
 asm shared
-module file "/home/pik33/mod/party.mod"
+module file "/home/pik33/mod/synth11.mod"
 end asm
 
 
