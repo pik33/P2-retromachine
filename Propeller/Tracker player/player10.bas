@@ -4,7 +4,7 @@ const HEAPSIZE = 2048
 const version$="Prop2play v.0.10"
 const statusline$=" Propeler2 wav/sid/mod player v. 0.10 --- 2022.02.06 --- pik33@o2.pl --- use serial terminal or RPi KBM interface to control --- arrows up,down move - pgup,pgdn move 10 positions - enter selects - tab switches panels - +,- controls volume - R rescans current directory ------"
 
-const module$="bajerek.mod"
+const module$="aaarrgh.mod"
 
 
 ' Place graphics buffers at the top of memory so they will not move while editing the program
