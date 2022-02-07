@@ -4,7 +4,7 @@ const HEAPSIZE = 2048
 const version$="Prop2play v.0.10"
 const statusline$=" Propeler2 wav/sid/mod player v. 0.10 --- 2022.02.06 --- pik33@o2.pl --- use serial terminal or RPi KBM interface to control --- arrows up,down move - pgup,pgdn move 10 positions - enter selects - tab switches panels - +,- controls volume - R rescans current directory ------"
 
-const module$="aaarrgh.mod"
+const module$="bajerek.mod"
 
 
 ' Place graphics buffers at the top of memory so they will not move while editing the program
@@ -42,7 +42,106 @@ preparepanels
 
 ' test the module loading
 
+
+
+
+
 mount "/sd", _vfs_open_sdcard()
+chdir "/sd/"
+
+diragain:
+
+e=0
+
+try
+  open "dirlist.txt" for input as #5 
+catch e
+close #5                                          
+end try
+
+if e=4 then
+  close #5
+  open "dirlist.txt" for output as #5
+  print #5,".."
+  filename$ = dir$("*", fbDirectory)
+  while filename$ <> "" and filename$ <> nil
+    print #5, filename$
+    filename$ = dir$()
+  end while
+  close #5
+  goto diragain
+endif
+    
+  
+    
+if e=0 then ' dir list exists
+  i=2
+  v.setwritecolors($c8,$c1)
+  do
+    input #5,filename$
+    if filename$<>"" then
+      filename$=right$(filename$,38)
+      filename$=insert$(space$(38),filename$,19-len(filename$)/2)
+      filename$=left$(filename$,38)
+      position 2,i : print filename$ :i+=1
+    endif  
+  loop until i>10 orelse filename$=""
+close #5
+endif
+
+
+fileagain:
+
+e=0
+
+try
+  open "filelist.txt" for input as #5 
+catch e
+close #5                                                
+end try
+
+if e=4 then
+  close #5
+  open "filelist.txt" for output as #5
+  filename$ = dir$("*", fbNormal)
+  while filename$ <> "" and filename$ <> nil
+    print #5, filename$
+    filename$ = dir$()
+  end while
+  close #5
+  goto fileagain
+endif
+    
+if e=0 then ' file list exists
+  i=2
+    v.setwritecolors($29,$22)
+  do
+    input #5,filename$
+    if filename$<>"" then
+      filename$=right$(filename$,38)
+      filename$=insert$(space$(38),filename$,19-len(filename$)/2)
+      filename$=left$(filename$,38)
+      position 44,i : print filename$ :i+=1
+    endif
+ '   position 42+21-len(filename$)/2,i : print filename$ :i+=1
+  loop until i>19 orelse filename$=""
+close #5
+endif
+
+
+filename$ = dir$("..",  fbDirectory)
+  while filename$ <> "" and filename$ <> nil
+  print filename$
+  filename$ = dir$()
+end while
+
+
+for i=2 to 39 : lpoke mainbuf_ptr+2*84*4+i*4, (lpeek(mainbuf_ptr+2*84*4+i*4) and $FFFF) or $c1c80000 :next i
+'for i=44 to 81 : lpoke mainbuf_ptr+2*84*4+i*4, (lpeek(mainbuf_ptr+2*84*4+i*4) and $FFFF) or $22290000 :next i
+
+
+
+
 chdir "/sd/mod"
 ma=lomem()+1024 : mb=ma
 pos=1
