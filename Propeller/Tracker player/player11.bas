@@ -4,7 +4,7 @@ const HEAPSIZE = 3072
 const version$="Prop2play v.0.11"
 const statusline$=" Propeler2 wav/sid/mod player v. 0.11 --- 2022.02.08 --- pik33@o2.pl --- use serial terminal or RPi KBM interface to control --- arrows up,down move - pgup,pgdn move 10 positions - enter selects - tab switches panels - +,- controls volume - R rescans current directory ------"
 
-const module$="enha.mod"
+const module$="ballada.mod"
 
 
 ' Place graphics buffers at the top of memory so they will not move while editing the program
@@ -29,7 +29,7 @@ dim mainstack(64) as ulong
 ' ----------------------------Main program start ------------------------------------
 
     
-mainvolume=127 : mainpan=8192  ' vol: 1..128..(255)  pan 0 (mono)..8192 (full)
+		mainvolume=127 : mainpan=8192  ' vol: 1..128..(255)  pan 0 (mono)..8192 (full)
 startmachine
 startvideo
 startaudio
@@ -91,6 +91,59 @@ do
     if panel=0 then highlight(panel,dirnum1,1)
     ansibuf(3)=0
   endif
+  if ansibuf(3)=66 andalso ansibuf(2)=91 andalso ansibuf(1)=27  then ' arrow down  
+    if panel=0 then
+      olddirnum1=dirnum1
+      dirnum1+=1  ' highlighting
+      dirnum2+=1  ' file
+      if dirnum1>=dirnum3 then dirnum1=dirnum3-1 'todo dirnum2
+      if dirnum1>=11 then dirnum1=11
+      if dirnum1<>olddirnum1 then
+        highlight(0,olddirnum1,0)
+        highlight(0,dirnum1,1)        
+      endif
+    endif    
+    if panel=1 then
+      oldfilenum1=filenum1
+      filenum1+=1  ' highlighting
+      filenum2+=1  ' file
+      if filenum1>=filenum3 then filenum1=filenum3-1 'todo num2
+	      if filenum1>=17 then filenum1=17
+      if filenum1<>oldfilenum1 then
+        highlight(1,oldfilenum1,0)
+        highlight(1,filenum1,1)        
+      endif
+    endif
+    ansibuf(3)=0: ansibuf(2)=0 : ansibuf(1)=0      
+  endif
+   if ansibuf(3)=65 andalso ansibuf(2)=91 andalso ansibuf(1)=27  then ' arrow up 
+    if panel=0 then
+      olddirnum1=dirnum1
+      dirnum1-=1  ' highlighting
+      dirnum2-=1  ' file
+      if dirnum1<0 then dirnum1=0
+      if dirnum1<>olddirnum1 then
+        highlight(0,olddirnum1,0)
+        highlight(0,dirnum1,1)        
+      endif
+    endif
+    if panel=1 then
+      oldfilenum1=filenum1
+      filenum1-=1  ' highlighting
+      filenum2-=1  ' file
+      if filenum1<0 then filenum1=0
+      if filenum1<>oldfilenum1 then
+        highlight(1,oldfilenum1,0)
+        highlight(1,filenum1,1)        
+      endif
+    endif
+    
+    
+    
+    ansibuf(3)=0: ansibuf(2)=0 : ansibuf(1)=0      
+  endif
+  
+  
 loop					    
 
 
