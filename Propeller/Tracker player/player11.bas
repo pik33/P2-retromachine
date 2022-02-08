@@ -15,6 +15,7 @@ const mainbuf_ptr=$73A70
 const statusline_ptr=$738A8
 const title_ptr=$73838
 const dlcopy_ptr=$72C38
+const scope_ptr=$72238
 
 ' global vars
 
@@ -82,6 +83,17 @@ cog=cpu (mainloop, @mainstack(0))
 panel=0
 
 do
+waitvbl
+
+
+for jj=3136 to 25984 step 448: for ii=4 to 324 step 4: lpoke graphicbuf_ptr+ii+jj,0 :next ii : next jj
+for ii=0 to 639
+qq1=dpeek(scope_ptr+4*ii)
+qq1+=dpeek(scope_ptr+4*ii+2)
+qq1=qq1/2048 : if qq1<0 then qq1=0: if qq1>63 then qq1=63
+putpixel4(ii+16,qq1,15) : next ii ' (dpeek(scope_ptr+4*ii)+dpeek(scope_ptr+4*ii+2))/8192,15) : next ii
+
+
   if lpeek($3c)<>0 then ansibuf(0)=ansibuf(1): ansibuf(1)=ansibuf(2) : ansibuf(2)=ansibuf(3) : ansibuf(3)=peek($3D): lpoke($3C,0)
   if ansibuf(3)=9 then 
     if panel=0 then highlight(panel,dirnum1,0)
@@ -146,8 +158,13 @@ do
   
 loop					    
 
+sub putpixel4(x,y,c) 
 
-
+var b=peek(graphicbuf_ptr+448*y+(x shr 1))
+b=b and not(%1111<<((x mod 2)<<2))
+b=b or (c<<((x mod 2)<<2))
+poke graphicbuf_ptr+448*y+(x>>1),b
+end sub
 
 ' ------------------ main loop ------------------------  rev 20220205 ---------------------------------
 
