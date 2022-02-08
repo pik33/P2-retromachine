@@ -1,8 +1,8 @@
 #include "retromachine.bi"
 
 const HEAPSIZE = 3072
-const version$="Prop2play v.0.10"
-const statusline$=" Propeler2 wav/sid/mod player v. 0.10 --- 2022.02.06 --- pik33@o2.pl --- use serial terminal or RPi KBM interface to control --- arrows up,down move - pgup,pgdn move 10 positions - enter selects - tab switches panels - +,- controls volume - R rescans current directory ------"
+const version$="Prop2play v.0.11"
+const statusline$=" Propeler2 wav/sid/mod player v. 0.11 --- 2022.02.08 --- pik33@o2.pl --- use serial terminal or RPi KBM interface to control --- arrows up,down move - pgup,pgdn move 10 positions - enter selects - tab switches panels - +,- controls volume - R rescans current directory ------"
 
 const module$="enha.mod"
 

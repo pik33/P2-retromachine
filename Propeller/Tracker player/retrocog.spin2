@@ -13,7 +13,7 @@ srxpin=63
 stxpin=62
 baudrate=1920000
 mbaudrate=31250
-sbaudrate=2000000
+sbaudrate=921600
 
 var
 
