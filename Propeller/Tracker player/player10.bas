@@ -4,7 +4,11 @@ const HEAPSIZE = 3072
 const version$="Prop2play v.0.10"
 const statusline$=" Propeler2 wav/sid/mod player v. 0.10 --- 2022.02.06 --- pik33@o2.pl --- use serial terminal or RPi KBM interface to control --- arrows up,down move - pgup,pgdn move 10 positions - enter selects - tab switches panels - +,- controls volume - R rescans current directory ------"
 
+<<<<<<< Updated upstream
 const module$="enha.mod"
+=======
+const module$="cos.mod"
+>>>>>>> Stashed changes
 
 
 ' Place graphics buffers at the top of memory so they will not move while editing the program
@@ -154,11 +158,18 @@ if e=0 then ' dir list exists
       if i<12 then position 2,i : print filename$ 
       i+=1
     endif  
+<<<<<<< Updated upstream
   loop until filename$=nil orelse filename$="" 
   dirnum3=i-2
   position 3,18: print dirnum3
   endif
   
+=======
+  loop until i>12 orelse filename$=""
+close #5
+endif
+
+>>>>>>> Stashed changes
 
 close #6
 fileagain:
