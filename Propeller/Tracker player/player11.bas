@@ -14,7 +14,7 @@ const graphicbuf_ptr=$77E80
 const mainbuf_ptr=$73A70
 const statusline_ptr=$738A8
 const title_ptr=$73838
-const dlcopy_ptr=$72C38
+const dlcopy_ptr=$72c38
 const scope_ptr=$72238
 
 ' global vars
@@ -84,26 +84,71 @@ panel=0
 s1a=0
 do
 waitvbl
-s1=dpeek(base+4)/2 : s2=dpeek(base+6)/2: s1=(s1+s2+32768) and $FFFF : s1=abs(s1-32768)
-if s1>s1a then s1a=(s1a+s1)/2
+var s1=lpeek(base+4)
+var s2=0
+asm 
+  getword s2,s1,#1
+  getword s1,s1,#0
+  bitnot s1,#15
+  bitnot s2,#15
+  add s1,s2
+  shr s1,#1
+end asm
+
+var s21=lpeek(base+32+4)
+var s22=0
+asm 
+  getword s22,s21,#1
+  getword s21,s21,#0
+  bitnot s21,#15
+  bitnot s22,#15
+  add s21,s22
+  shr s21,#1
+end asm
+
+var s31=lpeek(base+64+4)
+var s32=0
+asm 
+  getword s32,s31,#1
+  getword s31,s31,#0
+  bitnot s31,#15
+  bitnot s32,#15
+  add s31,s32
+  shr s31,#1
+end asm
+
+var s41=lpeek(base+96+4)
+var s42=0
+asm 
+  getword s42,s41,#1
+  getword s41,s41,#0
+  bitnot s41,#15
+  bitnot s42,#15
+  add s41,s2
+  shr s41,#1
+end asm
+
+
+s1=abs(s1-32768)
+if s1>s1a then s1a=s1
 if s1<s1a then s1a=(15*s1a+s1)/16
 s1b=s1a/128 :if s1b<0 then s1b=0
 if s1b>52 then s1b=52
 
-s21=dpeek(base+32+4)/2 : s22=dpeek(base+32+6)/2: s21=(s21+s22+32768) and $FFFF : s21=abs(s21-32768)
-if s21>s21a then s21a=(s21a+s21)/2
+s21=abs(s21-32768)
+if s21>s21a then s21a=s21
 if s21<s21a then s21a=(15*s21a+s21)/16
 s21b=s21a/128 :if s21b<0 then s21b=0
 if s21b>52 then s21b=52
 
-s31=dpeek(base+64+4)/2 : s32=dpeek(base+64+6)/2: s31=(s31+s32+32768) and $FFFF : s31=abs(s31-32768)
-if s31>s31a then s31a=(s31a+s31)/2
+s31=abs(s31-32768)
+if s31>s31a then s31a=s31
 if s31<s31a then s31a=(15*s31a+s31)/16
 s31b=s31a/256 :if s31b<0 then s31b=0
 if s31b>52 then s31b=52
 
-s41=dpeek(base+96+4)/2 : s42=dpeek(base+96+6)/2: s41=(s41+s42+32768) and $FFFF : s41=abs(s41-32768)
-if s41>s41a then s41a=(s41a+s41)/2
+s41=abs(s41-32768)
+if s41>s41a then s41a=s41
 if s41<s41a then s41a=(15*s41a+s41)/16
 s41b=s41a/128 :if s41b<0 then s41b=0
 if s41b>52 then s41b=52
@@ -117,10 +162,31 @@ qq1=qq1/2048 : if qq1<7 then qq1=7
 if qq1>59 then qq1=59
 qq2=1+abs(32-qq1)/2 : if qq2>7 then qq2=7
 putpixel4(ii+16,qq1,qq2) : next ii ' (dpeek(scope_ptr+4*ii)+dpeek(scope_ptr+4*ii+2))/8192,15) : next ii
-for ii=0 to s1b: cc=(ii+8)/8: cc=cc*$11111111 : for jj=270 to 278 step 4: lpoke graphicbuf_ptr+448*(59-ii)+jj,cc : next jj: next ii
-for ii=0 to s21b: cc=(ii+8)/8: cc=cc*$11111111 : for jj=286 to 294 step 4: lpoke graphicbuf_ptr+448*(59-ii)+jj,cc : next jj: next ii
-for ii=0 to s31b: cc=(ii+8)/8: cc=cc*$11111111 : for jj=302 to 310 step 4: lpoke graphicbuf_ptr+448*(59-ii)+jj,cc : next jj: next ii
-for ii=0 to s41b: cc=(ii+8)/8: cc=cc*$11111111 : for jj=318 to 326 step 4: lpoke graphicbuf_ptr+448*(59-ii)+jj,cc : next jj: next ii
+if s1b<16 then lpoke v.palette_ptr+4*$b,$00110000*((s1b+16)/2)
+if s1b>=16 then lpoke v.palette_ptr+4*$b,$00FF0000+(s1b-16)*$11000000
+if s1b>=32 then lpoke v.palette_ptr+4*$b,$FFFF0000-(s1b-32)*$00220000
+if s1b>=48 then lpoke v.palette_ptr+4*$b,$FF000000
+
+if s21b<16 then lpoke v.palette_ptr+4*$c,$00110000*((s21b+16)/2)
+if s21b>=16 then lpoke v.palette_ptr+4*$c,$00FF0000+(s21b-16)*$11000000
+if s21b>=32 then lpoke v.palette_ptr+4*$c,$FFFF0000-(s21b-32)*$00220000
+if s21b>=48 then lpoke v.palette_ptr+4*$c,$FF000000
+
+if s31b<16 then lpoke v.palette_ptr+4*$d,$00110000*((s31b+16)/2)
+if s31b>=16 then lpoke v.palette_ptr+4*$d,$00FF0000+(s31b-16)*$11000000
+if s31b>=32 then lpoke v.palette_ptr+4*$d,$FFFF0000-(s31b-32)*$00220000
+if s31b>=48 then lpoke v.palette_ptr+4*$d,$FF000000
+
+if s41b<16 then lpoke v.palette_ptr+4*$e,$00110000*((s41b+16)/2)
+if s41b>=16 then lpoke v.palette_ptr+4*$e,$00FF0000+(s41b-16)*$11000000
+if s41b>=32 then lpoke v.palette_ptr+4*$e,$FFFF0000-(s41b-32)*$00220000
+if s41b>=48 then lpoke v.palette_ptr+4*$e,$FF000000
+
+for ii=0 to s1b:  cc=$bbbbbbbb : for jj=270 to 278 step 4: lpoke graphicbuf_ptr+448*(59-ii)+jj,cc : next jj: next ii
+for ii=0 to s21b: cc=$cccccccc : for jj=286 to 294 step 4: lpoke graphicbuf_ptr+448*(59-ii)+jj,cc : next jj: next ii
+for ii=0 to s31b: cc=$dddddddd : for jj=302 to 310 step 4: lpoke graphicbuf_ptr+448*(59-ii)+jj,cc : next jj: next ii
+for ii=0 to s41b: cc=$eeeeeeee : for jj=318 to 326 step 4: lpoke graphicbuf_ptr+448*(59-ii)+jj,cc : next jj: next ii
+'for ii=0 to s41b: cc=(ii+8)/8: cc=cc*$11111111 : for jj=318 to 326 step 4: lpoke graphicbuf_ptr+448*(59-ii)+jj,cc : next jj: next ii
 
   if lpeek($3c)<>0 then ansibuf(0)=ansibuf(1): ansibuf(1)=ansibuf(2) : ansibuf(2)=ansibuf(3) : ansibuf(3)=peek($3D): lpoke($3C,0)
   if ansibuf(3)=9 then 
@@ -598,6 +664,7 @@ lpoke dlcopy_ptr+4*714, %0000_0000_0000_0000_0000_1111_1111_1111
 ' We will use repeat command for this
 
 lpoke dlcopy_ptr+4*721, %0000_1000_0000_0001_0001_1100_0000_0111   ' repeat 128, every second line add 448 (=2x vertical zoom)
+'lpoke dlcopy_ptr+4*721, graphicbuf_ptr shl 12 +%00_0000_0000_1010  ' graphic line with 4bpp
 lpoke dlcopy_ptr+4*722, graphicbuf_ptr shl 12 +%00_0000_0000_1010  ' graphic line with 4bpp
 
 ' 6 empty lines under the graphic lines. 2 lines before status/help line enable the horizontal fine scroll
