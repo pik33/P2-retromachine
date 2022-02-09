@@ -4,7 +4,7 @@ const HEAPSIZE = 3072
 const version$="Prop2play v.0.11"
 const statusline$=" Propeler2 wav/sid/mod player v. 0.11 --- 2022.02.08 --- pik33@o2.pl --- use serial terminal or RPi KBM interface to control --- arrows up,down move - pgup,pgdn move 10 positions - enter selects - tab switches panels - +,- controls volume - R rescans current directory ------"
 
-const module$="ballada.mod"
+const module$="aurora.mod"
 
 
 ' Place graphics buffers at the top of memory so they will not move while editing the program
@@ -30,7 +30,7 @@ dim mainstack(64) as ulong
 ' ----------------------------Main program start ------------------------------------
 
     
-		mainvolume=127 : mainpan=8192  ' vol: 1..128..(255)  pan 0 (mono)..8192 (full)
+mainvolume=127 : mainpan=4096  ' vol: 1..128..(255)  pan 0 (mono)..8192 (full)
 startmachine
 startvideo
 startaudio
@@ -81,18 +81,46 @@ getinfo(ma,samples)
 cog=cpu (mainloop, @mainstack(0))
 
 panel=0
-
+s1a=0
 do
 waitvbl
+s1=dpeek(base+4)/2 : s2=dpeek(base+6)/2: s1=(s1+s2+32768) and $FFFF : s1=abs(s1-32768)
+if s1>s1a then s1a=(s1a+s1)/2
+if s1<s1a then s1a=(15*s1a+s1)/16
+s1b=s1a/128 :if s1b<0 then s1b=0
+if s1b>52 then s1b=52
+
+s21=dpeek(base+32+4)/2 : s22=dpeek(base+32+6)/2: s21=(s21+s22+32768) and $FFFF : s21=abs(s21-32768)
+if s21>s21a then s21a=(s21a+s21)/2
+if s21<s21a then s21a=(15*s21a+s21)/16
+s21b=s21a/128 :if s21b<0 then s21b=0
+if s21b>52 then s21b=52
+
+s31=dpeek(base+64+4)/2 : s32=dpeek(base+64+6)/2: s31=(s31+s32+32768) and $FFFF : s31=abs(s31-32768)
+if s31>s31a then s31a=(s31a+s31)/2
+if s31<s31a then s31a=(15*s31a+s31)/16
+s31b=s31a/256 :if s31b<0 then s31b=0
+if s31b>52 then s31b=52
+
+s41=dpeek(base+96+4)/2 : s42=dpeek(base+96+6)/2: s41=(s41+s42+32768) and $FFFF : s41=abs(s41-32768)
+if s41>s41a then s41a=(s41a+s41)/2
+if s41<s41a then s41a=(15*s41a+s41)/16
+s41b=s41a/128 :if s41b<0 then s41b=0
+if s41b>52 then s41b=52
 
 
-for jj=3136 to 25984 step 448: for ii=4 to 324 step 4: lpoke graphicbuf_ptr+ii+jj,0 :next ii : next jj
-for ii=0 to 639
+for jj=3136 to 26432 step 448: for ii=4 to 328 step 4: lpoke graphicbuf_ptr+ii+jj,0 :next ii : next jj
+for ii=0 to 511 ' 639
 qq1=dpeek(scope_ptr+4*ii)
 qq1+=dpeek(scope_ptr+4*ii+2)
-qq1=qq1/2048 : if qq1<0 then qq1=0: if qq1>63 then qq1=63
-putpixel4(ii+16,qq1,15) : next ii ' (dpeek(scope_ptr+4*ii)+dpeek(scope_ptr+4*ii+2))/8192,15) : next ii
-
+qq1=qq1/2048 : if qq1<7 then qq1=7 
+if qq1>59 then qq1=59
+qq2=1+abs(32-qq1)/2 : if qq2>7 then qq2=7
+putpixel4(ii+16,qq1,qq2) : next ii ' (dpeek(scope_ptr+4*ii)+dpeek(scope_ptr+4*ii+2))/8192,15) : next ii
+for ii=0 to s1b: cc=(ii+8)/8: cc=cc*$11111111 : for jj=270 to 278 step 4: lpoke graphicbuf_ptr+448*(59-ii)+jj,cc : next jj: next ii
+for ii=0 to s21b: cc=(ii+8)/8: cc=cc*$11111111 : for jj=286 to 294 step 4: lpoke graphicbuf_ptr+448*(59-ii)+jj,cc : next jj: next ii
+for ii=0 to s31b: cc=(ii+8)/8: cc=cc*$11111111 : for jj=302 to 310 step 4: lpoke graphicbuf_ptr+448*(59-ii)+jj,cc : next jj: next ii
+for ii=0 to s41b: cc=(ii+8)/8: cc=cc*$11111111 : for jj=318 to 326 step 4: lpoke graphicbuf_ptr+448*(59-ii)+jj,cc : next jj: next ii
 
   if lpeek($3c)<>0 then ansibuf(0)=ansibuf(1): ansibuf(1)=ansibuf(2) : ansibuf(2)=ansibuf(3) : ansibuf(3)=peek($3D): lpoke($3C,0)
   if ansibuf(3)=9 then 
@@ -356,7 +384,17 @@ poke mainbuf_ptr+20*84*4, 12: for i=1 to 40 : poke mainbuf_ptr+20*84*4+i*4,3 : n
 for i=15 to 19: poke mainbuf_ptr+84*4*i,4:  poke mainbuf_ptr+(84*4)*i+41*4,4: next i                                                 
 v.setwritecolors($ea,$e4) : position 2,14 : print " Now playing "                                                                    
                                  
-v.setbordercolor2(v.getpalettecolor(113))											' dark blue border
+v.setbordercolor2(v.getpalettecolor(113))
+lpoke v.palette_ptr+4,lpeek(v.palette_ptr+4*202)
+lpoke v.palette_ptr+8,lpeek(v.palette_ptr+4*218)
+lpoke v.palette_ptr+12,lpeek(v.palette_ptr+4*234)
+lpoke v.palette_ptr+16,lpeek(v.palette_ptr+4*250)
+lpoke v.palette_ptr+20,lpeek(v.palette_ptr+4*26)
+lpoke v.palette_ptr+24,lpeek(v.palette_ptr+4*42)
+lpoke v.palette_ptr+28,lpeek(v.palette_ptr+4*58)
+
+											' dark blue border
+'for i=1 to 14 : lpoke v.palette_ptr+4*i,lpeek(v.palette_ptr+64*(i+1)+32) :next i
 end sub
 
 ' ---------------- Find an adress of the current top of the stack --- rev 20220206 -------------------------------
