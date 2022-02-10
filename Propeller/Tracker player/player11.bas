@@ -1,10 +1,10 @@
 #include "retromachine.bi"
 
-const HEAPSIZE = 3072
+'const HEAPSIZE = 3072
 const version$="Prop2play v.0.11"
 const statusline$=" Propeler2 wav/sid/mod player v. 0.11 --- 2022.02.08 --- pik33@o2.pl --- use serial terminal or RPi KBM interface to control --- arrows up,down move - pgup,pgdn move 10 positions - enter selects - tab switches panels - +,- controls volume - R rescans current directory ------"
 
-const module$="aurora.mod"
+const module$="jungle.mod"
 
 
 ' Place graphics buffers at the top of memory so they will not move while editing the program
@@ -27,6 +27,13 @@ dim filebuf(127) as ubyte
 dim r as ulong
 dim ansibuf(3) as ubyte
 dim mainstack(64) as ulong
+dim filename$ as string
+dim s1a,s1b,s21a,s21b,s31a,s31b,s41a,s41b as integer
+dim cc,qq1,qq2,framenum,e as ulong
+dim dirnum1,dirnum2,dirnum3,filenum1,filenum2,filenum3,olddirnum1,oldfilenum1 as integer
+dim samples,panel,mainvolume,mainpan,c,cog as ulong
+dim currentdir$ as string
+
 ' ----------------------------Main program start ------------------------------------
 
     
@@ -43,27 +50,25 @@ pan(0)=8192-mainpan : pan(1)=8192+mainpan : pan(2)=8192+mainpan : pan(3)=8192-ma
 preparepanels
 
 mount "/sd", _vfs_open_sdcard()
+chdir "/sd"
+currentdir$="/sd/"
 
-chdir "/sd/"
+
+
 getlists
-
-
-
-
-			
-
+		
 close #5
 close #6
 
-chdir "/sd/mod"
-ma=lomem()+1024 : mb=ma
-pos=1
+var ma=lomem()+1024 : var mb=ma
+var pos=1
 open "/sd/mod/"+module$ for input as #4
+print geterr()
 do
   get #4,pos,filebuf(0),128,r
   pos+=r
   for i=0 to r-1 : poke mb+i,filebuf(i) : next i
-  mb+=r
+  mb+=r 
 
 loop until r<>128 orelse mb>= dlcopy_ptr-4
 close #4
@@ -83,112 +88,27 @@ cog=cpu (mainloop, @mainstack(0))
 panel=0
 s1a=0
 do
-waitvbl
-var s1=lpeek(base+4)
-var s2=0
-asm 
-  getword s2,s1,#1
-  getword s1,s1,#0
-  bitnot s1,#15
-  bitnot s2,#15
-  add s1,s2
-  shr s1,#1
-end asm
-
-var s21=lpeek(base+32+4)
-var s22=0
-asm 
-  getword s22,s21,#1
-  getword s21,s21,#0
-  bitnot s21,#15
-  bitnot s22,#15
-  add s21,s22
-  shr s21,#1
-end asm
-
-var s31=lpeek(base+64+4)
-var s32=0
-asm 
-  getword s32,s31,#1
-  getword s31,s31,#0
-  bitnot s31,#15
-  bitnot s32,#15
-  add s31,s32
-  shr s31,#1
-end asm
-
-var s41=lpeek(base+96+4)
-var s42=0
-asm 
-  getword s42,s41,#1
-  getword s41,s41,#0
-  bitnot s41,#15
-  bitnot s42,#15
-  add s41,s2
-  shr s41,#1
-end asm
-
-
-s1=abs(s1-32768)
-if s1>s1a then s1a=s1
-if s1<s1a then s1a=(15*s1a+s1)/16
-s1b=s1a/128 :if s1b<0 then s1b=0
-if s1b>52 then s1b=52
-
-s21=abs(s21-32768)
-if s21>s21a then s21a=s21
-if s21<s21a then s21a=(15*s21a+s21)/16
-s21b=s21a/128 :if s21b<0 then s21b=0
-if s21b>52 then s21b=52
-
-s31=abs(s31-32768)
-if s31>s31a then s31a=s31
-if s31<s31a then s31a=(15*s31a+s31)/16
-s31b=s31a/256 :if s31b<0 then s31b=0
-if s31b>52 then s31b=52
-
-s41=abs(s41-32768)
-if s41>s41a then s41a=s41
-if s41<s41a then s41a=(15*s41a+s41)/16
-s41b=s41a/128 :if s41b<0 then s41b=0
-if s41b>52 then s41b=52
-
-
-for jj=3136 to 26432 step 448: for ii=4 to 328 step 4: lpoke graphicbuf_ptr+ii+jj,0 :next ii : next jj
-for ii=0 to 511 ' 639
-qq1=dpeek(scope_ptr+4*ii)
-qq1+=dpeek(scope_ptr+4*ii+2)
-qq1=qq1/2048 : if qq1<7 then qq1=7 
-if qq1>59 then qq1=59
-qq2=1+abs(32-qq1)/2 : if qq2>7 then qq2=7
-putpixel4(ii+16,qq1,qq2) : next ii ' (dpeek(scope_ptr+4*ii)+dpeek(scope_ptr+4*ii+2))/8192,15) : next ii
-if s1b<16 then lpoke v.palette_ptr+4*$b,$00110000*((s1b+16)/2)
-if s1b>=16 then lpoke v.palette_ptr+4*$b,$00FF0000+(s1b-16)*$11000000
-if s1b>=32 then lpoke v.palette_ptr+4*$b,$FFFF0000-(s1b-32)*$00220000
-if s1b>=48 then lpoke v.palette_ptr+4*$b,$FF000000
-
-if s21b<16 then lpoke v.palette_ptr+4*$c,$00110000*((s21b+16)/2)
-if s21b>=16 then lpoke v.palette_ptr+4*$c,$00FF0000+(s21b-16)*$11000000
-if s21b>=32 then lpoke v.palette_ptr+4*$c,$FFFF0000-(s21b-32)*$00220000
-if s21b>=48 then lpoke v.palette_ptr+4*$c,$FF000000
-
-if s31b<16 then lpoke v.palette_ptr+4*$d,$00110000*((s31b+16)/2)
-if s31b>=16 then lpoke v.palette_ptr+4*$d,$00FF0000+(s31b-16)*$11000000
-if s31b>=32 then lpoke v.palette_ptr+4*$d,$FFFF0000-(s31b-32)*$00220000
-if s31b>=48 then lpoke v.palette_ptr+4*$d,$FF000000
-
-if s41b<16 then lpoke v.palette_ptr+4*$e,$00110000*((s41b+16)/2)
-if s41b>=16 then lpoke v.palette_ptr+4*$e,$00FF0000+(s41b-16)*$11000000
-if s41b>=32 then lpoke v.palette_ptr+4*$e,$FFFF0000-(s41b-32)*$00220000
-if s41b>=48 then lpoke v.palette_ptr+4*$e,$FF000000
-
-for ii=0 to s1b:  cc=$bbbbbbbb : for jj=270 to 278 step 4: lpoke graphicbuf_ptr+448*(59-ii)+jj,cc : next jj: next ii
-for ii=0 to s21b: cc=$cccccccc : for jj=286 to 294 step 4: lpoke graphicbuf_ptr+448*(59-ii)+jj,cc : next jj: next ii
-for ii=0 to s31b: cc=$dddddddd : for jj=302 to 310 step 4: lpoke graphicbuf_ptr+448*(59-ii)+jj,cc : next jj: next ii
-for ii=0 to s41b: cc=$eeeeeeee : for jj=318 to 326 step 4: lpoke graphicbuf_ptr+448*(59-ii)+jj,cc : next jj: next ii
-'for ii=0 to s41b: cc=(ii+8)/8: cc=cc*$11111111 : for jj=318 to 326 step 4: lpoke graphicbuf_ptr+448*(59-ii)+jj,cc : next jj: next ii
+  waitvbl
+  scope
+  bars
 
   if lpeek($3c)<>0 then ansibuf(0)=ansibuf(1): ansibuf(1)=ansibuf(2) : ansibuf(2)=ansibuf(3) : ansibuf(3)=peek($3D): lpoke($3C,0)
+
+  if ansibuf(3)=13 andalso panel=0 then
+     open currentdir$+"dirlist.txt" for input as #7
+     print geterr()
+     for i=0 to dirnum2 : input #7,filename$ :next i
+     print filename$
+     chdir(currentdir$+filename$)
+     currentdir$=currentdir$+filename$+"/"
+     close #7
+     getlists
+     ansibuf(3)=0
+  endif
+  
+
+
+
   if ansibuf(3)=9 then 
     if panel=0 then highlight(panel,dirnum1,0)
     if panel=1 then highlight(panel,filenum1,0)
@@ -236,7 +156,8 @@ for ii=0 to s41b: cc=$eeeeeeee : for jj=318 to 326 step 4: lpoke graphicbuf_ptr+
     if panel=1 then
       oldfilenum1=filenum1
       filenum1-=1  ' highlighting
-      filenum2-=1  ' file
+      filenum2-=1  ' filefunction curdir$() as string
+
       if filenum1<0 then filenum1=0
       if filenum1<>oldfilenum1 then
         highlight(1,oldfilenum1,0)
@@ -250,7 +171,129 @@ for ii=0 to s41b: cc=$eeeeeeee : for jj=318 to 326 step 4: lpoke graphicbuf_ptr+
   endif
   
   
-loop					    
+loop		
+
+
+
+
+
+sub bars
+
+
+dim s1,s2,s21,s22,s31,s32,s41,s42 as integer
+s1=lpeek(base+4)
+s2=0
+asm 
+  getword s2,s1,#1
+  getword s1,s1,#0
+  bitnot s1,#15
+  bitnot s2,#15
+  add s1,s2
+  shr s1,#1
+end asm
+
+s21=lpeek(base+32+4)
+s22=0
+asm 
+  getword s22,s21,#1
+  getword s21,s21,#0
+  bitnot s21,#15
+  bitnot s22,#15
+  add s21,s22
+  shr s21,#1
+end asm
+
+s31=lpeek(base+64+4)
+s32=0
+asm 
+  getword s32,s31,#1
+  getword s31,s31,#0
+  bitnot s31,#15
+  bitnot s32,#15
+  add s31,s32
+  shr s31,#1
+end asm
+
+s41=lpeek(base+96+4)
+s42=0
+asm 
+  getword s42,s41,#1
+  getword s41,s41,#0
+  bitnot s41,#15
+  bitnot s42,#15
+  add s41,s2
+  shr s41,#1
+end asm
+
+
+s1=abs(s1-32768)
+if s1>s1a then s1a=s1
+if s1<s1a then s1a=(15*s1a+s1)/16
+s1b=s1a/128 :if s1b<0 then s1b=0
+if s1b>52 then s1b=52
+
+s21=abs(s21-32768)
+if s21>s21a then s21a=s21
+if s21<s21a then s21a=(15*s21a+s21)/16
+s21b=s21a/128 :if s21b<0 then s21b=0
+if s21b>52 then s21b=52
+
+s31=abs(s31-32768)
+if s31>s31a then s31a=s31
+if s31<s31a then s31a=(15*s31a+s31)/16
+s31b=s31a/256 :if s31b<0 then s31b=0
+if s31b>52 then s31b=52
+
+s41=abs(s41-32768)
+if s41>s41a then s41a=s41
+if s41<s41a then s41a=(15*s41a+s41)/16
+s41b=s41a/128 :if s41b<0 then s41b=0
+if s41b>52 then s41b=52
+
+if s1b<16 then lpoke v.palette_ptr+4*$b,$00110000*((s1b+16)/2)
+if s1b>=16 then lpoke v.palette_ptr+4*$b,$00FF0000+(s1b-16)*$11000000
+if s1b>=32 then lpoke v.palette_ptr+4*$b,$FFFF0000-(s1b-32)*$00220000
+if s1b>=48 then lpoke v.palette_ptr+4*$b,$FF000000
+
+if s21b<16 then lpoke v.palette_ptr+4*$c,$00110000*((s21b+16)/2)
+if s21b>=16 then lpoke v.palette_ptr+4*$c,$00FF0000+(s21b-16)*$11000000
+if s21b>=32 then lpoke v.palette_ptr+4*$c,$FFFF0000-(s21b-32)*$00220000
+if s21b>=48 then lpoke v.palette_ptr+4*$c,$FF000000
+
+if s31b<16 then lpoke v.palette_ptr+4*$d,$00110000*((s31b+16)/2)
+if s31b>=16 then lpoke v.palette_ptr+4*$d,$00FF0000+(s31b-16)*$11000000
+if s31b>=32 then lpoke v.palette_ptr+4*$d,$FFFF0000-(s31b-32)*$00220000
+if s31b>=48 then lpoke v.palette_ptr+4*$d,$FF000000
+
+if s41b<16 then lpoke v.palette_ptr+4*$e,$00110000*((s41b+16)/2)
+if s41b>=16 then lpoke v.palette_ptr+4*$e,$00FF0000+(s41b-16)*$11000000
+if s41b>=32 then lpoke v.palette_ptr+4*$e,$FFFF0000-(s41b-32)*$00220000
+if s41b>=48 then lpoke v.palette_ptr+4*$e,$FF000000
+
+for ii=0 to s1b:  cc=$bbbbbbbb : for jj=270 to 278 step 4: lpoke graphicbuf_ptr+448*(59-ii)+jj,cc : next jj: next ii
+for ii=0 to s21b: cc=$cccccccc : for jj=286 to 294 step 4: lpoke graphicbuf_ptr+448*(59-ii)+jj,cc : next jj: next ii
+for ii=0 to s31b: cc=$dddddddd : for jj=302 to 310 step 4: lpoke graphicbuf_ptr+448*(59-ii)+jj,cc : next jj: next ii
+for ii=0 to s41b: cc=$eeeeeeee : for jj=318 to 326 step 4: lpoke graphicbuf_ptr+448*(59-ii)+jj,cc : next jj: next ii
+'for ii=0 to s41b: cc=(ii+8)/8: cc=cc*$11111111 : for jj=318 to 326 step 4: lpoke graphicbuf_ptr+448*(59-ii)+jj,cc : next jj: next ii
+
+end sub
+
+
+
+sub scope
+
+
+for jj=3136 to 26432 step 448: for ii=4 to 328 step 4: lpoke graphicbuf_ptr+ii+jj,0 :next ii : next jj
+for ii=0 to 511 ' 639
+qq1=dpeek(scope_ptr+4*ii)
+qq1+=dpeek(scope_ptr+4*ii+2)
+qq1=qq1/2048 : if qq1<7 then qq1=7 
+if qq1>59 then qq1=59
+qq2=1+abs(32-qq1)/2 : if qq2>7 then qq2=7
+putpixel4(ii+16,qq1,qq2) : next ii ' (dpeek(scope_ptr+4*ii)+dpeek(scope_ptr+4*ii+2))/8192,15) : next ii
+
+end sub
+			    
 
 sub putpixel4(x,y,c) 
 
@@ -286,18 +329,18 @@ close #5
 e=0
 dirnum3=0
 try
-  open "dirlist.txt" for input as #5 
+  open currentdir$+"dirlist.txt" for input as #5 
 catch e
 close #5                                          
 end try
 
 if e=4 then
   close #5
-  open "dirlist.txt" for output as #5
+  open currentdir$+"dirlist.txt" for output as #5
   print #5,".."
   filename$ = dir$("*", fbDirectory)
   while filename$ <> "" andalso filename$ <> nil
-    print #5, filename$
+    print filename$
     filename$ = dir$()
   end while
   close #5
@@ -307,7 +350,7 @@ endif
   
     
 if e=0 then ' dir list exists
-  i=2
+  var i=2
   v.setwritecolors($c8,$c1)
   do
     input #5,filename$
@@ -320,30 +363,33 @@ if e=0 then ' dir list exists
     endif  
   loop until filename$=nil orelse filename$="" 
   dirnum3=i-2
-  position 3,18: print dirnum3
+  close #5
   endif
   
 
-close #6
+close #5
+
 fileagain:
 
 e=0
-folenum3=0
+filenum3=0
 try
-  open "filelist.txt" for input as #6 
+  open currentdir$+"filelist.txt" for input as #5
 catch e
-close #6                                                
+print e
+close #5                                                
 end try
 
 if e=4 then
-  close #6
-  open "filelist.txt" for output as #6
+  close #5
+  open currentdir$+"filelist.txt" for output as #5
+  print geterr()
   filename$ = dir$("*", fbNormal)
   while filename$ <> "" andalso filename$ <> nil
-    print #6, filename$
-    filename$ = dir$()
+  print #5, filename$
+  filename$ = dir$()
   end while
-  close #6
+  close #5
   goto fileagain
 endif
     
@@ -351,7 +397,7 @@ if e=0 then ' file list exists
   i=2
     v.setwritecolors($29,$22)
   do
-    input #6,filename$
+    input #5,filename$
     if filename$<>"" then
       filename$=right$(filename$,38)
       filename$=insert$(space$(38),filename$,19-len(filename$)/2)
@@ -362,6 +408,7 @@ if e=0 then ' file list exists
  '   position 42+21-len(filename$)/2,i : print filename$ :i+=1
   loop until filename$=nil orelse filename$=""
   filenum3=i-2
+  close #5
 endif
 
 filenum1=0
@@ -380,9 +427,9 @@ end sub
 
 sub highlight(hpanel,hpos,hhigh)
 
-hq1=8+42*4*hpanel
-hq2=mainbuf_ptr+(2+hpos)*84*4
-if hpanel=0 andalso hhigh=1 then hq3=$c1c80000
+var hq1=8+42*4*hpanel
+var hq2=mainbuf_ptr+(2+hpos)*84*4
+if hpanel=0 andalso hhigh=1 then var hq3=$c1c80000
 if hpanel=0 andalso hhigh=0 then hq3=$c8c10000
 if hpanel=1 andalso hhigh=1 then hq3=$22290000
 if hpanel=1 andalso hhigh=0 then hq3=$29220000
@@ -505,8 +552,8 @@ for i=0 to 31: sn$(i)=space$(22) :next i
 c=0
 for i=1 to num
   for j=0 to 21
-    a=lpeek(addr(sn$(i)))
-    b=(peek(ma+20+30*(i-1)+j))
+    var a=lpeek(addr(sn$(i)))
+    var b=(peek(ma+20+30*(i-1)+j))
     if b>=32 then poke a+j,b : c=i ' c will be the last named sample
   next j
 next i
@@ -583,7 +630,7 @@ outtext48(86,44,sn$(tracker.currsamplenr(3)),15)
 
 v.s_buf_ptr=mainbuf_ptr
 v.s_cpl=84
-v_s_lines=21
+v.s_lines=21
 
 end sub
 
@@ -616,16 +663,16 @@ sub makedl
 
 ' Make colors 0 and 15 blue-green for the graphics part of the screen
 
-dltest=v.dl_ptr
-palettetest=v.palette_ptr
+'dltest=v.dl_ptr
+var palettetest=v.palette_ptr
 lpoke palettetest,lpeek(palettetest+161*4)
 lpoke palettetest+15*4,lpeek(palettetest+168*4)
 
 ' Prepare the title
-
-address=addr(version$(0))
+var i=0
+var address=addr(version$(0))
 for i=0 to 27: lpoke title_ptr+4*i,$77710000 : next i
-start=(28-len(version$)) / 2
+var start=(28-len(version$)) / 2
 for i=start to start+len(version$)-1: lpoke title_ptr+4*i,$77710000+peek(address+i-start): next i
 
 ' clear the display list
@@ -644,7 +691,7 @@ next i
 ' lines 36 to 42 empty, then 21 lines (= 21*16 screen lines and 21*32 DL entries) of 8x16 text with split screen - 84 chars from mainbuf, 28 from infobuf
 
 address=mainbuf_ptr
-address2=infobuf_ptr
+var address2=infobuf_ptr
 
 for i=0 to 20
   if i=20 then address2=infobuf_ptr+39*28*4 'display line 39 here

@@ -1,6 +1,6 @@
 'const _clkfreq = 319_215_686  'PAL*90
 const _clkfreq = 354693878
-option implicit
+'option implicit
 dim v as class using "hng037rm.spin2"
 dim rm as class using "retrocog.spin2"
 dim tracker as class using "trackerplayer.spin2"
