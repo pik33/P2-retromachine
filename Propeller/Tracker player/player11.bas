@@ -4,7 +4,7 @@
 const version$="Prop2play v.0.11"
 const statusline$=" Propeler2 wav/sid/mod player v. 0.11 --- 2022.02.08 --- pik33@o2.pl --- use serial terminal or RPi KBM interface to control --- arrows up,down move - pgup,pgdn move 10 positions - enter selects - tab switches panels - +,- controls volume - R rescans current directory ------"
 
-const module$="jungle.mod"
+const module$="enha.mod"
 
 
 ' Place graphics buffers at the top of memory so they will not move while editing the program
@@ -63,7 +63,6 @@ close #6
 var ma=lomem()+1024 : var mb=ma
 var pos=1
 open "/sd/mod/"+module$ for input as #4
-print geterr()
 do
   get #4,pos,filebuf(0),128,r
   pos+=r
@@ -96,9 +95,7 @@ do
 
   if ansibuf(3)=13 andalso panel=0 then
      open currentdir$+"dirlist.txt" for input as #7
-     print geterr()
      for i=0 to dirnum2 : input #7,filename$ :next i
-     print filename$
      chdir(currentdir$+filename$)
      currentdir$=currentdir$+filename$+"/"
      close #7
@@ -340,7 +337,7 @@ if e=4 then
   print #5,".."
   filename$ = dir$("*", fbDirectory)
   while filename$ <> "" andalso filename$ <> nil
-    print filename$
+    print #5, filename$
     filename$ = dir$()
   end while
   close #5
@@ -376,14 +373,12 @@ filenum3=0
 try
   open currentdir$+"filelist.txt" for input as #5
 catch e
-print e
 close #5                                                
 end try
 
 if e=4 then
   close #5
   open currentdir$+"filelist.txt" for output as #5
-  print geterr()
   filename$ = dir$("*", fbNormal)
   while filename$ <> "" andalso filename$ <> nil
   print #5, filename$
