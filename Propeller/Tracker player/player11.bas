@@ -4,7 +4,7 @@
 const version$="Prop2play v.0.11"
 const statusline$=" Propeler2 wav/sid/mod player v. 0.11 --- 2022.02.08 --- pik33@o2.pl --- use serial terminal or RPi KBM interface to control --- arrows up,down move - pgup,pgdn move 10 positions - enter selects - tab switches panels - +,- controls volume - R rescans current directory ------"
 
-const module$="enha.mod"
+const module$="2a.mod"
 
 
 ' Place graphics buffers at the top of memory so they will not move while editing the program
@@ -281,13 +281,15 @@ sub scope
 
 
 for jj=3136 to 26432 step 448: for ii=4 to 328 step 4: lpoke graphicbuf_ptr+ii+jj,0 :next ii : next jj
-for ii=0 to 511 ' 639
+qq1=dpeek(scope_ptr):qq1+=dpeek(scope_ptr+2) 
+var iii=1: do : var oldqq1=qq1: qq1=dpeek(scope_ptr+4*iii):qq1+=dpeek(scope_ptr+4*iii+2) : iii+=1: loop until iii>=128  orelse (oldqq1<65536 andalso qq1>65536)
+for ii=iii to iii+511 ' 639
 qq1=dpeek(scope_ptr+4*ii)
 qq1+=dpeek(scope_ptr+4*ii+2)
 qq1=qq1/2048 : if qq1<7 then qq1=7 
 if qq1>59 then qq1=59
 qq2=1+abs(32-qq1)/2 : if qq2>7 then qq2=7
-putpixel4(ii+16,qq1,qq2) : next ii ' (dpeek(scope_ptr+4*ii)+dpeek(scope_ptr+4*ii+2))/8192,15) : next ii
+putpixel4(ii-iii+16,qq1,qq2) : next ii ' (dpeek(scope_ptr+4*ii)+dpeek(scope_ptr+4*ii+2))/8192,15) : next ii
 
 end sub
 			    
