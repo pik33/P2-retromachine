@@ -13,7 +13,7 @@ srxpin=63
 stxpin=62
 baudrate=1920000
 mbaudrate=31250
-sbaudrate=921600
+sbaudrate=2000000
 
 var
 
@@ -34,7 +34,7 @@ repeat
 'this is the object and not a program
 
 pub start() :cog
-
+debug(udec(1))
 cog:=cogspin(16,serialcog(),@serialstack)
 return cog
 
@@ -68,7 +68,8 @@ repeat
   rr:=rxcheck(rxpin)
   mrr:=rxcheck(midiin)
   srr:=rxcheck(srxpin)
-
+'  if rr<>-1 
+'    debug(udec(rr))
 '  until rr>=0 || mrr>=0  || srr>=0
 
   
@@ -117,15 +118,17 @@ repeat
 
 'Keyboard and mouse
 
-  if (rr>=$80) && (rr<>$FF)
+  if (rr>=$80) && (rr<>$FF) && (b==(-1))
     b:=3
     kbmreport:=rr<<24
-  
-  if (rr<$80) && (b>0) && (rr>=0)
+    long[$40]:=rr 
+  elseif (b>0) && (rr>=0)
+
     b--
     kbmreport+=rr<<(b<<3)  
-  
-  if (rr==$FF)
+    long[$40]:=rr
+  elseif (rr==$FF)
+    long[$40]:=rr
     b:=0   
 
   if b==0  

@@ -71,8 +71,8 @@ ConsoleWindowWrite(WindowHandle,inttostr(report[0])+' ');
 ConsoleWindowWrite(WindowHandle,inttostr(report[1])+' ');
 ConsoleWindowWrite(WindowHandle,inttostr(report[2])+' ');
 ConsoleWindowWrite(WindowHandle,inttostr(report[3])+' ');
-serialwrite(@bb,4,count)
-{
+
+
 for i:=0 to 3 do
   begin
   b:=report[i];
@@ -80,7 +80,6 @@ for i:=0 to 3 do
   ConsoleWindowWrite(WindowHandle,inttostr(count)+' ');
   end;
 ConsoleWindowWriteln(WindowHandle,' ');
-}
 end;
 
 

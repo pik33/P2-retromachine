@@ -1,8 +1,9 @@
+
 #include "retromachine.bi"
 
-'const HEAPSIZE = 3072
-const version$="Prop2play v.0.11"
-const statusline$=" Propeler2 wav/sid/mod player v. 0.11 --- 2022.02.08 --- pik33@o2.pl --- use serial terminal or RPi KBM interface to control --- arrows up,down move - pgup,pgdn move 10 positions - enter selects - tab switches panels - +,- controls volume - R rescans current directory ------"
+const HEAPSIZE = 8192
+const version$="Prop2play v.0.12"
+const statusline$=" Propeler2 wav/sid/mod player v. 0.12 --- 2022.02.13 --- pik33@o2.pl --- use serial terminal or RPi KBM interface to control --- arrows up,down move - pgup,pgdn move 10 positions - enter selects - tab switches panels - +,- controls volume - R rescans current directory ------"
 
 const module$="hicopyp!.mod"
 
@@ -34,7 +35,7 @@ dim mainstack(64) as ulong
 dim filename$ as string
 dim s1a,s1b,s21a,s21b,s31a,s31b,s41a,s41b as integer
 dim cc,qq1,qq2,framenum,e as ulong
-dim dirnum1,dirnum2,dirnum3,filenum1,filenum2,filenum3,olddirnum1,oldfilenum1 as integer
+dim dirnum1,dirnum2,dirnum3,filenum1,filenum2,filenum3,olddirnum1,oldfilenum1,filemove as integer
 dim samples,panel,mainvolume,mainpan,c,cog,ma,mb,pos as ulong
 dim currentdir$ as string
 dim kwas$ as string
@@ -56,7 +57,7 @@ preparepanels
 mount "/sd", _vfs_open_sdcard()
 chdir "/sd"
 currentdir$="/sd/"
-
+filemove=0
 
 
 getlists(0)
@@ -95,18 +96,19 @@ do
 
   scope
   bars
-  
  
    if lpeek($30)<>0 then 
     if peek($33)=$88 then  ansibuf(0)=ansibuf(1): ansibuf(1)=ansibuf(2) : ansibuf(2)=ansibuf(3) : ansibuf(3)=peek($31)
+    position 1,18: print ansibuf(3);" ";ansibuf(2);" ";ansibuf(1);" ";ansibuf(0)
     lpoke $30,0 
   endif  
 
-  if lpeek($3c)<>0 then ansibuf(0)=ansibuf(1): ansibuf(1)=ansibuf(2) : ansibuf(2)=ansibuf(3) : ansibuf(3)=peek($3D): lpoke($3C,0)
+  if lpeek($3c)<>0 then ansibuf(0)=ansibuf(1): ansibuf(1)=ansibuf(2) : ansibuf(2)=ansibuf(3) : ansibuf(3)=peek($3D): lpoke($3C,0)  :   position 1,18: print ansibuf(3);" ";ansibuf(2);" ";ansibuf(1);" ";ansibuf(0)
+
+
 
 
   if (ansibuf(3)=asc("r")) orelse (ansibuf(3)=asc("R")) then getlists(1)  : ansibuf(3)=0 ' recreate dirlist
-
 
   if (ansibuf(3)=13 orelse ansibuf(3)=141) andalso panel=0 then
      open currentdir$+"dirlist.txt" for input as #7
@@ -121,7 +123,8 @@ do
   if (ansibuf(3)=13 orelse ansibuf(3)=141) andalso panel=1 then
     cpustop(cog)
     open currentdir$+"filelist.txt" for input as #7
-    get #7,1+39*(filenum2-1),displayname(0),39 : input #7,filename$ 
+    if filenum2>0 then get #7,1+39*(filenum2-1),displayname(0),39 
+    input #7,filename$ 
     filename$=rtrim$(filename$): position 1,12: v.write(filename$)
     close #7
     kwas$=currentdir$+filename$
@@ -145,7 +148,7 @@ do
   getinfo(ma,samples)
    
   cog=cpu (mainloop, @mainstack(0))  
-    
+ 
   ansibuf(3)=0
   endif
 
@@ -159,12 +162,18 @@ do
     if panel=0 then highlight(panel,dirnum1,1)
     ansibuf(3)=0
   endif
-  if (ansibuf(3)=66 andalso ansibuf(2)=91 andalso ansibuf(1)=27) orelse (ansibuf(3)=$D0)  then ' arrow down  
+  
+  
+  if (ansibuf(3)=66 andalso ansibuf(2)=91 andalso ansibuf(1)=27) orelse (ansibuf(3)=$D0)  then filemove=1 ' arrow down  
+  if (ansibuf(3)=54 andalso ansibuf(2)=91 andalso ansibuf(1)=27) orelse (ansibuf(3)=205)  then filemove=10 ' pg down  
+  if (ansibuf(3)=65 andalso ansibuf(2)=91 andalso ansibuf(1)=27) orelse (ansibuf(3)=$D1)  then filemove=(-1)' arrow up 
+  if (ansibuf(3)=53 andalso ansibuf(2)=91 andalso ansibuf(1)=27) orelse (ansibuf(3)=203)  then filemove=(-10)' pg up 
+
+  if filemove>0 then
     if panel=0 then
       olddirnum1=dirnum1
- '     position 1,18:print dirnum3
-      dirnum1+=1  ' highlighting
-      dirnum2+=1  ' file
+      dirnum1+=filemove  ' highlighting
+      dirnum2+=filemove  ' file
       if dirnum1>=dirnum3 then dirnum1=dirnum3-1 'todo dirnum2
      
       if dirnum1>=10 then dirnum1=10
@@ -175,35 +184,44 @@ do
     endif    
     if panel=1 then
       oldfilenum1=filenum1
-      filenum1+=1  ' highlighting
-      filenum2+=1  ' file
+      filenum1+=filemove  ' highlighting
+      filenum2+=filemove  ' file
       if filenum2>=filenum3 then filenum2=filenum3-1            ' filenum2 has to be less than all files count
       if filenum1>=filenum3 then filenum1=filenum3-1 : goto 199 ' filenum1 has to be less than all files count     
-      if filenum1>=17 then filenum1=17                          ' and also less than 18, there is 18 slots available in the panel
-      if filenum1>oldfilenum1 then                              ' only highlight changed
+                           ' and also less than 18, there is 18 slots available in the panel
+      if filenum1<=17  then                              ' only highlight changed
         highlight(1,oldfilenum1,0)
-        highlight(1,filenum1,1)        
+        highlight(1,filenum1,1)       
         goto 199
       endif    
+      filenum1=17
       v.setwritecolors($29,$22)  
-      open "filelist.txt" for input as #6                       ' if we are here, new list has to be read
+      
+      close #9
+      open currentdir$+"filelist.txt" for input as #9                    ' if we are here, new list has to be read
+      position 1,10: print geterr()
       displayname_ptr=addr(displayname(0))
-      for ii=filenum2-17 to filenum2 : get #6,1+39*ii,displayname(0),39
+      for ii=filenum2-17 to filenum2 : get #9,1+39*ii,displayname(0),39
         j=38 : do : j-=1 : loop until displayname(j)>32:  var k=j 
         position 44,ii+2-filenum2+17: for j=0 to (38-k)/2-1: v.write(" ") : next j  
         for j=0 to 38-(38-k)/2-1: v.write(chr$(displayname(j))) :next j
       next ii
-      close #6
+      close #9
+      
+      
       highlight(1,filenum1,1)                                      
     endif    
    
-199 ansibuf(3)=0: ansibuf(2)=0 : ansibuf(1)=0      
+199 ansibuf(3)=0: ansibuf(2)=0 : ansibuf(1)=0    :filemove=0  
+ 
   endif
-   if (ansibuf(3)=65 andalso ansibuf(2)=91 andalso ansibuf(1)=27) orelse (ansibuf(3)=$D1)  then ' arrow up 
+  
+  
+  if filemove<0 then 
     if panel=0 then
       olddirnum1=dirnum1
-      dirnum1-=1  ' highlighting
-      dirnum2-=1  ' file
+      dirnum1+=filemove  ' highlighting
+      dirnum2+=filemove  ' file
       if dirnum1<0 then dirnum1=0
       if dirnum1<>olddirnum1 then
         highlight(0,olddirnum1,0)
@@ -212,19 +230,36 @@ do
     endif
     if panel=1 then
       oldfilenum1=filenum1
-      filenum1-=1  ' highlighting
-      filenum2-=1  ' filefunction curdir$() as string
-
-      if filenum1<0 then filenum1=0
-      if filenum1<>oldfilenum1 then
+      filenum1+=filemove  ' highlighting
+      filenum2+=filemove ' filefunction curdir$() as string
+      if filenum2<0 then filenum2=0
+      if filenum1>=0 then
         highlight(1,oldfilenum1,0)
-        highlight(1,filenum1,1)        
+        highlight(1,filenum1,1)  
+        goto 230      
       endif
+      v.setwritecolors($29,$22)  
+      filenum1=0
+      close #9
+      position 0,14: print currentdir$+"filelist.txt"
+      open currentdir$+"filelist.txt" for input as #9                    ' if we are here, new list has to be read
+      position 1,10: print geterr()
+      displayname_ptr=addr(displayname(0))
+      for ii=filenum2 to filenum2+17 : get #9,1+39*ii,displayname(0),39
+        j=38 : do : j-=1 : loop until displayname(j)>32:  k=j 
+        position 44,ii+2-filenum2: for j=0 to (38-k)/2-1: v.write(" ") : next j  
+        for j=0 to 38-(38-k)/2-1: v.write(chr$(displayname(j))) :next j
+      next ii
+      close #9
+      
+      
+      highlight(1,filenum1,1) 
+
     endif
     
     
     
-    ansibuf(3)=0: ansibuf(2)=0 : ansibuf(1)=0      
+230  ansibuf(3)=0: ansibuf(2)=0 : ansibuf(1)=0  :filemove=0   
   endif
   
   
@@ -607,13 +642,15 @@ v.s_buf_ptr=infobuf_ptr           'set display variables to info buffer
 v.s_lines=40
 v.s_cpl=28
 v.s_buflen=40*28
- 
- 
-v.setwritecolors($93,$9a): position 2,2 : print "                        " : position 2,2: print module$ :v.setwritecolors($9a,$93)     ' test: module file name will be here
+'v.cls($9a,$93) 
+v.setwritecolors($9a,$93)
+for i=1 to 38: position 1,i : print space$(26): next i 
+v.setwritecolors($93,$9a): position 2,2 : print "                        " : position 2,2: print filename$ :v.setwritecolors($9a,$93)     ' test: module file name will be here
 position 2,3 : print "Amiga module: "; samples;" samples"
 position 2,5 : for i=ma to ma+19 : print chr$(peek(i) mod 128); : next i      ' first 20 bytes of module=title
   
 for i=0 to 31: sn$(i)=space$(22) :next i
+
 c=0
 for i=1 to num
   for j=0 to 21
