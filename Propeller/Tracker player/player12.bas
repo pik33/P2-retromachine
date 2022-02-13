@@ -32,13 +32,13 @@ dim filebuf(127) as ubyte
 dim r as ulong
 dim ansibuf(3) as ubyte
 dim mainstack(64) as ulong
-dim filename$ as string
+dim filename$,filename2$ as string
 dim s1a,s1b,s21a,s21b,s31a,s31b,s41a,s41b as integer
 dim cc,qq1,qq2,framenum,e as ulong
-dim dirnum1,dirnum2,dirnum3,filenum1,filenum2,filenum3,olddirnum1,oldfilenum1,filemove as integer
+dim dirnum1,dirnum2,dirnum3,filenum1,filenum2,filenum3,olddirnum1,oldfilenum1,filemove,modtime,time2 as integer
 dim samples,panel,mainvolume,mainpan,c,cog,ma,mb,pos as ulong
 dim currentdir$ as string
-dim kwas$ as string
+
 ' ----------------------------Main program start ------------------------------------
 
     
@@ -67,6 +67,7 @@ close #6
 
 ma=lomem()+1024 :  mb=ma
 pos=1
+/'
 open "/sd/mod/"+module$ for input as #4
 do
   get #4,pos,filebuf(0),128,r
@@ -88,7 +89,8 @@ getinfo(ma,samples)
 'mainloop
 
 cog=cpu (mainloop, @mainstack(0))
-
+'/
+cog=-1
 panel=0
 s1a=0
 do
@@ -96,14 +98,17 @@ do
 
   scope
   bars
+  v.setwritecolors($1c,$e2)
+  time2=framenum-modtime: position 15,18: v.write(v.inttostr2(time2/180000,2)): v.write(":"):v.write(v.inttostr2((time2 mod 180000)/3000,2)):v.write(":"):v.write(v.inttostr2((time2 mod 3000)/50,2)):v.write(":"):v.write(v.inttostr2((time2 mod 50),2))
+ 
  
    if lpeek($30)<>0 then 
     if peek($33)=$88 then  ansibuf(0)=ansibuf(1): ansibuf(1)=ansibuf(2) : ansibuf(2)=ansibuf(3) : ansibuf(3)=peek($31)
-    position 1,18: print ansibuf(3);" ";ansibuf(2);" ";ansibuf(1);" ";ansibuf(0)
+ '   position 1,18: print ansibuf(3);" ";ansibuf(2);" ";ansibuf(1);" ";ansibuf(0)
     lpoke $30,0 
   endif  
 
-  if lpeek($3c)<>0 then ansibuf(0)=ansibuf(1): ansibuf(1)=ansibuf(2) : ansibuf(2)=ansibuf(3) : ansibuf(3)=peek($3D): lpoke($3C,0)  :   position 1,18: print ansibuf(3);" ";ansibuf(2);" ";ansibuf(1);" ";ansibuf(0)
+  if lpeek($3c)<>0 then ansibuf(0)=ansibuf(1): ansibuf(1)=ansibuf(2) : ansibuf(2)=ansibuf(3) : ansibuf(3)=peek($3D): lpoke($3C,0)'  :   position 1,18: print ansibuf(3);" ";ansibuf(2);" ";ansibuf(1);" ";ansibuf(0)
 
 
 
@@ -121,18 +126,17 @@ do
   endif
   
   if (ansibuf(3)=13 orelse ansibuf(3)=141) andalso panel=1 then
-    cpustop(cog)
+    if cog>0 then cpustop(cog)
     open currentdir$+"filelist.txt" for input as #7
     if filenum2>0 then get #7,1+39*(filenum2-1),displayname(0),39 
     input #7,filename$ 
-    filename$=rtrim$(filename$): position 1,12: v.write(filename$)
+    filename$=rtrim$(filename$)': position 1,12: v.write(filename$)
     close #7
-    kwas$=currentdir$+filename$
-    position 1,14: v.write(kwas$)
+    filename2$=currentdir$+filename$
     mb=ma' : position 1,15: print mb : position 1,16: print filename$
-    open kwas$ for input as #4
+    open filename2$ for input as #4
     pos=1
-    position 10,1: print geterr()
+ '   position 10,1: print geterr()
     do
      get #4,pos,filebuf(0),128,r
      pos+=r
@@ -141,15 +145,18 @@ do
 
    loop until r<>128 orelse mb>= scope_ptr-4
    close #4
-   position 3,17: v.write(v.inttostr2(pos-1,8)) 
+'   position 3,17: v.write(v.inttostr2(pos-1,8)) 
    tracker.initmodule(ma,0)
 
   samples=15: if peek(ma+1080)=asc("M") and peek(ma+1082)=asc("K") then samples=31
   getinfo(ma,samples)
    
   cog=cpu (mainloop, @mainstack(0))  
- 
+  modtime=framenum
   ansibuf(3)=0
+  v.setwritecolors($ea,$e2)
+  position 2,16:v.write(space$(38)): filename2$=right$(filename2$,38): position 2,16: v.write(filename2$)
+'  position 2,17:v.write("Amiga module")
   endif
 
 
@@ -199,7 +206,7 @@ do
       
       close #9
       open currentdir$+"filelist.txt" for input as #9                    ' if we are here, new list has to be read
-      position 1,10: print geterr()
+   '   position 1,10: print geterr()
       displayname_ptr=addr(displayname(0))
       for ii=filenum2-17 to filenum2 : get #9,1+39*ii,displayname(0),39
         j=38 : do : j-=1 : loop until displayname(j)>32:  var k=j 
@@ -241,9 +248,9 @@ do
       v.setwritecolors($29,$22)  
       filenum1=0
       close #9
-      position 0,14: print currentdir$+"filelist.txt"
+   '   position 0,14: print currentdir$+"filelist.txt"
       open currentdir$+"filelist.txt" for input as #9                    ' if we are here, new list has to be read
-      position 1,10: print geterr()
+   '   position 1,10: print geterr()
       displayname_ptr=addr(displayname(0))
       for ii=filenum2 to filenum2+17 : get #9,1+39*ii,displayname(0),39
         j=38 : do : j-=1 : loop until displayname(j)>32:  k=j 
@@ -428,7 +435,7 @@ try
 catch e
 close #5                                          
 end try
-position 1,18: print e
+'position 1,18: print e
 360 if e=4 then
   close #5
   open currentdir$+"dirlist.txt" for output as #5
@@ -581,7 +588,7 @@ v.s_cpl=84
 v.s_buflen=21*84
 cls($c8,$c1)                                                                                                                    'clear the buffer and make it green
 for i=0 to 20: for j=42 to 83:  lpoke mainbuf_ptr+4*(84*i+j), $29220020 :next j : next i					'red for files
-for i=14 to 20: for j=0 to 41:  lpoke mainbuf_ptr+4*(84*i+j), $EAE40020 :next j : next i                                        'yellow for playing timer
+for i=14 to 20: for j=0 to 41:  lpoke mainbuf_ptr+4*(84*i+j), $EAE20020 :next j : next i                                        'yellow for playing timer
 poke mainbuf_ptr, 10: for i=1 to 40:poke mainbuf_ptr+4*i,3 : next i : poke mainbuf_ptr+4*i,9                                    'Upper line with semigraphic frame
 poke mainbuf_ptr+13*84*4, 12: for i=1 to 40 : poke mainbuf_ptr+13*84*4+i*4,3 :  next i : poke mainbuf_ptr+13*84*4+4*i,11        'Lower semigraphic frame
 for i=1 to 12: poke mainbuf_ptr+84*4*i,4:  poke mainbuf_ptr+(84*4)*i+41*4,4: next i                                             'Left and right semigraphic
@@ -595,7 +602,7 @@ v.setwritecolors($29,$22): position 44,0 : print " Files "
 poke mainbuf_ptr+14*84*4, 10: for i=1 to 40 : poke mainbuf_ptr+14*84*4+i*4,3 : next i : poke mainbuf_ptr+14*84*4+4*i,9            
 poke mainbuf_ptr+20*84*4, 12: for i=1 to 40 : poke mainbuf_ptr+20*84*4+i*4,3 : next i : poke mainbuf_ptr+20*84*4+4*i,11       
 for i=15 to 19: poke mainbuf_ptr+84*4*i,4:  poke mainbuf_ptr+(84*4)*i+41*4,4: next i                                                 
-v.setwritecolors($ea,$e4) : position 2,14 : print " Now playing "                                                                    
+v.setwritecolors($ea,$e2) : position 2,14 : print " Now playing "                                                                    
                                  
 v.setbordercolor2(v.getpalettecolor(113))
 lpoke v.palette_ptr+4,lpeek(v.palette_ptr+4*202)
