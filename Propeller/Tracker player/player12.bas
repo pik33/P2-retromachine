@@ -67,39 +67,20 @@ close #6
 
 ma=lomem()+1024 :  mb=ma
 pos=1
-/'
-open "/sd/mod/"+module$ for input as #4
-do
-  get #4,pos,filebuf(0),128,r
-  pos+=r
-  for i=0 to r-1 : poke mb+i,filebuf(i) : next i
-  mb+=r 
 
-loop until r<>128 orelse mb>= scope_ptr-4
-close #4
-  position 3,16: v.write(v.inttostr2(pos-1,8)) 
-tracker.initmodule(ma,0)
-
-samples=15: if peek(ma+1080)=asc("M") and peek(ma+1082)=asc("K") then samples=31
-getinfo(ma,samples)
-
-
-'if lpeek($3c)<>0 then position 30,15: v.write(v.inttostr2(q2,8)) :position 30,16: v.write(v.inttostr2(q,8)): position 30,17 : v.write(v.inttostr2(peek($3d),8)): q2=q: q=peek($3d): lpoke $3c,0
-
-'mainloop
-
-cog=cpu (mainloop, @mainstack(0))
-'/
 cog=-1
 panel=0
 s1a=0
+   
+
 do
   waitvbl
-
+  if cog=(-1) then framenum+=1  :  scrollstatus((framenum) mod (8*sl))
+  
   scope
   bars
   v.setwritecolors($1c,$e2)
-  time2=framenum-modtime: position 15,18: v.write(v.inttostr2(time2/180000,2)): v.write(":"):v.write(v.inttostr2((time2 mod 180000)/3000,2)):v.write(":"):v.write(v.inttostr2((time2 mod 3000)/50,2)):v.write(":"):v.write(v.inttostr2((time2 mod 50),2))
+  if cog>(-1) then time2=framenum-modtime: position 15,18: v.write(v.inttostr2(time2/180000,2)): v.write(":"):v.write(v.inttostr2((time2 mod 180000)/3000,2)):v.write(":"):v.write(v.inttostr2((time2 mod 3000)/50,2)):v.write(":"):v.write(v.inttostr2((time2 mod 50),2))
  
  
    if lpeek($30)<>0 then 
