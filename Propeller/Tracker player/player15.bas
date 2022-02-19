@@ -2,10 +2,8 @@
 #include "retromachine.bi"
 
 const HEAPSIZE = 8192
-const version$="Prop2play v.0.13"
-const statusline$=" Propeler2 wav/sid/mod player v. 0.13 --- 2022.02.18 --- pik33@o2.pl --- use serial terminal or RPi KBM interface to control --- arrows up,down move - pgup,pgdn move 10 positions - enter selects - tab switches panels - +,- controls volume - 1..4 switch channels on/off - 5,6 stereo separation - R rescans current directory ------"
-
-const module$="hicopyp!.mod"
+const version$="Prop2play v.0.15"
+const statusline$=" Propeler2 wav/sid/mod player v. 0.15 --- 2022.02.19 --- pik33@o2.pl --- use serial terminal or RPi KBM interface to control --- arrows up,down move - pgup/pgdn or w/s move 10 positions - enter selects - tab switches panels - +,- controls volume - 1..4 switch channels on/off - 5,6 stereo separation - R rescans current directory ------"
 
 
 ' Place graphics buffers at the top of memory so they will not move while editing the program
@@ -201,13 +199,33 @@ do
       olddirnum1=dirnum1
       dirnum1+=filemove  ' highlighting
       dirnum2+=filemove  ' file
-      if dirnum1>=dirnum3 then dirnum1=dirnum3-1 'todo dirnum2
-     
-      if dirnum1>=10 then dirnum1=10
-      if dirnum1<>olddirnum1 then
+      if dirnum2>=dirnum3 then dirnum2=dirnum3-1            ' filenum2 has to be less than all files count
+      if dirnum1>=dirnum3 then dirnum1=dirnum3-1 : goto 199 ' filenum1 has to be less than all files count     
+      if dirnum1<=9  then                                      ' only highlight changed
         highlight(0,olddirnum1,0)
-        highlight(0,dirnum1,1)        
-      endif
+        highlight(0,dirnum1,1)       
+        goto 199
+      endif    
+      dirnum1=9
+      v.setwritecolors($c9,$c1)  
+      
+      close #9
+      open currentdir$+"dirlist.txt" for input as #9                    ' if we are here, new list has to be read
+   '   position 1,10: print geterr()
+      displayname_ptr=addr(displayname(0))
+      for ii=dirnum2-9 to dirnum2: get #9,1+39*ii,displayname(0),39
+        j=38 : do : j-=1 : loop until displayname(j)>32:  var k=j 
+        position 2,ii+2-dirnum2+9: for j=0 to (39-k)/2-2: v.write(" ") : next j  
+        for j=0 to 38-(38-k)/2-1: v.write(chr$(displayname(j))) :next j
+      next ii
+      close #9
+      
+      
+      highlight(0,dirnum1,1)          
+     
+       
+ 
+      
     endif    
     if panel=1 then
       oldfilenum1=filenum1
@@ -229,7 +247,7 @@ do
    '   position 1,10: print geterr()
       displayname_ptr=addr(displayname(0))
       for ii=filenum2-17 to filenum2: get #9,1+39*ii,displayname(0),39
-        j=38 : do : j-=1 : loop until displayname(j)>32:  var k=j 
+        j=38 : do : j-=1 : loop until displayname(j)>32: k=j 
         position 44,ii+2-filenum2+17: for j=0 to (39-k)/2-2: v.write(" ") : next j  
         for j=0 to 38-(38-k)/2-1: v.write(chr$(displayname(j))) :next j
       next ii
@@ -248,12 +266,31 @@ do
     if panel=0 then
       olddirnum1=dirnum1
       dirnum1+=filemove  ' highlighting
-      dirnum2+=filemove  ' file
-      if dirnum1<0 then dirnum1=0
-      if dirnum1<>olddirnum1 then
+      dirnum2+=filemove ' filefunction curdir$() as string
+      if dirnum2<0 then dirnum2=0
+      if dirnum1>=0 then
         highlight(0,olddirnum1,0)
-        highlight(0,dirnum1,1)        
+        highlight(0,dirnum1,1)  
+        goto 230      
       endif
+      v.setwritecolors($c9,$c1)  
+      dirnum1=0
+      close #9
+   '   position 0,14: print currentdir$+"filelist.txt"
+      open currentdir$+"dirlist.txt" for input as #9                    ' if we are here, new list has to be read
+   '   position 1,10: print geterr()
+      displayname_ptr=addr(displayname(0))
+      for ii=dirnum2 to dirnum2+9 : get #9,1+39*ii,displayname(0),39
+        j=38 : do : j-=1 : loop until displayname(j)>32:  k=j 
+        position 2,ii+2-dirnum2: for j=0 to (39-k)/2-2: v.write(" ") : next j  
+        if ii<dirnum3 then for j=0 to 38-(38-k)/2-1: v.write(chr$(displayname(j))) :next j
+      next ii
+      close #9
+      
+      
+      highlight(0,dirnum1,1)    
+    
+
     endif
     if panel=1 then
       oldfilenum1=filenum1
@@ -456,7 +493,7 @@ e=geterr()
 360 if e=4 then
   close #5
   open currentdir$+"dirlist.txt" for output as #5
-  print #5,".."
+  print #5,".."+space$(36)
   filename$ = dir$("*", fbDirectory)
   while filename$ <> "" andalso filename$ <> nil
     if len(filename$)<38 then filename$=filename$+space$(38-len(filename$))
