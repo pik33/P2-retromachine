@@ -1,5 +1,8 @@
 'const _clkfreq = 319_215_686  'PAL*90
-const _clkfreq = 354693878
+const _clkfreq = 354693878 
+'349977600=31*256*44100=350000000=2/35=44102,8225806
+'356352000=29*256*48000=356363636=11/196=48001,5673491
+
 'option implicit
 dim v as class using "hng037rm.spin2"
 dim rm as class using "retrocog.spin2"

@@ -4,7 +4,9 @@
 const HEAPSIZE = 8192
 const version$="Prop2play v.0.15"
 const statusline$=" Propeler2 wav/sid/mod player v. 0.15 --- 2022.02.19 --- pik33@o2.pl --- use serial terminal or RPi KBM interface to control --- arrows up,down move - pgup/pgdn or w/s move 10 positions - enter selects - tab switches panels - +,- controls volume - 1..4 switch channels on/off - 5,6 stereo separation - R rescans current directory ------"
-
+const hubset350=%1_000001__00_0010_0010__1111_1011 '350_000_000 =31*44100
+const hubset354=%1_110000__11_0110_1100__1111_1011 '354_693_878
+const hubset356=%1_001010__00_1100_0011__1111_1011 '356_352_000 =29*256*48001,5673491
 
 ' Place graphics buffers at the top of memory so they will not move while editing the program
 const base2=$70000
@@ -42,7 +44,7 @@ dim mainvolume, mainpan as integer
 ' ----------------------------Main program start ------------------------------------
 
 channelvol(0)=1 : channelvol(1)=1 : channelvol(2)=1 : channelvol(3)=1    
-mainvolume=127 : mainpan=8192  ' vol: 1..128..(255)  pan 0 (mono)..8192 (full)
+mainvolume=127 : mainpan=2048  ' vol: 1..128..(255)  pan 0 (mono)..8192 (full)
 startmachine
 startvideo
 startaudio
