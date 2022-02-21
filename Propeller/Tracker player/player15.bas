@@ -41,8 +41,8 @@ dim currentdir$ as string
 dim channelvol(4), channelpan(4) as integer
 dim mainvolume, mainpan as integer
 dim samplerate as ulong
-declare wavebuf  alias $20000 as ubyte($50000)
-
+declare wavebuf alias $20000 as ubyte($28000)
+declare wavebuf2 alias $48000 as ubyte($28000)
 
 ' ----------------------------Main program start ------------------------------------
 
@@ -190,6 +190,7 @@ do
     v.setwritecolors($ea,$e1)
     position 2,15:v.write(space$(38)): filename2$=right$(filename2$,38): position 2,15: v.write(filename2$)
     endif
+    
   if lcase$(right$(filename$,3))="wav" then  
     hubset(hubset350)
     if cog>0 then cpustop(cog)
@@ -200,13 +201,25 @@ do
      filename3$=currentdir$+filename$
      var qqq=0
      var rrr=0
-     open filename3$ for input as #4
-     e=geterr(): print e
-     get #4,0,wavebuf(0),$10,qqq :print qqq
-     close #4
-     pos=1 
+     close #9: open filename3$ for input as #9
+     e=geterr(): position 1,13: print strerror$(e) :print " "
+     get #9,1,wavebuf(0),$50000, qqq :print qqq
+   '  close #9
+     pos=$50001 
      mb=ma
-     cog=cpu (waveloop, @mainstack)     
+ 
+     cog=cpu (waveloop, @mainstack)    
+ 
+do
+     do : loop until (lpeek(base) and $FFFFFF)>$28000
+ 
+    get #9,pos,wavebuf(0),$28000
+     pos+=$28000
+ 
+     do: position 1,13: print lpeek(base): loop until (lpeek(base) and $FFFFFF) <$28000
+     get #9,pos,wavebuf2(0),$28000
+     pos+=$28000 
+ loop
      ansibuf(3)=0
     endif  
   endif
@@ -533,30 +546,39 @@ loop
 end sub
 
 
-sub waveloop
-var rrr=$0
-var qqq=0
+' ---------------   wave player experimental
 
-     rrr=2
-         
+sub waveloop
+     
+     var qqq=0
+     var rrr=0
+ '    close #9: open filename3$ for input as #9
+ '    e=geterr(): position 1,13: print strerror$(e) :print " "
+ '   get #9,1,wavebuf,$50000,qqq :print qqq
+  '   close #9
+
+
 
                                                                  ' remember trigger count
-lpoke base+8, $20000 or $40000000                               ' set new sample ptr and request sample restart 
+lpoke base+8, $20000 or $c0000000                               ' set new sample ptr and request sample restart 
 lpoke base+12,0                 ' set new loop start   
-lpoke base+16,$40000                                        ' set new loop and
+lpoke base+16,$50000                                        ' set new loop and
 dpoke base+20, 16384     ' set volume - this and the rest doesn't depend on trigger
 dpoke base+22, 16384                                                              ' set pan
-dpoke base+24, 19                 ' set period
+dpoke base+24, 31                 ' set period
 dpoke base+26, 4    
-
-lpoke base+32+8, $20002 or $40000000                               ' set new sample ptr and request sample restart 
+'dpoke base+28,$80000100
+lpoke base+32+8, $20002 or $c0000000                               ' set new sample ptr and request sample restart 
 lpoke base+32+12,0                 ' set new loop start   
-lpoke base+32+16,$40000                                        ' set new loop and
+lpoke base+32+16,$50000                                        ' set new loop and
 dpoke base+32+20, 16384     ' set volume - this and the rest doesn't depend on trigger
 dpoke base+32+22, 0                                                             ' set pan
-dpoke base+32+24, 19                 ' set period
+dpoke base+32+24, 31                 ' set period
 dpoke base+32+26, 4    
+lpoke base+8, $20000 or $c0000000  
+lpoke base+32+8, $20002 or $c0000000
 do
+loop
 /'
 
 
@@ -570,7 +592,7 @@ do
   get #10,rrr,wavebuf2($28000),1
   rrr+=1
 '/
-loop
+'loop
 
 end sub
 
