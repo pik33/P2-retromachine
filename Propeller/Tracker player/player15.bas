@@ -213,13 +213,15 @@ do
 do
      do : loop until (lpeek(base) and $FFFFFF)>$28000
  
-    get #9,pos,wavebuf(0),$28000
+    get #9,pos,wavebuf(0),$28000,qqq
      pos+=$28000
  
      do: position 1,13: print lpeek(base): loop until (lpeek(base) and $FFFFFF) <$28000
-     get #9,pos,wavebuf2(0),$28000
+     get #9,pos,wavebuf2(0),$28000,qqq
      pos+=$28000 
- loop
+ loop until qqq<>$28000
+ close #9
+ for i=$20000 to $70000 step 4: lpoke i,$80008000: next i
      ansibuf(3)=0
     endif  
   endif
