@@ -115,7 +115,7 @@ dat
 combinedWaveforms   file "combinedwaveforms.bin"
 
 dat
-dumpFile            file "/home/pik33/Programowanie/P2-retromachine/Propeller/Sidcog/plastic_pop.dmp"
+dumpFile            file "plastic_pop.dmp"
 
 DAT
 

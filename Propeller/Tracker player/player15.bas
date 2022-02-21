@@ -31,8 +31,8 @@ dim sl as ulong
 dim filebuf(127) as ubyte
 dim r as ulong
 dim ansibuf(3) as ubyte
-dim mainstack(64) as ulong
-dim filename$,filename2$ as string
+declare mainstack alias $70000 as ulong
+dim filename$,filename2$,filename3$ as string
 dim s1a,s1b,s21a,s21b,s31a,s31b,s41a,s41b,cog as integer
 dim cc,qq1,qq2,framenum,e as ulong
 dim dirnum1,dirnum2,dirnum3,filenum1,filenum2,filenum3,olddirnum1,oldfilenum1,filemove,modtime,time2 as integer
@@ -40,6 +40,9 @@ dim samples,panel,c,ma,mb,pos as ulong
 dim currentdir$ as string
 dim channelvol(4), channelpan(4) as integer
 dim mainvolume, mainpan as integer
+dim samplerate as ulong
+declare wavebuf  alias $20000 as ubyte($50000)
+
 
 ' ----------------------------Main program start ------------------------------------
 
@@ -73,7 +76,7 @@ pos=1
 cog=-1
 panel=0
 s1a=0
-   
+samplerate=100   
 
 do
   waitvbl
@@ -94,8 +97,34 @@ do
   if lpeek($3c)<>0 then ansibuf(0)=ansibuf(1): ansibuf(1)=ansibuf(2) : ansibuf(2)=ansibuf(3) : ansibuf(3)=peek($3D): lpoke($3C,0)'  :   position 1,18: print ansibuf(3);" ";ansibuf(2);" ";ansibuf(1);" ";ansibuf(0)
 
 
+  if ansibuf(3)=asc("7") then 
+    samplerate-=1
+    if samplerate<65 then samplerate=65
+    lpoke base+28,samplerate+$80000000
 
-
+    
+    waitms(1)
+    lpoke base+28,0
+    ansibuf(3)=0
+  endif  
+   
+   if ansibuf(3)=asc("8") then     
+    samplerate+=1
+    if samplerate>65535 then samplerate=65535
+    lpoke base+28,samplerate+$80000000
+     waitms(1)
+     lpoke base+28,0
+     ansibuf(3)=0
+   endif 
+     
+   if ansibuf(3)=asc("9") then     
+      samplerate=100
+     lpoke base+28,$80000064
+     waitms(1)
+     lpoke base+28,0
+     ansibuf(3)=0
+   endif
+   
   if (ansibuf(3)=asc("r")) orelse (ansibuf(3)=asc("R")) then getlists(1)  : ansibuf(3)=0 ' recreate dirlist
 
   if (ansibuf(3)=13 orelse ansibuf(3)=141) andalso panel=0 then
@@ -122,39 +151,64 @@ do
      position 44,0: v.write(left$(currentdir$,38))
      ansibuf(3)=0
   endif
+
+''----- Open and play the file
+  
   
   if (ansibuf(3)=13 orelse ansibuf(3)=141) andalso panel=1 then
-    if cog>0 then cpustop(cog)
+
     open currentdir$+"filelist.txt" for input as #7
     if filenum2>0 then get #7,1+39*(filenum2-1),displayname(0),39 
     input #7,filename$ 
     filename$=rtrim$(filename$)': position 1,12: v.write(filename$)
     close #7
-    filename2$=currentdir$+filename$
-    mb=ma' : position 1,15: print mb : position 1,16: print filename$
-    open filename2$ for input as #4
-    pos=1
- '   position 10,1: print geterr()
-    do
-     get #4,pos,filebuf(0),128,r
-     pos+=r
-     for i=0 to r-1 : poke mb+i,filebuf(i) : next i
-     mb+=r 
+    if lcase$(right$(filename$,3))="mod" then
 
-   loop until r<>128 orelse mb>= scope_ptr-4
-   close #4
-'   position 3,17: v.write(v.inttostr2(pos-1,8)) 
-   tracker.initmodule(ma,0)
+      if cog>0 then cpustop(cog)
+      filename2$=currentdir$+filename$
+      mb=ma' : position 1,15: print mb : position 1,16: print filename$
+      open filename2$ for input as #4
+      pos=1
+      do
+        get #4,pos,filebuf(0),128,r
+        pos+=r
+        for i=0 to r-1 : poke mb+i,filebuf(i) : next i
+        mb+=r 
+      loop until r<>128 orelse mb>= scope_ptr-4
+      close #4
+      tracker.initmodule(ma,0)
 
-  samples=15: if peek(ma+1080)=asc("M") and peek(ma+1082)=asc("K") then samples=31
-  getinfo(ma,samples)
+    samples=15: if peek(ma+1080)=asc("M") and peek(ma+1082)=asc("K") then samples=31
+    getinfo(ma,samples)
    
-  cog=cpu (mainloop, @mainstack(0))  
-  modtime=framenum
-  ansibuf(3)=0
-  v.setwritecolors($ea,$e1)
-  position 2,15:v.write(space$(38)): filename2$=right$(filename2$,38): position 2,15: v.write(filename2$)
-'  position 2,17:v.write("Amiga module")
+    cog=cpu (mainloop, @mainstack) 
+    hubset(hubset354)
+    samplerate=100
+    lpoke base+28,$8000_0064: waitms(2): lpoke base+28,0 
+    modtime=framenum
+    ansibuf(3)=0
+    v.setwritecolors($ea,$e1)
+    position 2,15:v.write(space$(38)): filename2$=right$(filename2$,38): position 2,15: v.write(filename2$)
+    endif
+  if lcase$(right$(filename$,3))="wav" then  
+    hubset(hubset350)
+    if cog>0 then cpustop(cog)
+     samplerate=256
+     lpoke base+28,$80000100
+     waitms(2)
+     lpoke base+28,0
+     filename3$=currentdir$+filename$
+     var qqq=0
+     var rrr=0
+     open filename3$ for input as #4
+     e=geterr(): print e
+     get #4,0,wavebuf(0),$10,qqq :print qqq
+     close #4
+     pos=1 
+     mb=ma
+     cog=cpu (waveloop, @mainstack)     
+     ansibuf(3)=0
+    endif  
   endif
 
   if ansibuf(3)=49 then channelvol(0)=1-channelvol(0) : ansibuf(3)=0
@@ -476,6 +530,48 @@ do
   scrollstatus((framenum) mod (8*sl))
   displaysamples
 loop
+end sub
+
+
+sub waveloop
+var rrr=$0
+var qqq=0
+
+     rrr=2
+         
+
+                                                                 ' remember trigger count
+lpoke base+8, $20000 or $40000000                               ' set new sample ptr and request sample restart 
+lpoke base+12,0                 ' set new loop start   
+lpoke base+16,$40000                                        ' set new loop and
+dpoke base+20, 16384     ' set volume - this and the rest doesn't depend on trigger
+dpoke base+22, 16384                                                              ' set pan
+dpoke base+24, 19                 ' set period
+dpoke base+26, 4    
+
+lpoke base+32+8, $20002 or $40000000                               ' set new sample ptr and request sample restart 
+lpoke base+32+12,0                 ' set new loop start   
+lpoke base+32+16,$40000                                        ' set new loop and
+dpoke base+32+20, 16384     ' set volume - this and the rest doesn't depend on trigger
+dpoke base+32+22, 0                                                             ' set pan
+dpoke base+32+24, 19                 ' set period
+dpoke base+32+26, 4    
+do
+/'
+
+
+   do
+  loop until lpeek(base) >$20000
+  get #10,rrr,wavebuf1(0),1
+  rrr+=1
+  position 1,13: print qqq
+  do
+  loop until lpeek(base)<$20000
+  get #10,rrr,wavebuf2($28000),1
+  rrr+=1
+'/
+loop
+
 end sub
 
 ' ---------------- end of the main program -----------------------------------------------------------------------

@@ -44,54 +44,6 @@ long channel7[8]
 long channel8[8]
 
 
-pub test
-
- 
-start()
-waitms(500)
-repeat
-  play(c4,500,16384)
-  play(d4,500,16384)
-  play(e4,500,16384)
-  play(f4,500,16384)
-  play(g4,500,16384)
-  play(a4,500,16384)
-  play(h4,500,16384)
-  play(2*c4,500,16384)
-  play(c4,500,0)
-  play(2*c4,500,16384)
-  play(h4,500,16384)
-  play(a4,500,16384)
-  play(g4,500,16384)
-  play(f4,500,16384)
-  play(e4,500,16384)
-  play(d4,500,16384)
-  play(c4,500,16384)
-  play(c4,500,0)
-
-
-
-pub play(ff,time,vol) |ilss,ss,ssf,base,iii
-
-' Test play 
-
-ss:=64
-ssf:=(ss*3568945)/(ff*2048)
-
-
-
-base:=@channel1[0]
-
-repeat iii from 0 to 7
-  long[base+32*iii+12]:=16
-  long[base+32*iii+16]:=2048+16
-  word[base+32*iii+20]:=vol/(2*(iii+1))
-  word[base+32*iii+22]:=8192
-  word[base+32*iii+24]:=ssf
-  word[base+32*iii+26]:=ss*(iii+1)
-  long [base+32*iii+8]:=@sinewave | $C0000000  
-repeat time
-    waitms(1)
 '--------------------------------------------------------------
 '---------- Init the variables, start the cog. ----------------
 '--------------------------------------------------------------
@@ -173,8 +125,20 @@ p401        mov     channeladd,cn             ' compute the pointer to channel p
 
             setq    #7                        ' read parameters
             rdlong  pointer0,ptra
+            testb command0,#31 wz
+            if_nz jmp #p404
+             getword qq,command0,#0
+             
+            wxpin qq,#left addpins 1
+            getbyte qq,qq,#0 
+            cmp qq,#0 wz
+            if_z wrpin dac2,#left addpins 1
+            if_nz wrpin dac,#left addpins 1
             
-            getword oldls,sample0,#0          ' extract old sample value
+            'wxpin qq,#righ
+            
+            
+p404            getword oldls,sample0,#0          ' extract old sample value
             getword oldrs,sample0,#1
      	    getword apan0,volpan0,#1          ' extract vol,pan,skip and freq from longs 
     	    getword avol0,volpan0,#0
@@ -335,7 +299,7 @@ lstart0     long 0
 lend0       long 0
 volpan0     long 0
 freqskip0   long 0
-ctime0      long 0
+command0    long 0
 
 afreq0      long 0
 askip0      long 0
@@ -368,7 +332,7 @@ scptr2 long 0
 scope long 0
 
 dac         long %10111_00000000_01_00010_0     'random dither, as 90 cycles period needed
-'dac        long %10111_00000000_01_00011_0     'pwm, left here for the future use, if any   
+dac2        long %10111_00000000_01_00011_0     'pwm, left here for the future use, if any   
 
 '-----------------------------------------------------------------------------------------
 '------ PASM driver ends here ------------------------------------------------------------
