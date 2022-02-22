@@ -28,7 +28,7 @@ dim oldtrigs(4) as ulong
 dim pan(4)
 dim sn$(32)
 dim sl as ulong
-dim filebuf(127) as ubyte
+dim filebuf2(127) as ubyte
 dim r as ulong
 dim ansibuf(3) as ubyte
 declare mainstack alias $70000 as ulong
@@ -43,7 +43,11 @@ dim mainvolume, mainpan as integer
 dim samplerate as ulong
 declare wavebuf alias $20000 as ubyte($28000)
 declare wavebuf2 alias $48000 as ubyte($28000)
-
+dim fileparam$ as string
+dim filepos,fileaddr,filecount,filecommand as ulong
+dim fileresult as integer
+declare filebuf alias $20000 as ubyte($50000)
+dim fcog as ulong
 ' ----------------------------Main program start ------------------------------------
 
 channelvol(0)=1 : channelvol(1)=1 : channelvol(2)=1 : channelvol(3)=1    
@@ -58,17 +62,16 @@ framenum=0
 for i=0 to 3 : oldtrigs(i)=0 : next i
 pan(0)=8192-mainpan : pan(1)=8192+mainpan : pan(2)=8192+mainpan : pan(3)=8192-mainpan
 preparepanels
-
-mount "/sd", _vfs_open_sdcard()
-chdir "/sd"
+fcog=cpu(filecog,@mainstack)
+'mount "/sd", _vfs_open_sdcard()
+newchdir "/sd"
 currentdir$="/sd/"
 filemove=0
 
-
 getlists(0)
 		
-close #5
-close #6
+fileclose 5
+fileclose 6
 
 ma=lomem()+1024 :  mb=ma
 pos=1
@@ -128,20 +131,24 @@ do
   if (ansibuf(3)=asc("r")) orelse (ansibuf(3)=asc("R")) then getlists(1)  : ansibuf(3)=0 ' recreate dirlist
 
   if (ansibuf(3)=13 orelse ansibuf(3)=141) andalso panel=0 then
-     open currentdir$+"dirlist.txt" for input as #7
-     for i=0 to dirnum2 : input #7,filename$ :next i
+ 
+ 
+ 
+'     open currentdir$+"dirlist.txt" for input as #7
+     fileopen(7,currentdir$+"dirlist.txt",1)
+     for i=0 to dirnum2 : filename$=fileinput$(7) :next i
      filename$=rtrim$(filename$)
      if filename$<>".." then
-       close #7
-       chdir(currentdir$+filename$)
+       fileclose 7
+       newchdir(currentdir$+filename$)
        currentdir$=currentdir$+rtrim$(filename$)+"/"
        getlists(0)
      else
-       close #7
+       fileclose 7
        e=instrrev(len(currentdir$)-1,currentdir$,"/")
        if e>1 then
          currentdir$=left$(currentdir$,e-1)
-         chdir(currentdir$)
+         newchdir(currentdir$)
          currentdir$=currentdir$+"/"
          getlists(0)
        endif  
@@ -157,25 +164,25 @@ do
   
   if (ansibuf(3)=13 orelse ansibuf(3)=141) andalso panel=1 then
 
-    open currentdir$+"filelist.txt" for input as #7
+    fileopen (7,currentdir$+"filelist.txt",1)
     if filenum2>0 then get #7,1+39*(filenum2-1),displayname(0),39 
-    input #7,filename$ 
+    filename$=fileinput$(7) 
     filename$=rtrim$(filename$)': position 1,12: v.write(filename$)
-    close #7
+    fileclose 7
     if lcase$(right$(filename$,3))="mod" then
 
       if cog>0 then cpustop(cog)
       filename2$=currentdir$+filename$
       mb=ma' : position 1,15: print mb : position 1,16: print filename$
-      open filename2$ for input as #4
+      fileopen (4,filename2$,1)
       pos=1
       do
-        get #4,pos,filebuf(0),128,r
+        r=fileread128(4,pos)
         pos+=r
         for i=0 to r-1 : poke mb+i,filebuf(i) : next i
         mb+=r 
       loop until r<>128 orelse mb>= scope_ptr-4
-      close #4
+      fileclose 4
       tracker.initmodule(ma,0)
 
     samples=15: if peek(ma+1080)=asc("M") and peek(ma+1082)=asc("K") then samples=31
@@ -201,10 +208,8 @@ do
      filename3$=currentdir$+filename$
      var qqq=0
      var rrr=0
-     close #9: open filename3$ for input as #9
-     e=geterr(): position 1,13: print strerror$(e) :print " "
-     get #9,1,wavebuf(0),$50000, qqq :print qqq
-   '  close #9
+     fileclose 9: fileopen(9,filename3$,1)
+     qqq=fileread(9,1,0,$50000)
      pos=$50001 
      mb=ma
  
@@ -213,14 +218,14 @@ do
 do
      do :  position 1,13: v.write(v.inttostr2(lpeek(base),6)): loop until (lpeek(base) and $FFFFFF)>$28000
  
-    get #9,pos,wavebuf(0),$28000,qqq
+     qqq=fileread(9,pos,0,$28000)
      pos+=$28000
  
      do: position 1,13: v.write(v.inttostr2(lpeek(base),6)): loop until (lpeek(base) and $FFFFFF) <$28000
-     get #9,pos,wavebuf2(0),$28000,qqq
+     qqq=fileread(9,pos,$28000,$28000)
      pos+=$28000 
  loop until qqq<>$28000
- close #9
+ fileclose 9
  for i=$20000 to $70000 step 4: lpoke i,$80008000: next i
      ansibuf(3)=0
     endif  
@@ -280,16 +285,16 @@ do
       dirnum1=9
       v.setwritecolors($c9,$c1)  
       
-      close #9
-      open currentdir$+"dirlist.txt" for input as #9                    ' if we are here, new list has to be read
+      fileclose 8
+      fileopen 8,currentdir$+"dirlist.txt",1                    ' if we are here, new list has to be read
    '   position 1,10: print geterr()
       displayname_ptr=addr(displayname(0))
-      for ii=dirnum2-9 to dirnum2: get #9,1+39*ii,displayname(0),39
+      for ii=dirnum2-9 to dirnum2 : fileread128(8,1+39*ii)  : for i=0 to 38: displayname(i)=filebuf2(i) :next i
         j=38 : do : j-=1 : loop until displayname(j)>32:  var k=j 
         position 2,ii+2-dirnum2+9: for j=0 to (39-k)/2-2: v.write(" ") : next j  
         for j=0 to 38-(38-k)/2-1: v.write(chr$(displayname(j))) :next j
       next ii
-      close #9
+      fileclose 8
       
       
       highlight(0,dirnum1,1)          
@@ -313,16 +318,16 @@ do
       filenum1=17
       v.setwritecolors($29,$22)  
       
-      close #9
-      open currentdir$+"filelist.txt" for input as #9                    ' if we are here, new list has to be read
+      fileclose 8
+      fileopen (8, currentdir$+"filelist.txt", 1)                   ' if we are here, new list has to be read
    '   position 1,10: print geterr()
       displayname_ptr=addr(displayname(0))
-      for ii=filenum2-17 to filenum2: get #9,1+39*ii,displayname(0),39
+      for ii=filenum2-17 to filenum2: fileread128(8,1+39*ii)  : for i=0 to 38: displayname(i)=filebuf2(i) :next i
         j=38 : do : j-=1 : loop until displayname(j)>32: k=j 
         position 44,ii+2-filenum2+17: for j=0 to (39-k)/2-2: v.write(" ") : next j  
         for j=0 to 38-(38-k)/2-1: v.write(chr$(displayname(j))) :next j
       next ii
-      close #9
+      fileclose 8
       
       
       highlight(1,filenum1,1)                                      
@@ -346,18 +351,19 @@ do
       endif
       v.setwritecolors($c9,$c1)  
       dirnum1=0
-      close #9
-   '   position 0,14: print currentdir$+"filelist.txt"
-      open currentdir$+"dirlist.txt" for input as #9                    ' if we are here, new list has to be read
+
+      fileclose 8
+      fileopen 8,currentdir$+"dirlist.txt",1                    ' if we are here, new list has to be read
    '   position 1,10: print geterr()
       displayname_ptr=addr(displayname(0))
-      for ii=dirnum2 to dirnum2+9 : get #9,1+39*ii,displayname(0),39
+      for ii=dirnum2-9 to dirnum2 : fileread128(8,1+39*ii)  : for i=0 to 38: displayname(i)=filebuf2(i) :next i
         j=38 : do : j-=1 : loop until displayname(j)>32:  k=j 
-        position 2,ii+2-dirnum2: for j=0 to (39-k)/2-2: v.write(" ") : next j  
-        if ii<dirnum3 then for j=0 to 38-(38-k)/2-1: v.write(chr$(displayname(j))) :next j
+        position 2,ii+2-dirnum2+9: for j=0 to (39-k)/2-2: v.write(" ") : next j  
+        for j=0 to 38-(38-k)/2-1: v.write(chr$(displayname(j))) :next j
       next ii
-      close #9
-      
+      fileclose 8
+
+    
       
       highlight(0,dirnum1,1)    
     
@@ -375,17 +381,16 @@ do
       endif
       v.setwritecolors($29,$22)  
       filenum1=0
-      close #9
-   '   position 0,14: print currentdir$+"filelist.txt"
-      open currentdir$+"filelist.txt" for input as #9                    ' if we are here, new list has to be read
+      fileclose 8
+      fileopen (8, currentdir$+"filelist.txt", 1)                   ' if we are here, new list has to be read
    '   position 1,10: print geterr()
       displayname_ptr=addr(displayname(0))
-      for ii=filenum2 to filenum2+17 : get #9,1+39*ii,displayname(0),39
-        j=38 : do : j-=1 : loop until displayname(j)>32:  k=j 
-        position 44,ii+2-filenum2: for j=0 to (39-k)/2-2: v.write(" ") : next j  
+      for ii=filenum2-17 to filenum2: fileread128(8,1+39*ii)  : for i=0 to 38: displayname(i)=filebuf2(i) :next i
+        j=38 : do : j-=1 : loop until displayname(j)>32: k=j 
+        position 44,ii+2-filenum2+17: for j=0 to (39-k)/2-2: v.write(" ") : next j  
         for j=0 to 38-(38-k)/2-1: v.write(chr$(displayname(j))) :next j
       next ii
-      close #9
+      fileclose 8
       
       
       highlight(1,filenum1,1) 
@@ -605,25 +610,24 @@ sub getlists(mode)
 
 
 if mode=1 then e=4: goto 360 
-close #5
+fileclose 5
 
 350 e=0
 dirnum3=0
-open currentdir$+"dirlist.txt" for input as #5 
-e=geterr()
+e=fileopen(5, currentdir$+"dirlist.txt" , 1)  
                                         
 360 if e=4 then
-  close #5
-  open currentdir$+"dirlist.txt" for output as #5
-  print #5,".."+space$(36)
-  filename$ = dir$("*", fbDirectory)
+  fileclose 5
+  fileopen (5,currentdir$+"dirlist.txt", 2)
+  fileprint (5,".."+space$(36))
+  filename$ = newdir$(0)
   while filename$ <> "" andalso filename$ <> nil
     if len(filename$)<38 then filename$=filename$+space$(38-len(filename$))
     filename$=right$(filename$,38)
-    print #5, filename$
-    filename$ = dir$()
+    fileprint(5, filename$)
+    filename$ = newdir$(2)
   end while
-  close #5
+  fileclose 5
   goto 350
 endif
 
@@ -633,36 +637,35 @@ var i=1
   for  i=1 to 11: position 2,i : print space$(38) : next i  
   i=2
   do
-    input #5,filename$
+    var qqqq=getcnt(): filename$=fileinput$(5) : qqqq=getcnt()-qqqq:position 1,13: print v.inttostr2(qqqq,10)
     filename2$=rtrim$(filename$)
     filename2$=space$((38-len(filename2$))/2)+filename2$
     if i<12 then position 2,i : v.write(filename2$) 
     i+=1
   loop until filename$=nil orelse filename$=""
   dirnum3=i-3
-  close #5
+  fileclose 5
   endif
   
 
-close #5
+fileclose 5
 
 if mode=1 then e=4: goto 410
 
 400 e=0
-close #5
+fileclose 5
 filenum3=0
-open currentdir$+"filelist.txt" for input as #5
-e=geterr()
-
+e=fileopen (5,currentdir$+"filelist.txt",1)
+ 
 410 if e=4 then
-  close #5
-  open currentdir$+"filelist.txt" for output as #5
-  filename$ = dir$("*", fbNormal)
+  fileclose 5
+  fileopen (5,currentdir$+"filelist.txt",2)
+  filename$ = newdir$(1)
   while filename$ <> "" andalso filename$ <> nil
     if len(filename$)<38 then filename$=filename$+space$(38-len(filename$))
     filename$=right$(filename$,38)
-    print #5, filename$
-    filename$ = dir$()
+    fileprint (5, filename$)
+    filename$ = newdir$(2)
   end while
   goto 400
 endif
@@ -671,17 +674,17 @@ if e=0 then ' file list exists
 
   v.setwritecolors($29,$22)
   for i=1 to 19: position 44,i : print space$(38) : next i  
-  
+ 
   i=2
   do
-    input #5,filename$
+    filename$=fileinput$(5)
     filename2$=rtrim$(filename$)
     filename2$=space$((38-len(filename2$))/2)+filename2$
     if i<20 then position 44,i : v.write(filename2$) 
     i+=1
   loop until filename$=nil orelse filename$=""
   filenum3=i-3
-  close #5
+  fileclose 5
 endif
 
 filenum1=0
@@ -1003,7 +1006,164 @@ end sub
 '----------------------------- The file cog ----------------------------------------------------------------------------
 '-----------------------------------------------------------------------------------------------------------------------
 
+sub filecog
 
+mount "/sd", _vfs_open_sdcard()
+chdir "/sd"
+currentdir$="/sd/"
+
+do
+  if filecommand=1 then chdir(fileparam$) :  filecommand=0
+  if filecommand=2 then fileparam$ = dir$("*", fbDirectory) : filecommand=0
+  if filecommand=3 then fileparam$ = dir$("*", fbNormal) : filecommand=0
+  if filecommand=4 then fileparam$ = dir$() : filecommand=0
+   
+  if filecommand=19 then open fileparam$ for input as #9 : filecommand=0 : fileresult=geterr()
+  if filecommand=18 then open fileparam$ for input as #8 : filecommand=0: fileresult=geterr()
+  if filecommand=17 then open fileparam$ for input as #7 : filecommand=0: fileresult=geterr()
+  if filecommand=16 then open fileparam$ for input as #6 : filecommand=0: fileresult=geterr()
+  if filecommand=15 then open fileparam$ for input as #5 : filecommand=0: fileresult=geterr()
+  if filecommand=14 then open fileparam$ for input as #4 : filecommand=0: fileresult=geterr()
+  if filecommand=13 then open fileparam$ for input as #3 : filecommand=0: fileresult=geterr()
+  if filecommand=12 then open fileparam$ for input as #2 : filecommand=0: fileresult=geterr()
+
+  if filecommand=29 then open fileparam$ for output as #9 : filecommand=0: fileresult=geterr()
+  if filecommand=28 then open fileparam$ for output as #8 : filecommand=0: fileresult=geterr()
+  if filecommand=27 then open fileparam$ for output as #7 : filecommand=0: fileresult=geterr()
+  if filecommand=26 then open fileparam$ for output as #6 : filecommand=0: fileresult=geterr()
+  if filecommand=25 then open fileparam$ for output as #5 : filecommand=0: fileresult=geterr()
+  if filecommand=24 then open fileparam$ for output as #4 : filecommand=0: fileresult=geterr()
+  if filecommand=23 then open fileparam$ for output as #3 : filecommand=0: fileresult=geterr()
+  if filecommand=22 then open fileparam$ for output as #2 : filecommand=0: fileresult=geterr()
+
+  if filecommand=39 then open fileparam$ for append as #9 : filecommand=0: fileresult=geterr()
+  if filecommand=38 then open fileparam$ for append as #8 : filecommand=0: fileresult=geterr()
+  if filecommand=37 then open fileparam$ for append as #7 : filecommand=0: fileresult=geterr()
+  if filecommand=36 then open fileparam$ for append as #6 : filecommand=0: fileresult=geterr()
+  if filecommand=35 then open fileparam$ for append as #5 : filecommand=0: fileresult=geterr()
+  if filecommand=34 then open fileparam$ for append as #4 : filecommand=0: fileresult=geterr()
+  if filecommand=33 then open fileparam$ for append as #3 : filecommand=0: fileresult=geterr()
+  if filecommand=32 then open fileparam$ for append as #2 : filecommand=0: fileresult=geterr()
+
+  if filecommand=49 then close #9 : filecommand=0: fileresult=geterr()
+  if filecommand=48 then close #8 : filecommand=0: fileresult=geterr()
+  if filecommand=47 then close #7 : filecommand=0: fileresult=geterr()
+  if filecommand=46 then close #6 : filecommand=0: fileresult=geterr()
+  if filecommand=45 then close #5 : filecommand=0: fileresult=geterr()
+  if filecommand=44 then close #4 : filecommand=0: fileresult=geterr()
+  if filecommand=43 then close #3 : filecommand=0: fileresult=geterr()
+  if filecommand=42 then close #2 : filecommand=0: fileresult=geterr()
+  
+  if filecommand=59 then get #9, filepos,filebuf(fileaddr),filecount,fileresult : filecommand=0 
+  if filecommand=58 then get #8, filepos,filebuf(fileaddr),filecount,fileresult : filecommand=0 
+  if filecommand=57 then get #7, filepos,filebuf(fileaddr),filecount,fileresult : filecommand=0 
+  if filecommand=56 then get #6, filepos,filebuf(fileaddr),filecount,fileresult : filecommand=0 
+  if filecommand=55 then get #5, filepos,filebuf(fileaddr),filecount,fileresult : filecommand=0 
+  if filecommand=54 then get #4, filepos,filebuf(fileaddr),filecount,fileresult : filecommand=0 
+  if filecommand=53 then get #3, filepos,filebuf(fileaddr),filecount,fileresult : filecommand=0 
+  if filecommand=52 then get #2, filepos,filebuf(fileaddr),filecount,fileresult : filecommand=0 
+
+'  if filecommand=69 then put #9, filepos,filebuf(fileaddr),filecount,fileresult : filecommand=0 
+'  if filecommand=68 then put #8, filepos,filebuf(fileaddr),filecount,fileresult : filecommand=0 
+'  if filecommand=67 then put #7, filepos,filebuf(fileaddr),filecount,fileresult : filecommand=0 
+'  if filecommand=66 then put #6, filepos,filebuf(fileaddr),filecount,fileresult : filecommand=0 
+'  if filecommand=65 then put #5, filepos,filebuf(fileaddr),filecount,fileresult : filecommand=0 
+'  if filecommand=64 then put #4, filepos,filebuf(fileaddr),filecount,fileresult : filecommand=0 
+'  if filecommand=63 then put #3, filepos,filebuf(fileaddr),filecount,fileresult : filecommand=0 
+'  if filecommand=62 then put #2, filepos,filebuf(fileaddr),filecount,fileresult : filecommand=0 
+  
+  if filecommand=79 then get #9, filepos,filebuf2(0),128,fileresult : filecommand=0 
+  if filecommand=78 then get #8, filepos,filebuf2(0),128,fileresult : filecommand=0 
+  if filecommand=77 then get #7, filepos,filebuf2(0),128,fileresult : filecommand=0 
+  if filecommand=76 then get #6, filepos,filebuf2(0),128,fileresult : filecommand=0 
+  if filecommand=75 then get #5, filepos,filebuf2(0),128,fileresult : filecommand=0 
+  if filecommand=74 then get #4, filepos,filebuf2(0),128,fileresult : filecommand=0 
+  if filecommand=73 then get #3, filepos,filebuf2(0),128,fileresult : filecommand=0 
+  if filecommand=72 then get #2, filepos,filebuf2(0),128,fileresult : filecommand=0 
+
+ ' if filecommand=89 then put #9, filepos,filebuf2(0),128,fileresult : filecommand=0 
+ ' if filecommand=88 then put #8, filepos,filebuf2(0),128,fileresult : filecommand=0 
+ ' if filecommand=87 then put #7, filepos,filebuf2(0),128,fileresult : filecommand=0 
+ ' if filecommand=86 then put #6, filepos,filebuf2(0),128,fileresult : filecommand=0 
+ ' if filecommand=85 then put #5, filepos,filebuf2(0),128,fileresult : filecommand=0 
+ ' if filecommand=84 then put #4, filepos,filebuf2(0),128,fileresult : filecommand=0 
+ ' if filecommand=83 then put #3, filepos,filebuf2(0),128,fileresult : filecommand=0 
+ ' if filecommand=82 then put #2, filepos,filebuf2(0),128,fileresult : filecommand=0 
+
+  if filecommand=99 then print #9, fileparam$ : filecommand=0 
+  if filecommand=98 then print #8, fileparam$ : filecommand=0 
+  if filecommand=97 then print #7, fileparam$ : filecommand=0 
+  if filecommand=96 then print #6, fileparam$ : filecommand=0 
+  if filecommand=95 then print #5, fileparam$ : filecommand=0 
+  if filecommand=94 then print #4, fileparam$ : filecommand=0 
+  if filecommand=93 then print #3, fileparam$ : filecommand=0 
+  if filecommand=92 then print #2, fileparam$ : filecommand=0 
+
+  if filecommand=109 then input #9, fileparam$ : filecommand=0 
+  if filecommand=108 then input #8, fileparam$ : filecommand=0 
+  if filecommand=107 then input #7, fileparam$ : filecommand=0 
+  if filecommand=106 then input #6, fileparam$ : filecommand=0 
+  if filecommand=105 then input #5, fileparam$ : filecommand=0 
+  if filecommand=104 then input #4, fileparam$ : filecommand=0 
+  if filecommand=103 then input #3, fileparam$ : filecommand=0 
+  if filecommand=102 then input #2, fileparam$ : filecommand=0 
+  
+   filename$ = dir$("*", fbDirectory) 
+  
+loop
+end sub
+
+function newdir$(mode) as string
+if mode=0 then filecommand=2
+if mode=1 then filecommand=3
+if mode=1 then filecommand=4
+do: loop until filecommand=0
+return fileparam$
+end function
+
+sub newchdir(filename$)
+fileparam$=filename$
+filecommand=1
+do: loop until filecommand=0
+end sub
+
+function fileopen(afile,filename$,mode) as integer
+fileparam$=filename$
+filecommand=10*mode+afile
+do: loop until filecommand=0
+return fileresult
+end function
+
+sub fileclose(afile)
+filecommand=40+afile
+do: loop until filecommand=0
+end sub
+
+function fileread(afile,afilepos,afileaddr,afilecount) as integer
+filepos=afilepos : fileaddr=afileaddr : filecount=afilecount
+filecommand=50+afile
+do: loop until filecommand=0
+return fileresult
+end function
+
+function fileread128(afile,afilepos) as integer
+filepos=afilepos 
+filecommand=70+afile
+do: loop until filecommand=0
+return fileresult
+end function
+
+sub fileprint(afile,afileparam$) 
+fileparam$=afileparam$
+filecommand=90+afile
+do: loop until filecommand=0
+end sub
+
+function fileinput$(afile) as string 
+filecommand=100+afile
+do: loop until filecommand=0
+return fileparam$
+end function
 
 '---------------------------------- THE END OF THE CODE ----------------------------------------------------------------
 
