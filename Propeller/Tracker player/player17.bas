@@ -40,9 +40,10 @@ dim samples,panel,c,ma,mb,pos as ulong
 dim currentdir$ as string
 dim channelvol(4), channelpan(4) as integer
 dim mainvolume, mainpan as integer
-dim samplerate as ulong
+dim samplerate,wavepos,currentbuf as ulong
 declare wavebuf alias $20000 as ubyte($28000)
 declare wavebuf2 alias $48000 as ubyte($28000)
+dim modplaying,waveplaying,needbuf as ubyte
 
 ' ----------------------------Main program start ------------------------------------
 
@@ -58,6 +59,8 @@ framenum=0
 for i=0 to 3 : oldtrigs(i)=0 : next i
 pan(0)=8192-mainpan : pan(1)=8192+mainpan : pan(2)=8192+mainpan : pan(3)=8192-mainpan
 preparepanels
+waveplaying=0: modplaying=0
+
 
 mount "/sd", _vfs_open_sdcard()
 chdir "/sd"
@@ -79,11 +82,44 @@ s1a=0
 samplerate=100   
 
 do
+ 
   waitvbl
   if cog=(-1) then framenum+=1  :  scrollstatus((framenum) mod (8*sl))
-  
   scope
   bars
+
+ if waveplaying=1 then
+'    position 1,13: print hex$(lpeek(base),8),currentbuf,needbuf
+   qqq=$1000
+    currentbuf=lpeek(base) shr 12
+    if needbuf<>currentbuf then
+      get #8,wavepos,wavebuf((needbuf) shl 12),$1000,qqq 
+ '     if currentbuf>0 then get #8,wavepos,wavebuf((needbuf) shl 12),$1000,qqq 
+ '     if currentbuf=0 then get #8,wavepos,wavebuf($1F shl 12),$1000,qqq 
+      needbuf=(needbuf+1) mod $10
+      wavepos+=$1000      
+      needbuf=currentbuf
+    endif
+/' 
+  if waveplaying=1 then 
+    if lpeek(base)>$1000 andalso needbuf=4 then needbuf=1
+    if lpeek(base)<$1000 andalso needbuf=3 then needbuf=2
+
+    if needbuf=1 then
+       get #8,wavepos,wavebuf(0),$1000,qqq 
+       wavepos+=$1000
+       needbuf=3
+    endif
+    if needbuf=2 then
+      get #8,wavepos,wavebuf($1000),$1000,qqq
+      wavepos+=$1000
+      needbuf=4
+    endif
+ '/   
+    
+    if qqq<>$1000 then close #8: waveplaying=0: for i=0 to 7 : lpoke base+32*i+20,0 : next i: for i=$20000 to $70000 step 4: lpoke i,$00000000: next i
+  endif
+  
   v.setwritecolors($29,$e1)
   if cog>(-1) then time2=framenum-modtime: position 15,17: v.write(v.inttostr2(time2/180000,2)): v.write(":"):v.write(v.inttostr2((time2 mod 180000)/3000,2)):v.write(":"):v.write(v.inttostr2((time2 mod 3000)/50,2)):v.write(":"):v.write(v.inttostr2((time2 mod 50),2))
  
@@ -119,7 +155,8 @@ do
      
    if ansibuf(3)=asc("9") then     
       samplerate=100
-     lpoke base+28,$80000064
+     if waveplaying=0 then lpoke base+28,$80000064 
+     if waveplaying=1 then lpoke base+28,$80000100 
      waitms(1)
      lpoke base+28,0
      ansibuf(3)=0
@@ -194,35 +231,34 @@ do
   if lcase$(right$(filename$,3))="wav" then  
     hubset(hubset350)
     if cog>0 then cpustop(cog)
-     samplerate=256
-     lpoke base+28,$80000100
-     waitms(2)
-     lpoke base+28,0
-     filename3$=currentdir$+filename$
-     var qqq=0
-     var rrr=0
-     close #9: open filename3$ for input as #9
-     e=geterr(): position 1,13: print strerror$(e) :print " "
-     get #9,1,wavebuf(0),$50000, qqq :print qqq
-   '  close #9
-     pos=$50001 
-     mb=ma
- 
-     cog=cpu (waveloop, @mainstack)    
- 
-do
-     do :  position 1,13: v.write(v.inttostr2(lpeek(base),6)): loop until (lpeek(base) and $FFFFFF)>$28000
- 
-    get #9,pos,wavebuf(0),$28000,qqq
-     pos+=$28000
- 
-     do: position 1,13: v.write(v.inttostr2(lpeek(base),6)): loop until (lpeek(base) and $FFFFFF) <$28000
-     get #9,pos,wavebuf2(0),$28000,qqq
-     pos+=$28000 
- loop until qqq<>$28000
- close #9
- for i=$20000 to $70000 step 4: lpoke i,$80008000: next i
-     ansibuf(3)=0
+    samplerate=256
+    lpoke base+28,$80000100
+    waitms(2)
+    lpoke base+28,0
+    filename3$=currentdir$+filename$
+    var qqq=0
+    var rrr=0
+    close #8: open filename3$ for input as #8: get #8,1,wavebuf(0),$1000: needbuf=1: currentbuf=0 :wavepos=$1001
+    waveplaying=1' :needbuf=1:wavepos=1
+    lpoke base+8, $20000 or $c0000000                               ' set new sample ptr and request sample restart 
+lpoke base+12,0                 ' set new loop start   
+lpoke base+16,$10000                                        ' set new loop and
+dpoke base+20, 16384     ' set volume - this and the rest doesn't depend on trigger
+dpoke base+22, 16384                                                              ' set pan
+dpoke base+24, 31                 ' set period
+dpoke base+26, 4    
+'dpoke base+28,$80000100
+lpoke base+32+8, $20002 or $c0000000                               ' set new sample ptr and request sample restart 
+lpoke base+32+12,0                 ' set new loop start   
+lpoke base+32+16,$10000                                        ' set new loop and
+dpoke base+32+20, 16384     ' set volume - this and the rest doesn't depend on trigger
+dpoke base+32+22, 0     	                                                        ' set pan
+dpoke base+32+24, 31                 ' set period
+dpoke base+32+26, 4    
+lpoke base+8, $20000 or $c0000000  
+lpoke base+32+8, $20002 or $c0000000
+for i=2 to 7 : lpoke base+32*i+20,0 : next i
+    ansibuf(3)=0
     endif  
   endif
 
@@ -564,7 +600,7 @@ sub waveloop
                                                                  ' remember trigger count
 lpoke base+8, $20000 or $c0000000                               ' set new sample ptr and request sample restart 
 lpoke base+12,0                 ' set new loop start   
-lpoke base+16,$50000                                        ' set new loop and
+lpoke base+16,$20000                                        ' set new loop and
 dpoke base+20, 16384     ' set volume - this and the rest doesn't depend on trigger
 dpoke base+22, 16384                                                              ' set pan
 dpoke base+24, 31                 ' set period
@@ -581,10 +617,7 @@ lpoke base+8, $20000 or $c0000000
 lpoke base+32+8, $20002 or $c0000000
 do
 loop
-/'
-
-
-   do
+  do
   loop until lpeek(base) >$20000
   get #10,rrr,wavebuf1(0),1
   rrr+=1

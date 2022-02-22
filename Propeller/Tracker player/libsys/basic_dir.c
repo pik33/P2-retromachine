@@ -144,7 +144,7 @@ char *static_basic_dir(const char *pattern = 0, unsigned attrib = 0) {
     struct stat sbuf;
     int r;
     unsigned mode;
-    static char *string[128];
+    static char string[128];
     
     if (pattern && *pattern) {
         // start a new search
