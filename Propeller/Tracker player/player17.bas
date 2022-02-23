@@ -260,7 +260,6 @@ do
   endif
 
 '' ----------------------------------- User interface panels control : tab, arrows, pg up/down, w, s
-     
  
   if (ansibuf(3)=9) orelse (ansibuf(3)=137) then 						                                           ' TAB changes panel
     if panel=0 then highlight(panel,dirnum1,0)
@@ -278,152 +277,101 @@ do
 
 '' ---------------------------------- If the "cursor" needs to be moved, do it
 
-  if filemove>0 then
-    if panel=0 then
-      olddirnum1=dirnum1
-      dirnum1+=filemove  ' highlighting
-      dirnum2+=filemove  ' file
-      if dirnum2>=dirnum3 then dirnum2=dirnum3-1            ' filenum2 has to be less than all files count
-      if dirnum1>=dirnum3 then dirnum1=dirnum3-1 : goto 199 ' filenum1 has to be less than all files count     
-      if dirnum1<=9  then                                      ' only highlight changed
-        highlight(0,olddirnum1,0)
-        highlight(0,dirnum1,1)       
-        goto 199
-      endif    
-      dirnum1=9
-      v.setwritecolors($c9,$c1)  
-      
-      close #9
-      open currentdir$+"dirlist.txt" for input as #9                    ' if we are here, new list has to be read
-   '   position 1,10: print geterr()
-      displayname_ptr=addr(displayname(0))
-      for ii=dirnum2-9 to dirnum2: get #9,1+39*ii,displayname(0),39
-        j=38 : do : j-=1 : loop until displayname(j)>32:  var k=j 
-        position 2,ii+2-dirnum2+9: for j=0 to (39-k)/2-2: v.write(" ") : next j  
-        for j=0 to 38-(38-k)/2-1: v.write(chr$(displayname(j))) :next j
+  if filemove>0 then											' move the "cursor" down
+    if panel=0 then											' 0 - directory panel
+      olddirnum1=dirnum1										' remember the current position
+      dirnum1+=filemove  										' highlighting point
+      dirnum2+=filemove 									        ' file point
+      if dirnum2>=dirnum3 then dirnum2=dirnum3-1            						' dirnum2 has to be less than all directoriess count
+      if dirnum1>=dirnum3 then dirnum1=dirnum3-1 : goto 199 						' dirnum1 has to be less than all directories count. If it is, nothing more to do, go to the end of this part     
+      if dirnum1<=9 then highlight(0,olddirnum1,0) : highlight(0,dirnum1,1) : goto 199                  ' only highlight changed, change the highlighted entry and go away
+      dirnum1=9	: v.setwritecolors($c9,$c1)    							        ' if we are still here, the highlight is at the bottom of the panel
+      close #9 : open currentdir$+"dirlist.txt" for input as #9   					' and the new entry has to be read from the file, so open it
+      for ii=dirnum2-9 to dirnum2									' read and display directory names from the file
+        get #9,1+39*ii,displayname(0),39								' get the name
+        j=38 : do : j-=1 : loop until displayname(j)>32:  k=j 		     			        ' find the end of the name
+        position 2,ii+2-dirnum2+9: for j=0 to (39-k)/2-2: v.write(" ") : next j                         ' clear the space before the centered name
+        for j=0 to 39-(38-k)/2-1: v.write(chr$(displayname(j))) :next j					' display the name and spaces after it
       next ii
       close #9
-      
-      
-      highlight(0,dirnum1,1)          
-     
-       
- 
-      
+      highlight(0,dirnum1,1) 										' highlight the selected entry         
     endif    
-    if panel=1 then
-      oldfilenum1=filenum1
-      filenum1+=filemove  ' highlighting
-      filenum2+=filemove  ' file
-      if filenum2>=filenum3 then filenum2=filenum3-1            ' filenum2 has to be less than all files count
-      if filenum1>=filenum3 then filenum1=filenum3-1 : goto 199 ' filenum1 has to be less than all files count     
-                           ' and also less than 18, there is 18 slots available in the panel
-      if filenum1<=17  then                              ' only highlight changed
-        highlight(1,oldfilenum1,0)
-        highlight(1,filenum1,1)       
-        goto 199
-      endif    
-      filenum1=17
-      v.setwritecolors($29,$22)  
-      
-      close #9
-      open currentdir$+"filelist.txt" for input as #9                    ' if we are here, new list has to be read
-   '   position 1,10: print geterr()
-      displayname_ptr=addr(displayname(0))
-      for ii=filenum2-17 to filenum2: get #9,1+39*ii,displayname(0),39
+
+    if panel=1 then											' 1 - file panel
+      oldfilenum1=filenum1										' remember current
+      filenum1+=filemove  										' highlighting
+      filenum2+=filemove  										' file
+      if filenum2>=filenum3 then filenum2=filenum3-1            					' filenum2 has to be less than all files count
+      if filenum1>=filenum3 then filenum1=filenum3-1 : goto 199 					' filenum1 has to be less than all files count, if not, go away     
+      if filenum1<=17 then highlight(1,oldfilenum1,0) : highlight(1,filenum1,1) : goto 199              ' only highlight changed, go away
+      filenum1=17 : v.setwritecolors($29,$22)  								' we are at the bottom now
+      close #9 : open currentdir$+"filelist.txt" for input as #9                                        ' so do the same as in dir panel
+      for ii=filenum2-17 to filenum2: get #9,1+39*ii,displayname(0),39					' except we have now 18 slots
         j=38 : do : j-=1 : loop until displayname(j)>32: k=j 
         position 44,ii+2-filenum2+17: for j=0 to (39-k)/2-2: v.write(" ") : next j  
-        for j=0 to 38-(38-k)/2-1: v.write(chr$(displayname(j))) :next j
+        for j=0 to 39-(38-k)/2-1: v.write(chr$(displayname(j))) :next j
       next ii
       close #9
-      
-      
       highlight(1,filenum1,1)                                      
     endif    
-   
-199 ansibuf(3)=0: ansibuf(2)=0 : ansibuf(1)=0    :filemove=0  
+199 ansibuf(3)=0 : ansibuf(2)=0 : ansibuf(1)=0 : filemove=0  						' reset all these variables 
  
   endif
   
-  
-  if filemove<0 then 
-    if panel=0 then
-      olddirnum1=dirnum1
-      dirnum1+=filemove  ' highlighting
-      dirnum2+=filemove ' filefunction curdir$() as string
-      if dirnum2<0 then dirnum2=0
-      if dirnum1>=0 then
-        highlight(0,olddirnum1,0)
-        highlight(0,dirnum1,1)  
-        goto 230      
-      endif
-      v.setwritecolors($c9,$c1)  
-      dirnum1=0
-      close #9
-   '   position 0,14: print currentdir$+"filelist.txt"
-      open currentdir$+"dirlist.txt" for input as #9                    ' if we are here, new list has to be read
-   '   position 1,10: print geterr()
-      displayname_ptr=addr(displayname(0))
+  if filemove<0 then 											' move up
+    if panel=0 then											' dir panel
+      olddirnum1=dirnum1										' remember current
+      dirnum1+=filemove  										' highlighting
+      dirnum2+=filemove 										' file
+      if dirnum2<0 then dirnum2=0									' we are going up so dirnum2 may be negative and this is not allowed here
+      if dirnum1>=0 then highlight(0,olddirnum1,0) : highlight(0,dirnum1,1) : goto 230 		        ' only change highlight and go away		
+      dirnum1=0 : v.setwritecolors($c9,$c1)  							        ' dirnum1 negative, read data from the file
+      close #9 : open currentdir$+"dirlist.txt" for input as #9     				        ' do the same stuff as in dir panel down			
       for ii=dirnum2 to dirnum2+9 : get #9,1+39*ii,displayname(0),39
         j=38 : do : j-=1 : loop until displayname(j)>32:  k=j 
         position 2,ii+2-dirnum2: for j=0 to (39-k)/2-2: v.write(" ") : next j  
-        if ii<dirnum3 then for j=0 to 38-(38-k)/2-1: v.write(chr$(displayname(j))) :next j
+        if ii<dirnum3 then for j=0 to 39-(38-k)/2-1: v.write(chr$(displayname(j))) :next j
       next ii
       close #9
-      
-      
       highlight(0,dirnum1,1)    
-    
-
     endif
-    if panel=1 then
+
+    if panel=1 then											' file panel, move up, the same stuff again
       oldfilenum1=filenum1
-      filenum1+=filemove  ' highlighting
-      filenum2+=filemove ' filefunction curdir$() as string
+      filenum1+=filemove  										' highlighting
+      filenum2+=filemove
       if filenum2<0 then filenum2=0
-      if filenum1>=0 then
-        highlight(1,oldfilenum1,0)
-        highlight(1,filenum1,1)  
-        goto 230      
-      endif
-      v.setwritecolors($29,$22)  
-      filenum1=0
-      close #9
-   '   position 0,14: print currentdir$+"filelist.txt"
-      open currentdir$+"filelist.txt" for input as #9                    ' if we are here, new list has to be read
-   '   position 1,10: print geterr()
-      displayname_ptr=addr(displayname(0))
+      if filenum1>=0 then highlight(1,oldfilenum1,0) : highlight(1,filenum1,1) : goto 230    
+      filenum1=0 : v.setwritecolors($29,$22)  
+      close #9 : open currentdir$+"filelist.txt" for input as #9   
       for ii=filenum2 to filenum2+17 : get #9,1+39*ii,displayname(0),39
         j=38 : do : j-=1 : loop until displayname(j)>32:  k=j 
         position 44,ii+2-filenum2: for j=0 to (39-k)/2-2: v.write(" ") : next j  
-        for j=0 to 38-(38-k)/2-1: v.write(chr$(displayname(j))) :next j
+        for j=0 to 39-(38-k)/2-1: v.write(chr$(displayname(j))) :next j
       next ii
       close #9
-      
-      
       highlight(1,filenum1,1) 
-
     endif
-    
-    
     
 230  ansibuf(3)=0: ansibuf(2)=0 : ansibuf(1)=0  :filemove=0   
   endif
   
-  
 loop		
 
+'' ------------------------------------------------ END OF THE MAIN LOOP started at 81 ---------------------------------------------------------------------------
+'' ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+'' ------------------------------------------------ Helper functions for the main program -------------------------------------------------------------------------
 
-
+'' -------------------------------------------------Display color channel bars in the oscilloscope panel ----------------------------------------------------------
 
 sub bars
 
-
 dim s1,s2,s21,s22,s31,s32,s41,s42 as integer
-s1=lpeek(base+4)
+
+s1=lpeek(base+4)					' get a stereo sample from channel 1
 s2=0
-asm 
+asm 							' and convert it to unsigned mono
   getword s2,s1,#1
   getword s1,s1,#0
   bitnot s1,#15
@@ -432,7 +380,7 @@ asm
   shr s1,#1
 end asm
 
-s21=lpeek(base+32+4)
+s21=lpeek(base+32+4)					
 s22=0
 asm 
   getword s22,s21,#1
@@ -466,37 +414,37 @@ asm
 end asm
 
 
-s1=abs(s1-32768)
-if s1>s1a then s1a=s1
-if s1<s1a then s1a=(15*s1a+s1)/16
-s1b=s1a/128 :if s1b<0 then s1b=0
-if s1b>52 then s1b=52
+s1=abs(s1-32768)				' compute the amplitude
+if s1>=s1a then s1a=s1				' if bigger than average, replace average with amplitude (the bar goes up fast)
+if s1<s1a then s1a=(15*s1a+s1)/16		' else decay slowly
+s1b=s1a/128 :if s1b<0 then s1b=0		' but not less than 0
+if s1b>52 then s1b=52				' and no more than 52 to fit in the panel
 
-s21=abs(s21-32768)
+s21=abs(s21-32768)				' channel 2
 if s21>s21a then s21a=s21
 if s21<s21a then s21a=(15*s21a+s21)/16
 s21b=s21a/128 :if s21b<0 then s21b=0
 if s21b>52 then s21b=52
 
-s31=abs(s31-32768)
+s31=abs(s31-32768)				' channel 3
 if s31>s31a then s31a=s31
 if s31<s31a then s31a=(15*s31a+s31)/16
 s31b=s31a/256 :if s31b<0 then s31b=0
 if s31b>52 then s31b=52
 
-s41=abs(s41-32768)
+s41=abs(s41-32768)				' channel 4
 if s41>s41a then s41a=s41
 if s41<s41a then s41a=(15*s41a+s41)/16
 s41b=s41a/128 :if s41b<0 then s41b=0
 if s41b>52 then s41b=52
 
-if s1b<16 then lpoke v.palette_ptr+4*$b,$00110000*((s1b+16)/2)
-if s1b>=16 then lpoke v.palette_ptr+4*$b,$00FF0000+(s1b-16)*$11000000
-if s1b>=32 then lpoke v.palette_ptr+4*$b,$FFFF0000-(s1b-32)*$00220000
-if s1b>=48 then lpoke v.palette_ptr+4*$b,$FF000000
+if s1b<16 then lpoke v.palette_ptr+4*$b,$00110000*((s1b+16)/2)             ' green
+if s1b>=16 then lpoke v.palette_ptr+4*$b,$00FF0000+(s1b-16)*$11000000	   ' green to yellow
+if s1b>=32 then lpoke v.palette_ptr+4*$b,$FFFF0000-(s1b-32)*$00220000	   ' yellow to red
+if s1b>=48 then lpoke v.palette_ptr+4*$b,$FF000000		           ' red
 
-if s21b<16 then lpoke v.palette_ptr+4*$c,$00110000*((s21b+16)/2)
-if s21b>=16 then lpoke v.palette_ptr+4*$c,$00FF0000+(s21b-16)*$11000000
+if s21b<16 then lpoke v.palette_ptr+4*$c,$00110000*((s21b+16)/2)           ' the same for the rest of channels
+if s21b>=16 then lpoke v.palette_ptr+4*$c,$00FF0000+(s21b-16)*$11000000    ' using colors b,c,d,e from the palette
 if s21b>=32 then lpoke v.palette_ptr+4*$c,$FFFF0000-(s21b-32)*$00220000
 if s21b>=48 then lpoke v.palette_ptr+4*$c,$FF000000
 
@@ -510,106 +458,57 @@ if s41b>=16 then lpoke v.palette_ptr+4*$e,$00FF0000+(s41b-16)*$11000000
 if s41b>=32 then lpoke v.palette_ptr+4*$e,$FFFF0000-(s41b-32)*$00220000
 if s41b>=48 then lpoke v.palette_ptr+4*$e,$FF000000
 
-for ii=0 to s1b:  cc=$bbbbbbbb : for jj=270 to 278 step 4: lpoke graphicbuf_ptr+448*(59-ii)+jj,cc : next jj: next ii
+for ii=0 to s1b:  cc=$bbbbbbbb : for jj=270 to 278 step 4: lpoke graphicbuf_ptr+448*(59-ii)+jj,cc : next jj: next ii ' now draw these bars
 for ii=0 to s21b: cc=$cccccccc : for jj=286 to 294 step 4: lpoke graphicbuf_ptr+448*(59-ii)+jj,cc : next jj: next ii
 for ii=0 to s31b: cc=$dddddddd : for jj=302 to 310 step 4: lpoke graphicbuf_ptr+448*(59-ii)+jj,cc : next jj: next ii
 for ii=0 to s41b: cc=$eeeeeeee : for jj=318 to 326 step 4: lpoke graphicbuf_ptr+448*(59-ii)+jj,cc : next jj: next ii
-'for ii=0 to s41b: cc=(ii+8)/8: cc=cc*$11111111 : for jj=318 to 326 step 4: lpoke graphicbuf_ptr+448*(59-ii)+jj,cc : next jj: next ii
-
 end sub
 
-
+'' ---------------------------------------- Oscilloscope ----------------------------------------------------------------------------------------------
 
 sub scope
 
+dim ii as integer
 
-for jj=3136 to 26432 step 448: for ii=4 to 328 step 4: lpoke graphicbuf_ptr+ii+jj,0 :next ii : next jj
-qq1=dpeek(scope_ptr):qq1+=dpeek(scope_ptr+2) 
-var iii=1: do : var oldqq1=qq1: qq1=dpeek(scope_ptr+4*iii):qq1+=dpeek(scope_ptr+4*iii+2) : iii+=1: loop until iii>=128  orelse (oldqq1<65536 andalso qq1>65536)
-for ii=iii to iii+511 ' 639
-qq1=dpeek(scope_ptr+4*ii)
-qq1+=dpeek(scope_ptr+4*ii+2)
-qq1=qq1/2048 : if qq1<7 then qq1=7 
-if qq1>59 then qq1=59
-qq2=1+abs(32-qq1)/2 : if qq2>7 then qq2=7
-putpixel4(ii-iii+16,qq1,qq2) : next ii ' (dpeek(scope_ptr+4*ii)+dpeek(scope_ptr+4*ii+2))/8192,15) : next ii
-
+for jj=3136 to 26432 step 448: for ii=4 to 328 step 4: lpoke graphicbuf_ptr+ii+jj,0 :next ii : next jj                                                            ' clear the panel
+qq1=dpeek(scope_ptr):qq1+=dpeek(scope_ptr+2) 										                                          ' try to trigger the scope at zero					
+var iii=1: do : var oldqq1=qq1: qq1=dpeek(scope_ptr+4*iii):qq1+=dpeek(scope_ptr+4*iii+2) : iii+=1: loop until iii>=128  orelse (oldqq1<65536 andalso qq1>65536)   ' if not succeed with first 128 of 640 samples, there is no samples left for triggering
+for ii=iii to iii+511 																		  ' display 512 samples																	
+  qq1=dpeek(scope_ptr+4*ii)																	  ' left	
+  qq1+=dpeek(scope_ptr+4*ii+2)																	  ' right
+  qq1=qq1/2048 : if qq1<7 then qq1=7 															          ' reduce from 17 to 6 bits		
+  if qq1>59 then qq1=59																		  ' clip to fit in the panel
+  qq2=1+abs(32-qq1)/2 : if qq2>7 then qq2=7															  ' compute the color
+  putpixel4(ii-iii+16,qq1,qq2)																	  ' and plot the pixel
+next ii 
 end sub
 			    
+'' -------------------------------------- Fast putpixel for the 4bpp graphic panel
 
 sub putpixel4(x,y,c) 
 
-var b=peek(graphicbuf_ptr+448*y+(x shr 1))
-b=b and not(%1111<<((x mod 2)<<2))
-b=b or (c<<((x mod 2)<<2))
-poke graphicbuf_ptr+448*y+(x>>1),b
+var b=peek(graphicbuf_ptr+448*y+(x shr 1))					' get byte = 2 pixels
+b=b and not(%1111<<((x mod 2)<<2))						' clear the nibble
+b=b or (c<<((x mod 2)<<2))							' and set a new value
+poke graphicbuf_ptr+448*y+(x>>1),b						' then put it back to the framebuffer
 end sub
 
-' ------------------ main loop ------------------------  rev 20220205 ---------------------------------
+'' -------------------------------------- Module playing loop in its own cog  ------------------------  rev 20220205 ---------------------------------
 
 sub mainloop
 
 do
-  tracker.tick
-  waitvbl
-  for mi=0 to 3 : setchannel(mi,oldtrigs(mi)) : next mi          ' this line has to be vblk syynchronized as much as possible
-  framenum+=1
-  movedl
-  scrollstatus((framenum) mod (8*sl))
-  displaysamples
+  tracker.tick							 ' let the player compute new values
+  waitvbl                                                        ' wait vor vblank
+  for mi=0 to 3 : setchannel(mi,oldtrigs(mi)) : next mi          ' this line has to be vblk syynchronized as much as possible - set new values in audio driver
+  framenum+=1							 ' frame number to track time					
+  movedl							 ' vertical fine scroll the file info panel via DL 
+  scrollstatus((framenum) mod (8*sl))				 ' horizontal fine scroll the help/status line
+  displaysamples						 ' display current playing samples information
 loop
 end sub
 
-
-' ---------------   wave player experimental
-
-sub waveloop
-     
-     var qqq=0
-     var rrr=0
- '    close #9: open filename3$ for input as #9
- '    e=geterr(): position 1,13: print strerror$(e) :print " "
- '   get #9,1,wavebuf,$50000,qqq :print qqq
-  '   close #9
-
-
-
-                                                                 ' remember trigger count
-lpoke base+8, $20000 or $c0000000                               ' set new sample ptr and request sample restart 
-lpoke base+12,0                 ' set new loop start   
-lpoke base+16,$20000                                        ' set new loop and
-dpoke base+20, 16384     ' set volume - this and the rest doesn't depend on trigger
-dpoke base+22, 16384                                                              ' set pan
-dpoke base+24, 31                 ' set period
-dpoke base+26, 4    
-'dpoke base+28,$80000100
-lpoke base+32+8, $20002 or $c0000000                               ' set new sample ptr and request sample restart 
-lpoke base+32+12,0                 ' set new loop start   
-lpoke base+32+16,$50000                                        ' set new loop and
-dpoke base+32+20, 16384     ' set volume - this and the rest doesn't depend on trigger
-dpoke base+32+22, 0                                                             ' set pan
-dpoke base+32+24, 31                 ' set period
-dpoke base+32+26, 4    
-lpoke base+8, $20000 or $c0000000  
-lpoke base+32+8, $20002 or $c0000000
-do
-loop
-  do
-  loop until lpeek(base) >$20000
-  get #10,rrr,wavebuf1(0),1
-  rrr+=1
-  position 1,13: print qqq
-  do
-  loop until lpeek(base)<$20000
-  get #10,rrr,wavebuf2($28000),1
-  rrr+=1
-'/
-'loop
-
-end sub
-
-' ---------------- end of the main program -----------------------------------------------------------------------
-
+'' -------------------------------------- Get a dir and file list after change a directory ------------------------------------------------------------
 
 sub getlists(mode)
 
@@ -916,6 +815,7 @@ end sub
 
 sub scrollstatus(amount)
 
+dim i as integer
 lpoke statusline_ptr, peek(addr(statusline$(0))+(0+amount/8) mod sl)+$71710000
 lpoke statusline_ptr+4,peek(addr(statusline$(0))+(1+amount/8) mod sl)+$71710000
 lpoke statusline_ptr+4*112, peek(addr(statusline$(112))+(112+amount/8) mod (0))+$71710000
@@ -926,6 +826,8 @@ end sub
 '------------------ A display list vertical scrolling of file info screen  --- rev 20220205 --------------------------------------------
 
 sub movedl
+
+dim i,j as integer
 
 for i=0 to 14 
   for j=0 to 15  
