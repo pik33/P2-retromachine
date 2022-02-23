@@ -80,7 +80,7 @@ wrlong value, addr
 end asm
 end sub
 
-function addr(byref v as const any)
+function addr(byref v as const any) as ulong
 
 return(cast(ulong,@v))
 end function

@@ -28,10 +28,11 @@ dim oldtrigs(4) as ulong
 dim pan(4)
 dim sn$(32)
 dim sl as ulong
-dim filebuf(127) as ubyte
+'dim filebuf(127) as ubyte
 dim r as ulong
+dim i,j,k,l,m,qqq as integer
 dim ansibuf(3) as ubyte
-declare mainstack alias $70000 as ulong
+declare mainstack alias $720B8 as ulong
 dim filename$,filename2$,filename3$ as string
 dim s1a,s1b,s21a,s21b,s31a,s31b,s41a,s41b,cog as integer
 dim cc,qq1,qq2,framenum,e as ulong
@@ -41,8 +42,9 @@ dim currentdir$ as string
 dim channelvol(4), channelpan(4) as integer
 dim mainvolume, mainpan as integer
 dim samplerate,wavepos,currentbuf as ulong
-declare wavebuf alias $20000 as ubyte($28000)
-declare wavebuf2 alias $48000 as ubyte($28000)
+declare wavebuf alias $20000 as ubyte($50000)
+declare filebuf alias $721B8 as ubyte(127)
+'declare wavebuf2 alias $48000 as ubyte($28000)
 dim modplaying,waveplaying,needbuf as ubyte
 
 ' ----------------------------Main program start ------------------------------------
@@ -67,12 +69,7 @@ chdir "/sd"
 currentdir$="/sd/"
 filemove=0
 
-
 getlists(0)
-		
-close #5
-close #6
-
 ma=lomem()+1024 :  mb=ma
 pos=1
 
@@ -81,212 +78,191 @@ panel=0
 s1a=0
 samplerate=100   
 
+'' --------------------------------- THE MAIN LOOP ----------------------------------------------------------------------------------
+
 do
+  waitvbl                     									' synchronize with vblanks
+  if cog=(-1) then framenum+=1  :  scrollstatus((framenum) mod (8*sl))                 		' if not playing module let main loop scroll the status line
+  scope												' display scope
+  bars												' display bars
+
+'' --------------------------------  Playing the .wav file in the main loop as no other cogs can acces the file system
  
-  waitvbl
-  if cog=(-1) then framenum+=1  :  scrollstatus((framenum) mod (8*sl))
-  scope
-  bars
-
  if waveplaying=1 then
-'    position 1,13: print hex$(lpeek(base),8),currentbuf,needbuf
-   qqq=$1000
-    currentbuf=lpeek(base) shr 12
-    if needbuf<>currentbuf then
-      get #8,wavepos,wavebuf((needbuf) shl 12),$1000,qqq 
- '     if currentbuf>0 then get #8,wavepos,wavebuf((needbuf) shl 12),$1000,qqq 
- '     if currentbuf=0 then get #8,wavepos,wavebuf($1F shl 12),$1000,qqq 
-      needbuf=(needbuf+1) mod $10
-      wavepos+=$1000      
-      needbuf=currentbuf
+   qqq=$1000											' one wave chunk to load, 4kB=27 ms
+   currentbuf=lpeek(base) shr 12								' get a current playing 4k buffer# from the driver
+   if needbuf<>currentbuf then									' if there is a buffer to load
+     get #8,wavepos,wavebuf((needbuf) shl 12),$1000,qqq 					' then load it
+     needbuf=(needbuf+1) mod $50  								' we can have any count of 4k buffers, now 2 used
+     wavepos+=$1000      									' file position
+     endif
+    if qqq<>$1000 then 										' end of file
+      do: currentbuf=lpeek(base) shr 12 : loop until currentbuf=needbuf				' wait until all buffers played					
+      close #8 : waveplaying=0									' close the file, stop playing
+      for i=0 to 7 : lpoke base+32*i+20,0 : next i 						' mute the sound
+      for i=$20000 to $6FFFC step 4: lpoke i,$00000000: next i                                  ' clear the ram
     endif
-/' 
-  if waveplaying=1 then 
-    if lpeek(base)>$1000 andalso needbuf=4 then needbuf=1
-    if lpeek(base)<$1000 andalso needbuf=3 then needbuf=2
+  endif  
+  
+'' ------------------------------- End of wave playing   
 
-    if needbuf=1 then
-       get #8,wavepos,wavebuf(0),$1000,qqq 
-       wavepos+=$1000
-       needbuf=3
-    endif
-    if needbuf=2 then
-      get #8,wavepos,wavebuf($1000),$1000,qqq
-      wavepos+=$1000
-      needbuf=4
-    endif
- '/   
-    
-    if qqq<>$1000 then close #8: waveplaying=0: for i=0 to 7 : lpoke base+32*i+20,0 : next i: for i=$20000 to $70000 step 4: lpoke i,$00000000: next i
-  endif
+'' ------------------------------- Display the playing time
   
   v.setwritecolors($29,$e1)
-  if cog>(-1) then time2=framenum-modtime: position 15,17: v.write(v.inttostr2(time2/180000,2)): v.write(":"):v.write(v.inttostr2((time2 mod 180000)/3000,2)):v.write(":"):v.write(v.inttostr2((time2 mod 3000)/50,2)):v.write(":"):v.write(v.inttostr2((time2 mod 50),2))
+  if cog>(-1) then time2=framenum-modtime
+  if waveplaying=1 then time2=(wavepos)/3528
+  position 15,17: v.write(v.inttostr2(time2/180000,2)): v.write(":"):v.write(v.inttostr2((time2 mod 180000)/3000,2)):v.write(":"):v.write(v.inttostr2((time2 mod 3000)/50,2)):v.write(":"):v.write(v.inttostr2((time2 mod 50),2))
+
+'' ----------------------------- Get data from the keyboard
  
- 
-   if lpeek($30)<>0 then 
-    if peek($33)=$88 then  ansibuf(0)=ansibuf(1): ansibuf(1)=ansibuf(2) : ansibuf(2)=ansibuf(3) : ansibuf(3)=peek($31)
- '   position 1,18: print ansibuf(3);" ";ansibuf(2);" ";ansibuf(1);" ";ansibuf(0)
-    lpoke $30,0 
+  if lpeek($30)<>0 then 									                         ' a Raspberry Pi based interface sent a message
+    if peek($33)=$88 then  ansibuf(0)=ansibuf(1): ansibuf(1)=ansibuf(2) : ansibuf(2)=ansibuf(3) : ansibuf(3)=peek($31)   ' add it to the ANSI buffer
+    lpoke $30,0 													 ' and clear the message
   endif  
 
-  if lpeek($3c)<>0 then ansibuf(0)=ansibuf(1): ansibuf(1)=ansibuf(2) : ansibuf(2)=ansibuf(3) : ansibuf(3)=peek($3D): lpoke($3C,0)'  :   position 1,18: print ansibuf(3);" ";ansibuf(2);" ";ansibuf(1);" ";ansibuf(0)
+  if lpeek($3c)<>0 then ansibuf(0)=ansibuf(1): ansibuf(1)=ansibuf(2) : ansibuf(2)=ansibuf(3) : ansibuf(3)=peek($3D): lpoke($3C,0) ' A serial interface at P62.63 from ANSI terminal
+  
+'' ---------------------------- Key 7,8,9 pressed - samplerate (period) change     
 
-
-  if ansibuf(3)=asc("7") then 
-    samplerate-=1
-    if samplerate<65 then samplerate=65
-    lpoke base+28,samplerate+$80000000
-
-    
-    waitms(1)
-    lpoke base+28,0
-    ansibuf(3)=0
+  if ansibuf(3)=asc("7") then 									' 7 - decrease the period
+    samplerate-=1 : if samplerate<65 then samplerate=65
+    lpoke base+28,samplerate+$80000000 : waitms(2) : lpoke base+28,0 : ansibuf(3)=0
   endif  
    
-   if ansibuf(3)=asc("8") then     
-    samplerate+=1
-    if samplerate>65535 then samplerate=65535
-    lpoke base+28,samplerate+$80000000
-     waitms(1)
-     lpoke base+28,0
-     ansibuf(3)=0
-   endif 
+  if ansibuf(3)=asc("8") then 									' 8 - incerase the period    
+    samplerate+=1 : if samplerate>65535 then samplerate=65535
+    lpoke base+28,samplerate+$80000000 : waitms(2) : lpoke base+28,0 : ansibuf(3)=0
+  endif 
      
-   if ansibuf(3)=asc("9") then     
-      samplerate=100
-     if waveplaying=0 then lpoke base+28,$80000064 
-     if waveplaying=1 then lpoke base+28,$80000100 
-     waitms(1)
-     lpoke base+28,0
-     ansibuf(3)=0
+  if ansibuf(3)=asc("9") then									' 9 - return to standard     
+    if waveplaying=0 then lpoke base+28,$80000064 : samplerate=100				' 100=$64  if module playing
+    if waveplaying=1 then lpoke base+28,$80000100 : samplerate=256				' 256=$100 if wave playing, $100 allows HQ DACs
+     waitms(2) : lpoke base+28,0 : ansibuf(3)=0
    endif
    
-  if (ansibuf(3)=asc("r")) orelse (ansibuf(3)=asc("R")) then getlists(1)  : ansibuf(3)=0 ' recreate dirlist
+'' --------------------------- Keys 1..4 - channels on/off, 5,6 - stereo separation, +,- volume
+   
+  if ansibuf(3)=49 then channelvol(0)=1-channelvol(0) : ansibuf(3)=0									' 1 - channel 1	
+  if ansibuf(3)=50 then channelvol(1)=1-channelvol(1) : ansibuf(3)=0									' 2 - channel 2
+  if ansibuf(3)=51 then channelvol(2)=1-channelvol(2) : ansibuf(3)=0									' 3 - channel 3
+  if ansibuf(3)=52 then channelvol(3)=1-channelvol(3) : ansibuf(3)=0									' 4 - channel 4
+  if ansibuf(3)=53 andalso ansibuf(2)<>91 then ansibuf(3)=0 : ansibuf(2)=0: mainpan=mainpan-256: if mainpan<0 then mainpan=0		' 5 - decrease stereo separation
+  if ansibuf(3)=54 andalso ansibuf(2)<>91 then ansibuf(3)=0 : ansibuf(2)=0: mainpan=mainpan+256: if mainpan>8192 then mainpan=8192	' 6 - increase stereo separation
+  if ansibuf(3)=asc("+") orelse ansibuf(3)=asc("=") then mainvolume+=1: ansibuf(3)=0 : if mainvolume>128 then mainvolume=128 		' + - increase volume
+  if ansibuf(3)=asc("-") then mainvolume-=1: ansibuf(3)=0 : if mainvolume<0  then mainvolume=0    					' - - decrease volume
+   
+  pan(0)=8192-mainpan : pan(1)=8192+mainpan : pan(2)=8192+mainpan : pan(3)=8192-mainpan 						' set channels position
+  v.setwritecolors($ca,$e1)
+  position 3,19:  v.write("pan: "): v.write(v.inttostr2(mainpan/256,2))  								' display the status
+  position 13,19: v.write("vol: "): v.write(v.inttostr2(mainvolume,3)) 
+  position 24,19: v.write("chn: "): 
+  if channelvol(0)=1 then position 29,19 :v.write("1")
+  if channelvol(0)=0 then position 29,19 :v.write("-")
+  if channelvol(1)=1 then position 31,19 :v.write("2")
+  if channelvol(1)=0 then position 31,19 :v.write("-")
+  if channelvol(2)=1 then position 33,19 :v.write("3")
+  if channelvol(2)=0 then position 33,19 :v.write("-")
+  if channelvol(3)=1 then position 35,19 :v.write("4")
+  if channelvol(3)=0 then position 35,19 :v.write("-")   
+  
+'' -------------------------- R - rescan the directory 
+
+  if (ansibuf(3)=asc("r")) orelse (ansibuf(3)=asc("R")) then getlists(1)  : ansibuf(3)=0 						' recreate dirlist
+
+'' ------------------------- Enter and also directory panel active - change the current directory
 
   if (ansibuf(3)=13 orelse ansibuf(3)=141) andalso panel=0 then
-     open currentdir$+"dirlist.txt" for input as #7
-     for i=0 to dirnum2 : input #7,filename$ :next i
-     filename$=rtrim$(filename$)
-     if filename$<>".." then
-       close #7
-       chdir(currentdir$+filename$)
-       currentdir$=currentdir$+rtrim$(filename$)+"/"
-       getlists(0)
+    close #7: open currentdir$+"dirlist.txt" for input as #7					' open a directory list file
+    for i=0 to dirnum2 : input #7,filename$ :next i						' read dirnum2 entries - todo: use get instead
+     filename$=rtrim$(filename$)								' delete spaces at the end
+     if filename$<>".." then									' if not ".." then change the directory								
+       close #7: chdir(currentdir$+filename$) : currentdir$=currentdir$+rtrim$(filename$)+"/"   ' and update currentdir$ as curdir$ function doesn't yet work as expected
+       getlists(0)										' get and display file lists of the new directory
      else
-       close #7
-       e=instrrev(len(currentdir$)-1,currentdir$,"/")
-       if e>1 then
-         currentdir$=left$(currentdir$,e-1)
-         chdir(currentdir$)
-         currentdir$=currentdir$+"/"
-         getlists(0)
+       close #7											' .. - go up. The filesystem itself doesn't have .. - I had to do this manually
+       e=instrrev(len(currentdir$)-1,currentdir$,"/")						' find the last "/" in currentdir$
+       if e>1 then 										' e=1 means go to root, which is not allowed here (yet)
+         currentdir$=left$(currentdir$,e-1)							' shorten the currentdir$
+         chdir(currentdir$)									' and go up
+         currentdir$=currentdir$+"/"								' now add "/" again to allow opening files in this directory
+         getlists(0)										' get and display file lists
        endif  
      endif   
-     v.setwritecolors($29,$22)
+     v.setwritecolors($29,$22)									' display currentdir$ in the file panel
      position 44,0: v.write(string$(38,chr$(3)))
      position 44,0: v.write(left$(currentdir$,38))
      ansibuf(3)=0
   endif
 
-''----- Open and play the file
-  
+'' -------------------- Enter and also file panel active - open and play the file
   
   if (ansibuf(3)=13 orelse ansibuf(3)=141) andalso panel=1 then
-
-    open currentdir$+"filelist.txt" for input as #7
-    if filenum2>0 then get #7,1+39*(filenum2-1),displayname(0),39 
-    input #7,filename$ 
-    filename$=rtrim$(filename$)': position 1,12: v.write(filename$)
+    open currentdir$+"filelist.txt" for input as #7						' open a file list
+    if filenum2>0 then get #7,1+39*(filenum2-1),displayname(0),39 				' find the file name
+    input #7,filename$ 				
+    filename$=rtrim$(filename$)									' clean trailing spaces
     close #7
-    if lcase$(right$(filename$,3))="mod" then
 
-      if cog>0 then cpustop(cog)
-      filename2$=currentdir$+filename$
-      mb=ma' : position 1,15: print mb : position 1,16: print filename$
-      open filename2$ for input as #4
-      pos=1
+    if lcase$(right$(filename$,3))="mod" then							' module file will be read into the hub ram
+      if cog>0 then cpustop(cog)								' stop playing the module
+      if waveplaying=1 then waveplaying= 0: waitms(1000): close #8			        ' if wav file is playing, stop it
+      for i=0 to 7 : lpoke base+32*i+20,0 : next i 						' mute the sound
+      for i=ma to addr(mainstack)-4 step 4: lpoke i,0: next i  					' clean the RAM
+      filename2$=currentdir$+filename$								' get a full filename with path
+      mb=ma											' ma is approximate low mem address available
+      open filename2$ for input as #4 : pos=1							' open the module
       do
-        get #4,pos,filebuf(0),128,r
-        pos+=r
-        for i=0 to r-1 : poke mb+i,filebuf(i) : next i
-        mb+=r 
-      loop until r<>128 orelse mb>= scope_ptr-4
+        get #4,pos,filebuf(0),128,r : pos+=r							' get 128 bytes and update file position
+        for i=0 to r-1 : poke mb+i,filebuf(i) : next i : mb+=r 					' move the buffer to the RAM and update RAM position. Todo: this can be done all at once
+      loop until r<>128 orelse mb>=addr(mainstack)						' do until eof or end of available RAM
       close #4
-      tracker.initmodule(ma,0)
-
-    samples=15: if peek(ma+1080)=asc("M") and peek(ma+1082)=asc("K") then samples=31
-    getinfo(ma,samples)
-   
-    cog=cpu (mainloop, @mainstack) 
-    hubset(hubset354)
-    samplerate=100
-    lpoke base+28,$8000_0064: waitms(2): lpoke base+28,0 
-    modtime=framenum
-    ansibuf(3)=0
-    v.setwritecolors($ea,$e1)
-    position 2,15:v.write(space$(38)): filename2$=right$(filename2$,38): position 2,15: v.write(filename2$)
+      tracker.initmodule(ma,0)									' init the tracker player
+      samples=15: if peek(ma+1080)=asc("M") and peek(ma+1082)=asc("K") then samples=31          ' get sample count
+      getinfo(ma,samples)									' and information
+      hubset(hubset354)										' set the main clock to Paula (PAL) * 100       
+      samplerate=100 : lpoke base+28,$8000_0064: waitms(2): lpoke base+28,0   	   	        ' set the sample rate to standard Paula
+      cog=cpu (mainloop, @mainstack) 								' start the playing
+      modtime=framenum										' get the current frame # for displaying module time
+      v.setwritecolors($ea,$e1)									' yellow
+      position 2,15:v.write(space$(38)): filename2$=right$(filename2$,38) 			' clear the place for a file name
+      position 2,15: v.write(filename2$)							' display the 'now playing' filename 
+      ansibuf(3)=0
     endif
     
-  if lcase$(right$(filename$,3))="wav" then  
-    hubset(hubset350)
-    if cog>0 then cpustop(cog)
-    samplerate=256
-    lpoke base+28,$80000100
-    waitms(2)
-    lpoke base+28,0
-    filename3$=currentdir$+filename$
-    var qqq=0
-    var rrr=0
-    close #8: open filename3$ for input as #8: get #8,1,wavebuf(0),$1000: needbuf=1: currentbuf=0 :wavepos=$1001
-    waveplaying=1' :needbuf=1:wavepos=1
-    lpoke base+8, $20000 or $c0000000                               ' set new sample ptr and request sample restart 
-lpoke base+12,0                 ' set new loop start   
-lpoke base+16,$10000                                        ' set new loop and
-dpoke base+20, 16384     ' set volume - this and the rest doesn't depend on trigger
-dpoke base+22, 16384                                                              ' set pan
-dpoke base+24, 31                 ' set period
-dpoke base+26, 4    
-'dpoke base+28,$80000100
-lpoke base+32+8, $20002 or $c0000000                               ' set new sample ptr and request sample restart 
-lpoke base+32+12,0                 ' set new loop start   
-lpoke base+32+16,$10000                                        ' set new loop and
-dpoke base+32+20, 16384     ' set volume - this and the rest doesn't depend on trigger
-dpoke base+32+22, 0     	                                                        ' set pan
-dpoke base+32+24, 31                 ' set period
-dpoke base+32+26, 4    
-lpoke base+8, $20000 or $c0000000  
-lpoke base+32+8, $20002 or $c0000000
-for i=2 to 7 : lpoke base+32*i+20,0 : next i
+  if lcase$(right$(filename$,3))="wav" then  							' this is a wave file. Todo - read and use the header!
+    if cog>0 then cpustop(cog)									' if module playing, stop it
+    for i=0 to 7 : lpoke base+32*i+20,0 : next i 						' mute the sound
+    samplerate=256 : lpoke base+28,$80000100 : waitms(2) : lpoke base+28,0			' samplerate=clock/256 allows for HQ DAC
+    hubset(hubset350)										' main clock=350 MHz, sample rate 1367187.5 Hz=31*44102.8 Hz - Todo: get a sample rate from a header and set it properly     
+    filename3$=currentdir$+filename$								' get a filename with the path
+    close #8: open filename3$ for input as #8: get #8,1,wavebuf(0),$1000			' open the file and preload the buffer
+    needbuf=1: currentbuf=0 :wavepos=$1001 : waveplaying=1   					' init buffering variables
+      										                ' now init the driver. Todo: exact synchronization of stereo channels !!!!!
+    lpoke base+12,0               								' loop start   
+    lpoke base+16,$4FFFC                                       					' loop end, we will use $50000 bytes as $50 4k buffers
+    dpoke base+20,16384                                                                         ' set volume 
+    dpoke base+22,16384                                                              		' set pan
+    dpoke base+24,31 					                			' set period
+    dpoke base+26, 4    									' set skip, 1 stereo sample=4 bytes
+
+    lpoke base+32+12,0                 								' loop start   
+    lpoke base+32+16,$4FFFC                                        				' loop end
+    dpoke base+32+20,16384                                                                      ' volume
+    dpoke base+32+22,0     	                                                                ' pan
+    dpoke base+32+24, 31                                                                        ' period
+    dpoke base+32+26, 4    									' skip
+    
+    lpoke base+8, $20000 or $c0000000  								' sample ptr, 16 bit, restart from 0 
+    lpoke base+32+8, $20002 or $c0000000							' sample ptr+2 (=another channel), it is now 44 clocks delayed and the phase is random. Todo: synchronizing command in the driver
+
     ansibuf(3)=0
     endif  
   endif
 
-  if ansibuf(3)=49 then channelvol(0)=1-channelvol(0) : ansibuf(3)=0
-  if ansibuf(3)=50 then channelvol(1)=1-channelvol(1) : ansibuf(3)=0
-  if ansibuf(3)=51 then channelvol(2)=1-channelvol(2) : ansibuf(3)=0
-  if ansibuf(3)=52 then channelvol(3)=1-channelvol(3) : ansibuf(3)=0
-  if ansibuf(3)=53 andalso ansibuf(2)<>91 then ansibuf(3)=0 : ansibuf(2)=0: mainpan=mainpan-256: if mainpan<0 then mainpan=0
-  if ansibuf(3)=54 andalso ansibuf(2)<>91 then ansibuf(3)=0 : ansibuf(2)=0: mainpan=mainpan+256: if mainpan>8192 then mainpan=8192
-  if ansibuf(3)=asc("+") orelse ansibuf(3)=asc("=") then mainvolume+=1: ansibuf(3)=0 : if mainvolume>128 then mainvolume=128 
-  if ansibuf(3)=asc("-") then mainvolume-=1: ansibuf(3)=0 : if mainvolume<0  then mainvolume=0 
-   
+'' ----------------------------------- User interface panels control : tab, arrows, pg up/down, w, s
      
-   pan(0)=8192-mainpan : pan(1)=8192+mainpan : pan(2)=8192+mainpan : pan(3)=8192-mainpan 
-   v.setwritecolors($ca,$e1)
-   position 3,19: v.write("pan: "): v.write(v.inttostr2(mainpan/256,2))  
-   position 13,19: v.write("vol: "): v.write(v.inttostr2(mainvolume,3)) 
-   position 24,19: v.write("chn: "): 
-   if channelvol(0)=1 then position 29,19 :v.write("1")
-   if channelvol(0)=0 then position 29,19 :v.write("-")
-   if channelvol(1)=1 then position 31,19 :v.write("2")
-   if channelvol(1)=0 then position 31,19 :v.write("-")
-   if channelvol(2)=1 then position 33,19 :v.write("3")
-   if channelvol(2)=0 then position 33,19 :v.write("-")
-   if channelvol(3)=1 then position 35,19 :v.write("4")
-   if channelvol(3)=0 then position 35,19 :v.write("-")
-   
-  if (ansibuf(3)=9) orelse (ansibuf(3)=137) then 
+ 
+  if (ansibuf(3)=9) orelse (ansibuf(3)=137) then 						                                           ' TAB changes panel
     if panel=0 then highlight(panel,dirnum1,0)
     if panel=1 then highlight(panel,filenum1,0)
     panel=1-panel
@@ -294,12 +270,13 @@ for i=2 to 7 : lpoke base+32*i+20,0 : next i
     if panel=0 then highlight(panel,dirnum1,1)
     ansibuf(3)=0
   endif
-  
-  
-  if (ansibuf(3)=66 andalso ansibuf(2)=91 andalso ansibuf(1)=27) orelse (ansibuf(3)=$D0)  then filemove=1 ' arrow down  
-  if (ansibuf(3)=54 andalso ansibuf(2)=91 andalso ansibuf(1)=27) orelse (ansibuf(3)=205) orelse (ansibuf(3)=asc("s")) then filemove=10 ' pg down  
-  if (ansibuf(3)=65 andalso ansibuf(2)=91 andalso ansibuf(1)=27) orelse (ansibuf(3)=$D1)  then filemove=(-1)' arrow up 
-  if (ansibuf(3)=53 andalso ansibuf(2)=91 andalso ansibuf(1)=27) orelse (ansibuf(3)=203) orelse (ansibuf(3)=asc("w"))  then filemove=(-10)' pg up 
+   
+  if (ansibuf(3)=66 andalso ansibuf(2)=91 andalso ansibuf(1)=27) orelse (ansibuf(3)=$D0)  then filemove=1                                  ' arrow down  
+  if (ansibuf(3)=54 andalso ansibuf(2)=91 andalso ansibuf(1)=27) orelse (ansibuf(3)=205) orelse (ansibuf(3)=asc("s")) then filemove=10     ' pg down or s - moves 10 positions down 
+  if (ansibuf(3)=65 andalso ansibuf(2)=91 andalso ansibuf(1)=27) orelse (ansibuf(3)=$D1)  then filemove=(-1)                               ' arrow up 
+  if (ansibuf(3)=53 andalso ansibuf(2)=91 andalso ansibuf(1)=27) orelse (ansibuf(3)=203) orelse (ansibuf(3)=asc("w"))  then filemove=(-10) ' pg up or w - moves 10 positions up 
+
+'' ---------------------------------- If the "cursor" needs to be moved, do it
 
   if filemove>0 then
     if panel=0 then
