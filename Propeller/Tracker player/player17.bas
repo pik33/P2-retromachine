@@ -45,7 +45,7 @@ dim samplerate,wavepos,currentbuf as ulong
 declare wavebuf alias $20000 as ubyte($50000)
 declare filebuf alias $721B8 as ubyte(127)
 'declare wavebuf2 alias $48000 as ubyte($28000)
-dim modplaying,waveplaying,needbuf as ubyte
+dim modplaying,waveplaying,needbuf,playnext as ubyte
 
 ' ----------------------------Main program start ------------------------------------
 
@@ -101,6 +101,7 @@ do
       close #8 : waveplaying=0									' close the file, stop playing
       for i=0 to 7 : lpoke base+32*i+20,0 : next i 						' mute the sound
       for i=$20000 to $6FFFC step 4: lpoke i,$00000000: next i                                  ' clear the ram
+      filemove=1 : playnext=1										' experimental
     endif
   endif  
   
@@ -254,6 +255,9 @@ do
     
     lpoke base+8, $20000 or $c0000000  								' sample ptr, 16 bit, restart from 0 
     lpoke base+32+8, $20002 or $c0000000							' sample ptr+2 (=another channel), it is now 44 clocks delayed and the phase is random. Todo: synchronizing command in the driver
+    v.setwritecolors($ea,$e1)									' yellow
+    position 2,15:v.write(space$(38)): filename3$=right$(filename3$,38) 		 	' clear the place for a file name
+    position 2,15: v.write(filename3$)							        ' display the 'now playing' filename 
 
     ansibuf(3)=0
     endif  
@@ -288,7 +292,7 @@ do
       dirnum1=9	: v.setwritecolors($c9,$c1)    							        ' if we are still here, the highlight is at the bottom of the panel
       close #9 : open currentdir$+"dirlist.txt" for input as #9   					' and the new entry has to be read from the file, so open it
       for ii=dirnum2-9 to dirnum2									' read and display directory names from the file
-        get #9,1+39*ii,displayname(0),39								' get the name
+        get #9,1+39*ii,displayname(0),38 : displayname(38)=32								' get the name
         j=38 : do : j-=1 : loop until displayname(j)>32:  k=j 		     			        ' find the end of the name
         position 2,ii+2-dirnum2+9: for j=0 to (39-k)/2-2: v.write(" ") : next j                         ' clear the space before the centered name
         for j=0 to 39-(38-k)/2-1: v.write(chr$(displayname(j))) :next j					' display the name and spaces after it
@@ -306,7 +310,7 @@ do
       if filenum1<=17 then highlight(1,oldfilenum1,0) : highlight(1,filenum1,1) : goto 199              ' only highlight changed, go away
       filenum1=17 : v.setwritecolors($29,$22)  								' we are at the bottom now
       close #9 : open currentdir$+"filelist.txt" for input as #9                                        ' so do the same as in dir panel
-      for ii=filenum2-17 to filenum2: get #9,1+39*ii,displayname(0),39					' except we have now 18 slots
+      for ii=filenum2-17 to filenum2: get #9,1+39*ii,displayname(0),38: displayname(38)=32		' except we have now 18 slots
         j=38 : do : j-=1 : loop until displayname(j)>32: k=j 
         position 44,ii+2-filenum2+17: for j=0 to (39-k)/2-2: v.write(" ") : next j  
         for j=0 to 39-(38-k)/2-1: v.write(chr$(displayname(j))) :next j
@@ -327,7 +331,7 @@ do
       if dirnum1>=0 then highlight(0,olddirnum1,0) : highlight(0,dirnum1,1) : goto 230 		        ' only change highlight and go away		
       dirnum1=0 : v.setwritecolors($c9,$c1)  							        ' dirnum1 negative, read data from the file
       close #9 : open currentdir$+"dirlist.txt" for input as #9     				        ' do the same stuff as in dir panel down			
-      for ii=dirnum2 to dirnum2+9 : get #9,1+39*ii,displayname(0),39
+      for ii=dirnum2 to dirnum2+9 : get #9,1+39*ii,displayname(0),38: displayname(38)=32	
         j=38 : do : j-=1 : loop until displayname(j)>32:  k=j 
         position 2,ii+2-dirnum2: for j=0 to (39-k)/2-2: v.write(" ") : next j  
         if ii<dirnum3 then for j=0 to 39-(38-k)/2-1: v.write(chr$(displayname(j))) :next j
@@ -344,7 +348,7 @@ do
       if filenum1>=0 then highlight(1,oldfilenum1,0) : highlight(1,filenum1,1) : goto 230    
       filenum1=0 : v.setwritecolors($29,$22)  
       close #9 : open currentdir$+"filelist.txt" for input as #9   
-      for ii=filenum2 to filenum2+17 : get #9,1+39*ii,displayname(0),39
+      for ii=filenum2 to filenum2+17 : get #9,1+39*ii,displayname(0),38 : displayname(38)=32	
         j=38 : do : j-=1 : loop until displayname(j)>32:  k=j 
         position 44,ii+2-filenum2: for j=0 to (39-k)/2-2: v.write(" ") : next j  
         for j=0 to 39-(38-k)/2-1: v.write(chr$(displayname(j))) :next j
@@ -355,7 +359,7 @@ do
     
 230  ansibuf(3)=0: ansibuf(2)=0 : ansibuf(1)=0  :filemove=0   
   endif
-  
+  if playnext=1 then playnext=0: ansibuf(3)=13
 loop		
 
 '' ------------------------------------------------ END OF THE MAIN LOOP started at 81 ---------------------------------------------------------------------------
@@ -508,56 +512,53 @@ do
 loop
 end sub
 
-'' -------------------------------------- Get a dir and file list after change a directory ------------------------------------------------------------
+'' -------------------------------------- Get a dir and file list after change a directory --------------------------------------------------------------
 
 sub getlists(mode)
 
+dim e,i as integer
 
-if mode=1 then e=4: goto 360 
-close #5
+if mode=1 then e=4: goto 360 								' if mode=1 then force error to rebuild fles
 
 350 e=0
 dirnum3=0
-open currentdir$+"dirlist.txt" for input as #5 
+close #5 :open currentdir$+"dirlist.txt" for input as #5 				' try to open a directory list
 e=geterr()
                                         
-360 if e=4 then
-  close #5
+360 if e=4 then										' error #4=file not found - create a new file
+  close #5										' todo: react to other errors (message box?)
   open currentdir$+"dirlist.txt" for output as #5
-  print #5,".."+space$(36)
-  filename$ = dir$("*", fbDirectory)
+  print #5,".."+space$(36)								' this file system has no .. - it needs to be manually added
+  filename$ = dir$("*", fbDirectory)							' find all directories
   while filename$ <> "" andalso filename$ <> nil
-    if len(filename$)<38 then filename$=filename$+space$(38-len(filename$))
-    filename$=right$(filename$,38)
-    print #5, filename$
+    if len(filename$)<38 then filename$=filename$+space$(38-len(filename$))		' the string has to be exactly 38 characters 
+    filename$=right$(filename$,38)							' which enables to use get when reading
+    print #5, filename$									' write directory name to the file
     filename$ = dir$()
   end while
-  close #5
+  close #5										
   goto 350
 endif
 
-if e=0 then ' dir list exists
-var i=1
+if e=0 then 										' now the directory list exists
+  i=1
   v.setwritecolors($c8,$c1)
-  for  i=1 to 11: position 2,i : print space$(38) : next i  
+  for  i=1 to 11: position 2,i : print space$(38) : next i  				' clear the directory panel
   i=2
   do
-    input #5,filename$
+    input #5,filename$									' write first 10 entries to the panel
     filename2$=rtrim$(filename$)
     filename2$=space$((38-len(filename2$))/2)+filename2$
     if i<12 then position 2,i : v.write(filename2$) 
     i+=1
-  loop until filename$=nil orelse filename$=""
-  dirnum3=i-3
+  loop until filename$=nil orelse filename$="" 						' to do: write the number of entries to avoid reading all of them
+  dirnum3=i-3	
   close #5
   endif
-  
 
-close #5
+if mode=1 then e=4: goto 410								' file list read - mode=1 forces rebuild
 
-if mode=1 then e=4: goto 410
-
-400 e=0
+400 e=0											' do the same thing as in directory panel
 close #5
 filenum3=0
 open currentdir$+"filelist.txt" for input as #5
@@ -577,10 +578,8 @@ e=geterr()
 endif
     
 if e=0 then ' file list exists
-
   v.setwritecolors($29,$22)
   for i=1 to 19: position 44,i : print space$(38) : next i  
-  
   i=2
   do
     input #5,filename$
@@ -593,33 +592,26 @@ if e=0 then ' file list exists
   close #5
 endif
 
-filenum1=0
+filenum1=0										' reset variables and highlight first directory position
 filenum2=0
 dirnum1=0
 dirnum2=0
-'max dir pos=10
-'max file pos=17
 highlight(0,0,1)
 panel=0
-
-'for i=2 to 39 : lpoke mainbuf_ptr+2*84*4+i*4, (lpeek(mainbuf_ptr+2*84*4+i*4) and $FFFF) or $c1c80000 :next i
-'for i=44 to 81 : lpoke mainbuf_ptr+2*84*4+i*4, (lpeek(mainbuf_ptr+2*84*4+i*4) and $FFFF) or $22290000 :next i
-
 end sub
 
-sub highlight(hpanel,hpos,hhigh)
+'' ------------------------------------------ Highlight the entry in the panel --------------------------------------------
 
-var hq1=8+42*4*hpanel
-var hq2=mainbuf_ptr+(2+hpos)*84*4
-if hpanel=0 andalso hhigh=1 then var hq3=$c1c80000
+sub highlight(hpanel,hpos,hhigh)								' panel 0 dir, 1 file, high0 = off, 1 - on
+
+var hq1=8+42*4*hpanel										' compute x offset for the panel
+var hq2=mainbuf_ptr+(2+hpos)*84*4                                                               ' compute adderss + y offset
+if hpanel=0 andalso hhigh=1 then var hq3=$c1c80000						' determine colors
 if hpanel=0 andalso hhigh=0 then hq3=$c8c10000
 if hpanel=1 andalso hhigh=1 then hq3=$22290000
 if hpanel=1 andalso hhigh=0 then hq3=$29220000
-for hi=0 to 37: lpoke hq1+hq2+hi*4,((lpeek(hq1+hq2+hi*4) and $FFFF) or hq3 ): next hi
+for hi=0 to 37: lpoke hq1+hq2+hi*4,((lpeek(hq1+hq2+hi*4) and $FFFF) or hq3 ): next hi           ' and change colors 
 end sub
-
-
-
 
 
 ' ---------------- Prepare the user interface --- rev 20220206 ---------------------------------------------------
@@ -628,20 +620,20 @@ sub preparepanels
 
 ' 1. Channel and oscilloscope panel at graphic canvas
 
-v.s_buf_ptr=graphicbuf_ptr
-v.s_cpl=112
-v.s_lines=64
-v.putpixel=v.p4
-v.font_family=2
-v.box(0,0,895,63,0)
-v.frame(675,3,892,60,15)
+v.s_buf_ptr=graphicbuf_ptr						' tell the driver to operate on the graphics buffer
+v.s_cpl=112								' char per line
+v.s_lines=64								' lines				
+v.putpixel=v.p4								' set putpixel function to 4 bpp							
+v.font_family=2								' Atari 8 bit 8x8 font
+v.box(0,0,895,63,0)							' clear the panel
+v.frame(675,3,892,60,15)						' draw a box
 v.frame(676,3,891,60,15)
-outtext48(86,0," Channels ",15)
+outtext48(86,0," Channels ",15)						' print a header
 v.buf_ptr=mainbuf_ptr
-v.frame(3,3,668,60,15)
+v.frame(3,3,668,60,15)							' repeat for oscilloscope
 v.frame(4,3,667,60,15)
 outtext48(2,0," Oscilloscope ",15)
-v.line1(16,32,655,32,14) 'cannot use "line"
+v.line1(16,32,655,32,14)                                                ' cannot use "line"
 
 ' 2 File info scrolling panel
 
@@ -679,8 +671,8 @@ poke mainbuf_ptr+20*84*4, 12: for i=1 to 40 : poke mainbuf_ptr+20*84*4+i*4,3 : n
 for i=14 to 19: poke mainbuf_ptr+84*4*i,4:  poke mainbuf_ptr+(84*4)*i+41*4,4: next i                                                 
 v.setwritecolors($ea,$e1) : position 2,13 : print " Now playing "                                                                    
                                  
-v.setbordercolor2(v.getpalettecolor(113))
-lpoke v.palette_ptr+4,lpeek(v.palette_ptr+4*202)
+v.setbordercolor2(v.getpalettecolor(113))											' dark blue border
+lpoke v.palette_ptr+4,lpeek(v.palette_ptr+4*202)										' colors for the scope
 lpoke v.palette_ptr+8,lpeek(v.palette_ptr+4*218)
 lpoke v.palette_ptr+12,lpeek(v.palette_ptr+4*234)
 lpoke v.palette_ptr+16,lpeek(v.palette_ptr+4*250)
@@ -688,14 +680,12 @@ lpoke v.palette_ptr+20,lpeek(v.palette_ptr+4*26)
 lpoke v.palette_ptr+24,lpeek(v.palette_ptr+4*42)
 lpoke v.palette_ptr+28,lpeek(v.palette_ptr+4*58)
 
-											' dark blue border
-'for i=1 to 14 : lpoke v.palette_ptr+4*i,lpeek(v.palette_ptr+64*(i+1)+32) :next i
 end sub
 
 ' ---------------- Find an adress of the current top of the stack --- rev 20220206 -------------------------------
 
 function lomem() as ulong
-dim as integer ptr x = __builtin_alloca(4)    
+dim as integer ptr x = __builtin_alloca(4)    	' allocate 4 bytes to find where is the stack
 return (cast(ulong,x))
 end function
 
@@ -720,19 +710,18 @@ end sub
 
 sub getinfo(ma,num)
 
-v.s_buf_ptr=infobuf_ptr           'set display variables to info buffer
+v.s_buf_ptr=infobuf_ptr        					              ' set display variables to info buffer
 v.s_lines=40
 v.s_cpl=28
 v.s_buflen=40*28
-'v.cls($9a,$93) 
 v.setwritecolors($9a,$93)
 for i=1 to 38: position 1,i : print space$(26): next i 
-v.setwritecolors($93,$9a): position 2,2 : print "                        " : position 2,2: print filename$ :v.setwritecolors($9a,$93)     ' test: module file name will be here
+v.setwritecolors($93,$9a)
+position 2,2 : print "                        " 
+position 2,2: print filename$ :v.setwritecolors($9a,$93)                      ' test: module file name will be here
 position 2,3 : print "Amiga module: "; samples;" samples"
 position 2,5 : for i=ma to ma+19 : print chr$(peek(i) mod 128); : next i      ' first 20 bytes of module=title
-  
 for i=0 to 31: sn$(i)=space$(22) :next i
-
 c=0
 for i=1 to num
   for j=0 to 21
@@ -750,16 +739,18 @@ v.s_buflen=21*84'print
 end sub
 
 
-'------------ Fast character output on 4bpp graphic canvas - reduce time 19x comparing to high level spin code --- rev 20220205 ---------
+''------------ Fast character output on 4bpp graphic canvas - reduce time 19x comparing to high level spin code --- rev 20220205 ---------
+
+'----------- text output
 
 sub outtext48(x,y, s$ as string ,c)
 
 for i=0 to len(s$)-1
-
 putchar48(graphicbuf_ptr,112,x+i,y,peek(addr(s$(0))+i),v.font_ptr+2048,15)
 next i
 end sub
 
+'----------- Single char output
 
 sub putchar48(buf,cpl,x,y,char,font,c)
 
