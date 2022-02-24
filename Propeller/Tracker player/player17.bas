@@ -227,7 +227,6 @@ do
       v.setwritecolors($ea,$e1)									' yellow
       position 2,15:v.write(space$(38)): filename2$=right$(filename2$,38) 			' clear the place for a file name
       position 2,15: v.write(filename2$)							' display the 'now playing' filename 
-      ansibuf(3)=0
     endif
     
   if lcase$(right$(filename$,3))="wav" then  							' this is a wave file. Todo - read and use the header!
@@ -258,9 +257,8 @@ do
     v.setwritecolors($ea,$e1)									' yellow
     position 2,15:v.write(space$(38)): filename3$=right$(filename3$,38) 		 	' clear the place for a file name
     position 2,15: v.write(filename3$)							        ' display the 'now playing' filename 
-
-    ansibuf(3)=0
     endif  
+  ansibuf(3)=0  
   endif
 
 '' ----------------------------------- User interface panels control : tab, arrows, pg up/down, w, s
