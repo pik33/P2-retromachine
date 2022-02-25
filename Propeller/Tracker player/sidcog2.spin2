@@ -87,8 +87,8 @@ CON  PAL = 985248.0, NTSC = 1022727.0, MAXF = 1031000.0, TRIANGLE = 16, SAW = 32
 
 
 var
-byte regs[25]
-byte pad[3]
+byte regs[28]
+long combinedptr
 long SIDSample
 
 
@@ -99,6 +99,7 @@ long SIDSample
 pub start():cog
 
 cog:=coginit(16,@SIDEMU,@regs )
+combinedptr:=@combinedWaveforms
 return cog
 
 dat
@@ -123,7 +124,7 @@ SIDEMU        wrpin   smartConfigAudioDAC, #L_PIN           ' Config smartpin DA
 ' Read all SID-registers from hub memory and convert
 ' them to more convenient representations.
 '----------------------------------------------------------------------------------------------------------------------
-getRegisters  setq      #7-1                                ' Number of longs, minus 1, to read
+getRegisters  setq      #7                               ' Number of longs, minus 1, to read
               rdlong    sidRegsCogCopy, ptra                 ' Read 6 longs to cog address
 '===========================================================
 '              Extract channel 1 register data
@@ -544,7 +545,7 @@ mixer         mov      arg1, filterOutput
               waitse1
 '-----------------------------------------------------------  
               mov      tempValue, ptra
-              add      tempValue, #28
+              add      tempValue, #32
               wrlong   r1, tempValue                       '| Write the sample to hub ram
               jmp      #getRegisters
 
@@ -590,7 +591,7 @@ clipLevelLow        long-$8000000
 filterOffset        long FILTER_OFFSET
 decayDivideRef      long DECAY_DIVIDE_REF
 'maxCutoff           long CUTOFF_LIMIT
-combTableAddr       long $1000
+
 'par                 long @ch1_frequencyLo
 samplePeriod        long SAMPLE_PERIOD                 'clocks between samples ( ~31.250 khz )
 smartConfigAudioDAC long SMARTPIN_DAC_MODE
@@ -609,6 +610,8 @@ noiseValue3         long $ffffff
 decayDivide1        long 0
 decayDivide2        long 0
 decayDivide3        long 0
+sidRegsCogCopy      long 0,0,0,0,0,0,0
+combTableAddr       long 0
 envelopeLevel1      res  1 
 envelopeLevel2      res  1 
 envelopeLevel3      res  1 
@@ -658,7 +661,7 @@ ordinaryOutput      res  1
 
 'Working variables
 tempValue           res  1
-sidRegsCogCopy      res  7
+
                     fit                          
 {{
 DAT orgh            $1000
