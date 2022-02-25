@@ -72,7 +72,7 @@ _clkfreq=354_689_500
   'CUTOFF_LIMIT        = 1100'                  |
   LP_MAX_CUTOFF        = 14'                    | Don't alter these constants unless you know what you are doing!
   BP_MAX_CUTOFF        = 12'                    |
-  FILTER_OFFSET        = 16'                    |
+  FILTER_OFFSET        = 32'                    |
   START_LOG_LEVEL      = $5d5d5d5d'             |
   DECAY_DIVIDE_REF     = $6C6C6C6C'             |
   ENV_CAL_FACTOR       = 545014038.181330/8.0'  | ENV_CAL_FACTOR = (MaxUint32  / SIDcogSampleFreq) / (1 / SidADSR_1secRomValue)
@@ -115,7 +115,7 @@ dat
 combinedWaveforms   file "combinedwaveforms.bin"
 
 dat
-dumpFile            file "plastic_pop.dmp"
+dumpFile            file "mr_marvellous.dmp"
 
 DAT
 
@@ -229,7 +229,7 @@ getRegisters
 '            Extract filter/volume register data
 '===========================================================
               getbyte   filterCutoff, sidRegsCogCopy + 5, #2
-              shl       filterCutoff, #2
+              shl       filterCutoff, #3
               add       filterCutoff, filterOffset
               getnib    filterControl, sidRegsCogCopy + 5, #6
               getnib    filterResonance, sidRegsCogCopy + 5, #7

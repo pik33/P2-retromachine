@@ -74,7 +74,7 @@ CON  PAL = 985248.0, NTSC = 1022727.0, MAXF = 1031000.0, TRIANGLE = 16, SAW = 32
   FILTER_OFFSET        = 16'                    | 32
   START_LOG_LEVEL      = $5d5d5d5d'             |
   DECAY_DIVIDE_REF     = $6C6C6C6C'             |   
-  ENV_CAL_FACTOR       = 545014038.181330/16'  | ENV_CAL_FACTOR = (MaxUint32  / SIDcogSampleFreq) / (1 / SidADSR_1secRomValue)   was 8
+  ENV_CAL_FACTOR       = 545014038.181330/16'    | ENV_CAL_FACTOR = (MaxUint32  / SIDcogSampleFreq) / (1 / SidADSR_1secRomValue)   was 8
   NOISE_ADD            = %1010_1010_101<<23'    | ENV_CAL_FACTOR = (4294967295 / 30789           ) / (1 / 3907                ) = 545014038,181330
   NOISE_TAP            = %100001 << 8'       ___|
   DAC_MODE             = %00010_0 ' DAC 16-bit dither, noise
@@ -551,14 +551,11 @@ mixer         mov      arg1, filterOutput
 '---------------------------------------------------------------------------------------------------------------------- 
 '    Multiplication     r1(I32) = arg1(I32) * arg2(I32)
 '----------------------------------------------------------------------------------------------------------------------
-multiply      mov        r1, arg1
-              sar        r1, #16
-              'getnib     r1, arg1, #1
-              mul        r1, arg2
-              shl        r1, #16
-              mul        arg1, arg2
-              add        r1, arg1
-multiply_ret  ret
+multiply      getword  r1,arg1,#1
+              mul      r1, arg2
+              shl      r1, #16
+              mul      arg1, arg2
+    _ret_     add      r1, arg1
 
 '---------------------------------------------------------------------------------------------------------------------- 
 '    Variables, tables, masks and reference values
