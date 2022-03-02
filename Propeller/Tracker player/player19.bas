@@ -2,8 +2,8 @@
 #include "retromachine.bi"
 
 const HEAPSIZE = 8192
-const version$="Prop2play v.0.18"
-const statusline$=" Propeler2 wav/sid/mod player v. 0.18 --- 2022.02.25 --- pik33@o2.pl --- use serial terminal or RPi KBM interface to control --- arrows up,down move - pgup/pgdn or w/s move 10 positions - enter selects - tab switches panels - +,- controls volume - 1..4 switch channels on/off - 5,6 stereo separation - 7,8,9 sample rate - R rescans current directory ------"
+const version$="Prop2play v.0.19"
+const statusline$=" Propeler2 wav/sid/mod player v. 0.19 --- 2022.03.02 --- pik33@o2.pl --- use serial terminal or RPi KBM interface to control --- arrows up,down move - pgup/pgdn or w/s move 10 positions - enter selects - tab switches panels - +,- controls volume - 1..4 switch channels on/off - 5,6 stereo separation - 7,8,9 sample rate - R rescans current directory ------"
 const hubset350=%1_000001__00_0010_0010__1111_1011 '350_000_000 =31*44100
 const hubset354=%1_110000__11_0110_1100__1111_1011 '354_693_878
 const hubset356=%1_001010__00_1100_0011__1111_1011 '356_352_000 =29*256*48001,5673491
@@ -48,7 +48,7 @@ declare filebuf alias $721B8 as ubyte(127)
 dim modplaying,waveplaying,dmpplaying, needbuf,playnext as ubyte
 dim scog as integer
 dim dmppos as ulong
-dim sidbuf as integer
+dim newcnt,bufptr,siddelay,scog2,sidfreq as integer
 
 
 ' ----------------------------Main program start ------------------------------------
@@ -106,7 +106,7 @@ do
       do: currentbuf=lpeek(base) shr 12 : loop until currentbuf=needbuf				' wait until all buffers played					
       close #8 : waveplaying=0									' close the file, stop playing
       for i=0 to 7 : lpoke base+32*i+20,0 : next i 						' mute the sound
-      for i=$20000 to $6FFFC step 4: lpoke i,$00000000: next i                                  ' clear the ram
+      for i=$21000 to $70FFC step 4: lpoke i,$00000000: next i                                  ' clear the ram
       filemove=1 : playnext=1										' experimental
     endif
   endif  
@@ -116,13 +116,24 @@ do
 '' --------------------------------  Playing the .dmp file in the main loop as no other cogs can acces the file system
  
   if dmpplaying=1 then
-    qqq=25											' one wave chunk to load, 4kB=27 ms
-    get #8,dmppos,sid.regs(0),25,qqq
-    dmppos+=25
-    if qqq<>25 then
-      close #8 : dmpplaying=0 : cpustop(scog)
+    qqq=250											' one wave chunk to load, 4kB=27 ms
+    currentbuf=(bufptr-$21000)/250								' get a current playing 4k buffer# from the driver
+    if needbuf<>currentbuf then									' if there is a buffer to load
+      get #8,dmppos,wavebuf(needbuf*250),250,qqq 					' then load it
+      needbuf=(needbuf+1) mod $50  								' we can have any count of 4k buffers, now 2 used
+      dmppos+=250   								         	' file position
+      endif
+    if qqq<>250 then 										' end of file
+      do: currentbuf=(bufptr-$21000)/250 : loop until currentbuf=needbuf				' wait until all buffers played					
+      close #8 : dmpplaying=0									' close the file, stop playing
+'      for i=0 to 7 : lpoke base+32*i+20,0 : next i 						' mute the sound
+      for i=$21000 to $70FFC step 4: lpoke i,$00000000: next i                                  ' clear the ram
+'      filemove=1 : playnext=1										' experimental
+      cpustop(scog) : scog=-1
+      cpustop(scog2) :scog2=-1
     endif
-  endif
+  endif      
+ 
 '' ------------------------------- End of dmp playing   
 
 '' ------------------------------- Display the playing time
@@ -158,6 +169,19 @@ do
     if waveplaying=1 then lpoke base+28,$80000100 : samplerate=256				' 256=$100 if wave playing, $100 allows HQ DACs
      waitms(2) : lpoke base+28,0 : ansibuf(3)=0
    endif
+   
+  if ansibuf(3)=asc("d") then 									' 7 - decrease the period
+    sidfreq=sidfreq+50: if sidfreq>400 then sidfreq=400
+    siddelay=clkfreq/sidfreq
+    ansibuf(3)=0
+  endif  
+  
+  if ansibuf(3)=asc("a") then 									' 7 - decrease the period
+    sidfreq=sidfreq-50: if sidfreq<50 then sidfreq=50
+    siddelay=clkfreq/sidfreq
+    ansibuf(3)=0
+  endif  
+   
    
 '' --------------------------- Keys 1..4 - channels on/off, 5,6 - stereo separation, +,- volume
    
@@ -223,9 +247,11 @@ do
     close #7
 
     if lcase$(right$(filename$,3))="mod" then							' module file will be read into the hub ram
-      if cog>0 then cpustop(cog)								' stop playing the module
+      if cog>0 then cpustop(cog): cog=-1								' stop playing the module
       if waveplaying=1 then waveplaying= 0: waitms(1000): close #8			        ' if wav file is playing, stop it
-      if dmpplaying=1 then dmpplaying= 0: waitms(20): close #8 : cpustop(scog)                  ' if wav file is playing, stop it
+      if dmpplaying=1 then 
+         dmpplaying= 0: waitms(20): close #8 : cpustop(scog) :cpustop(scog2) :scog=(-1):scog2=(-1)                  ' if wav file is playing, stop it
+      endif
       if audiocog<1 then startaudio   
       for i=0 to 7 : lpoke base+32*i+20,0 : next i 						' mute the sound
       for i=ma to addr(mainstack)-4 step 4: lpoke i,0: next i  					' clean the RAM
@@ -282,8 +308,9 @@ do
     endif  
 
   if lcase$(right$(filename$,3))="dmp" then  							' this is a wave file. Todo - read and use the header!
-    if cog>0 then cpustop(cog)									' if module playing, stop it
-
+    if cog>0 then cpustop(cog)	: cog=-1								' if module playing, stop it
+    if scog>0 then cpustop(scog): scog=-1
+    if scog2>0 then cpustop(scog2): scog2=-1
     if waveplaying=1 then waveplaying= 0: waitms(100): close #8                                   ' if dmp file is playing, stop it
     if audiocog>0 then stopaudio    
    
@@ -292,12 +319,16 @@ do
 
     filename3$=currentdir$+filename$								' get a filename with the path
     close #8: open filename3$ for input as #8:      		                        	' open the file and preload the buffer
-    dmpplaying=1 : dmppos=1
+    close #8: open filename3$ for input as #8: get #8,1,wavebuf(0),250			' open the file and preload the buffer
+    needbuf=1: currentbuf=0 :dmppos=251: dmpplaying=1   	
+    
     v.setwritecolors($ea,$e1)									' yellow
     position 2,15:v.write(space$(38)): filename3$=right$(filename3$,38) 		 	' clear the place for a file name
     position 2,15: v.write(filename3$)	
 					        ' display the 'now playing' filename 
+    siddelay=354_693_878/50 : sidfreq=50
     scog=sid.start()
+    scog2=cpu(sidloop,@mainstack)
     waitms(100)
     endif  
 
@@ -569,7 +600,7 @@ do
   waitcnt(newcnt)
   newcnt+=siddelay
   for i=0 to 24: sid.regs(i)=peek(bufptr) : bufptr+=1 : next i
-  if bufptr>50000 then bufptr=0
+  if bufptr>=$21000+$50*250 then bufptr=$21000
 loop
 end sub
 
