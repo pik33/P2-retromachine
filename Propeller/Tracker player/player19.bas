@@ -48,7 +48,7 @@ declare filebuf alias $721B8 as ubyte(127)
 dim modplaying,waveplaying,dmpplaying, needbuf,playnext as ubyte
 dim scog as integer
 dim dmppos as ulong
-dim newcnt,bufptr,siddelay,scog2,sidfreq as integer
+dim newcnt,bufptr,siddelay,scog2,sidfreq,sidtime as integer
 
 
 ' ----------------------------Main program start ------------------------------------
@@ -141,6 +141,7 @@ do
   v.setwritecolors($29,$e1)
   if cog>(-1) then time2=framenum-modtime
   if waveplaying=1 then time2=(wavepos)/3528
+  if dmpplaying=1 then time2=sidtime/200
   position 15,17: v.write(v.inttostr2(time2/180000,2)): v.write(":"):v.write(v.inttostr2((time2 mod 180000)/3000,2)):v.write(":"):v.write(v.inttostr2((time2 mod 3000)/50,2)):v.write(":"):v.write(v.inttostr2((time2 mod 50),2))
 
 '' ----------------------------- Get data from the keyboard
@@ -326,7 +327,7 @@ do
     position 2,15:v.write(space$(38)): filename3$=right$(filename3$,38) 		 	' clear the place for a file name
     position 2,15: v.write(filename3$)	
 					        ' display the 'now playing' filename 
-    siddelay=354_693_878/50 : sidfreq=50
+    siddelay=354_693_878/50 : sidfreq=50 :sidtime=0
     scog=sid.start()
     scog2=cpu(sidloop,@mainstack)
     waitms(100)
@@ -598,6 +599,7 @@ newcnt=getcnt()+177000000
 bufptr=$21000
 do
   waitcnt(newcnt)
+  sidtime+=siddelay/(354_69) ' 100 us tick
   newcnt+=siddelay
   for i=0 to 24: sid.regs(i)=peek(bufptr) : bufptr+=1 : next i
   if bufptr>=$21000+$50*250 then bufptr=$21000
