@@ -143,7 +143,7 @@ do
   if waveplaying=1 then time2=(wavepos)/3528
   if dmpplaying=1 then time2=sidtime/200
   position 15,17: v.write(v.inttostr2(time2/180000,2)): v.write(":"):v.write(v.inttostr2((time2 mod 180000)/3000,2)):v.write(":"):v.write(v.inttostr2((time2 mod 3000)/50,2)):v.write(":"):v.write(v.inttostr2((time2 mod 50),2))
-
+  position 15,18: v.write(v.inttostr2(lpeek(0),8))
 '' ----------------------------- Get data from the keyboard
  
   if lpeek($30)<>0 then 									                         ' a Raspberry Pi based interface sent a message

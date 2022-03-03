@@ -1,60 +1,13 @@
 
-{
-################################################################################################################################
-#                             SIDcog - SID/MOS8580 emulator v1.4  (C) 2020 Johannes Ahlebrand                                  #                                                            
-################################################################################################################################
-#                                    TERMS OF USE: Parallax Object Exchange License                                            #                                                            
-################################################################################################################################
-#Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation    # 
-#files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy,    #
-#modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software#
-#is furnished to do so, subject to the following conditions:                                                                   #
-#                                                                                                                              #
-#The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.#
-#                                                                                                                              #
-#THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE          #
-#WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR         #
-#COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,   #
-#ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.                         #
-################################################################################################################################
+'----------------  This is temporary experimental version of SIDCog for use in Prop2Play ---------------------------------------
+'---------------- 20220303 pik33@o2.pl -----------------------------------------------------------------------------------------
 
+'################################################################################################################################
+'#                             SIDcog - SID/MOS8580 emulator v1.4  (C) 2020 Johannes Ahlebrand                                  #                                                            
+'################################################################################################################################
+'#                                    TERMS OF USE: Parallax Object Exchange License                                            #                                                            
+'################################################################################################################################
 
-Revision History
-
-v0.7 (December 2009)   - Initial release
-
-v0.8 (February 2010)   - Added support for "combined waveforms"
-                       - Optimized code
-                       - Fixed bugs
-
-v1.0 (May 2011)        - First OBEX release
-                       - Added convenient API methods
-
-v1.2 (August 2011)     - Increased ADSR accuracy  (Almost perfect now; The famous ADSR bug isn't implemented though)
-                       - Increased Noise accuracy (As close as we will get without decreasing the sample rate of SIDcog)
-                       - Fixed a bug when no waveform was selected
-                       - Decreased the "max cutoff frequency" a bit to fix aliasing issues
-                       - Made some small optimizations 
-
-v1.3 (April 2012)      - Fixed a bug when noise + any other waveform was selected at the same time
-                       - Calibrated the cutoff frequency to better match a real 8580
-                       - Cycle optimized code to "make room" for the point below --
-                       - Increased resonance accuracy (replaced "4 step logaritmic lookup table" with "16 step bit linear multiplication")
-                       - Increased ADSR accuracy a little bit more (the ADSR bug is still not implemented)
-
-v1.3.P2 (Januari 2019) - "Tweeked" the SIDcog v1.3 P1 code to run as unmodified as possible on the P2
-                       - NO improvements regarding audio quality or accuracy (still 31.25 kHz sample rate)
-                       - NO improvements of using more optimized P2 instructions or LUT RAM or anything
-                       - Still uses a subroutine for multiplication (that ate around half the cycles each sample on the P1)
-
-v1.3.E1 (Januari 2019) - SIDcog now runs at a sample rate of ~250 kHz on a 80 MHz P2 (8 times higher than before) thanks to the points below
-                       - Changed multiplication to hardware instructions
-                       - Changed shift/mask instruction to getnib, getword, getbyte, rolbyte etc
-                       - Changed hub access to fast "burst" mode by reading everything at once to cog memory
-
-v1.4    (Januari 2020) - For the first time in the history if SIDcog, it has the exact same memory mapping as the real SID chip (no alignment paddings)
-                       - Some small P2 optimizations
-}
 CON
 _clkfreq=354_689_500
 
@@ -112,20 +65,25 @@ DAT org
 '----------------------------------------------------------------------------------------------------------------------
 '                                          Assembly SID emulator                      
 '----------------------------------------------------------------------------------------------------------------------
-SIDEMU        wrpin   smartConfigAudioDAC, #L_PIN           ' Config smartpin DAC mode on left pin
-              wrpin   smartConfigAudioDAC, #R_PIN           ' Config smartpin DAC mode on right pin
-              wxpin   samplePeriod, #L_PIN                  ' Sample period for left audio channel
-              wxpin   samplePeriod, #R_PIN                  ' Sample period for right audio channel
-              dirh    #L_PIN                                ' Enable smartpin DAC mode on left pin
-              dirh    #R_PIN                                ' Enable smartpin DAC mode on right pin
+SIDEMU        wrpin   smartConfigAudioDAC, #L_PIN   addpins 1        ' Config smartpin DAC mode on left pin
+              wxpin   samplePeriod, #L_PIN  addpins 1                ' Sample period for left audio channel
+              dirh    #L_PIN       addpins 1                         ' Enable smartpin DAC mode on left pin
               setse1  #%001_000000 | L_PIN                  ' Event triggered every new sample period (when "left in pin rises")
 
 '----------------------------------------------------------------------------------------------------------------------
 ' Read all SID-registers from hub memory and convert
 ' them to more convenient representations.
 '----------------------------------------------------------------------------------------------------------------------
-getRegisters  setq      #7                               ' Number of longs, minus 1, to read
+getRegisters  
+              sub cnt2,cnt1
+              wrlong cnt2,#0
+	      getct cnt1
+
+              setq      #7                               ' Number of longs, minus 1, to read
               rdlong    sidRegsCogCopy, ptra                 ' Read 6 longs to cog address
+              
+
+              
 '===========================================================
 '              Extract channel 1 register data
 '===========================================================
@@ -272,11 +230,7 @@ Noise1        cmp      selectedWaveform1, #8            wz
               and      arg1, mask28bit
               sub      arg1, frequency1                 wc
               mov      arg1, noiseValue1
-              add      arg1, noiseAddValue
-  if_nc       jmp      #Envelope1
-              test     noiseValue1, noiseTap            wc
-              rcr      noiseValue1, #1
-              getrnd   noiseValue1
+  if_c        getrnd   noiseValue1
               jmp      #Envelope1
 '-----------------------------------------------------------                
 Combined1     test     selectedWaveform1, #8            wz
@@ -350,11 +304,7 @@ Noise2        cmp      selectedWaveform2, #8            wz
               and      arg1, mask28bit
               sub      arg1, frequency2                 wc
               mov      arg1, noiseValue2
-              add      arg1, noiseAddValue
-  if_nc       jmp      #Envelope2 
-              test     noiseValue2, noiseTap            wc
-              rcr      noiseValue2, #1
-              getrnd   noiseValue2
+  if_c        getrnd   noiseValue2
               jmp      #Envelope2
 '-----------------------------------------------------------                
 Combined2     test     selectedWaveform2, #8            wz
@@ -428,11 +378,7 @@ Noise3        cmp      selectedWaveform3, #8            wz
               and      arg1, mask28bit
               sub      arg1, frequency3                 wc
               mov      arg1, noiseValue3
-              add      arg1, noiseAddValue
-  if_nc       jmp      #Envelope3 
-              test     noiseValue3, noiseTap            wc 
-              rcr      noiseValue3, #1 
-              getrnd   noiseValue3
+  if_c        getrnd   noiseValue3
               jmp      #Envelope3
 '-----------------------------------------------------------
 Combined3     test     selectedWaveform3, #8            wz
@@ -542,6 +488,7 @@ mixer         mov      arg1, filterOutput
               shr      r1, #16 
               wypin    r1, #L_PIN                          ' Output sample on left channel
               wypin    r1, #R_PIN                          ' Output sample on right channel
+              getct cnt2
               waitse1
 '-----------------------------------------------------------  
               mov      tempValue, ptra
@@ -602,8 +549,6 @@ arg2                long 1
 r1                  long 1
 
 'Sid variables
-noiseAddValue       long NOISE_ADD
-noiseTap            long NOISE_TAP
 noiseValue1         long $ffffff
 noiseValue2         long $ffffff
 noiseValue3         long $ffffff
@@ -658,11 +603,12 @@ filterControl       res  1
 filterOutput        res  1
 volume              res  1
 ordinaryOutput      res  1
-
+cnt1 long 0
+cnt2 long 0
 'Working variables
 tempValue           res  1
 
-                    fit                          
+                                        
 {{
 DAT orgh            $1000
   combinedWaveforms   file "CombinedWaveforms.bin"
