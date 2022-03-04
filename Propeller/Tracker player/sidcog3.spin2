@@ -51,13 +51,14 @@ long SIDSample
 
 pub start():cog
 
-cog:=coginit(16,@SIDEMU,@regs )
 combinedptr:=@combinedWaveforms
+sidsample:=@cv2
+cog:=coginit(16,@SIDEMU,@regs )
 return cog
 
 dat
 combinedWaveforms   file "combinedwaveforms.bin"
-
+cv2 file "cv2.bin"
 
 
 
@@ -69,9 +70,10 @@ SIDEMU        wrpin   smartConfigAudioDAC, #L_PIN   addpins 1        ' Config sm
               wxpin   samplePeriod, #L_PIN  addpins 1                ' Sample period for left audio channel
               dirh    #L_PIN       addpins 1                         ' Enable smartpin DAC mode on left pin
               setse1  #%001_000000 | L_PIN                  ' Event triggered every new sample period (when "left in pin rises")
-              rdlong  combTableAddr,ptra[7]
+              rdlong  combTableAddr,ptra[8]
               setq2 ##1024
               rdlong   0, combTableAddr   
+              rdlong  combTableAddr,ptra[7]
 
 '----------------------------------------------------------------------------------------------------------------------
 ' Read all SID-registers from hub memory and convert
