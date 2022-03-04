@@ -35,7 +35,7 @@ CON  PAL = 985248.0, NTSC = 1022727.0, MAXF = 1031000.0, TRIANGLE = 16, SAW = 32
   INIT_8BIT_DAC_VALUE  = 128
   ANALOG_OUT_MODE      = %10111 '  75 ohm, 2.0V DAC mode
   SMARTPIN_DAC_MODE    = (ANALOG_OUT_MODE << 16) | (INIT_8BIT_DAC_VALUE << 8) | (DIR_MODE << 6) | DAC_MODE
-  SAMPLE_PERIOD        = 800 'clocks between samples 
+  SAMPLE_PERIOD        = 720 'clocks between samples 
 
 
 
@@ -69,6 +69,9 @@ SIDEMU        wrpin   smartConfigAudioDAC, #L_PIN   addpins 1        ' Config sm
               wxpin   samplePeriod, #L_PIN  addpins 1                ' Sample period for left audio channel
               dirh    #L_PIN       addpins 1                         ' Enable smartpin DAC mode on left pin
               setse1  #%001_000000 | L_PIN                  ' Event triggered every new sample period (when "left in pin rises")
+              rdlong  combTableAddr,ptra[7]
+              setq2 ##1024
+              rdlong   0, combTableAddr   
 
 '----------------------------------------------------------------------------------------------------------------------
 ' Read all SID-registers from hub memory and convert
@@ -79,9 +82,9 @@ getRegisters
               wrlong cnt2,#0
 	      getct cnt1
 
-              setq      #7                               ' Number of longs, minus 1, to read
+              setq      #6                              ' Number of longs, minus 1, to read
               rdlong    sidRegsCogCopy, ptra                 ' Read 6 longs to cog address
-              
+
 
               
 '===========================================================
@@ -233,17 +236,15 @@ Noise1        cmp      selectedWaveform1, #8            wz
   if_c        getrnd   noiseValue1
               jmp      #Envelope1
 '-----------------------------------------------------------                
-Combined1     test     selectedWaveform1, #8            wz
-              sub      selectedWaveform1, #4             
+Combined1     sub      selectedWaveform1, #4             
               fges     selectedWaveform1, #0         
               shl      selectedWaveform1, #8
-              mov      tempValue, phaseAccumulator1
-              shr      tempValue, #24
-              add      selectedWaveform1, tempValue
+              shr      arg1, #24
+              add      selectedWaveform1, arg1' tempValue
               add      selectedWaveform1, combTableAddr
-  if_nc_and_z rdbyte   arg1, selectedWaveform1
-  if_nc_and_z shl      arg1, #24
-  if_c_or_nz  mov      arg1, val31bit
+              rdbyte   arg1, selectedWaveform1
+              shl      arg1, #24
+
 '===========================================================
 '            Envelope shaping channel 1 -> arg2           
 '===========================================================  
@@ -307,17 +308,15 @@ Noise2        cmp      selectedWaveform2, #8            wz
   if_c        getrnd   noiseValue2
               jmp      #Envelope2
 '-----------------------------------------------------------                
-Combined2     test     selectedWaveform2, #8            wz
-              sub      selectedWaveform2, #4
+Combined2     sub      selectedWaveform2, #4
               fges     selectedWaveform2, #0     
               shl      selectedWaveform2, #8
-              mov      tempValue, phaseAccumulator2
-              shr      tempValue, #24
-              add      selectedWaveform2, tempValue
+              shr      arg1,#24
+              add      selectedWaveform2, arg1
               add      selectedWaveform2, combTableAddr    
-  if_nc_and_z rdbyte   arg1, selectedWaveform2
-  if_nc_and_z shl      arg1, #24                         
-  if_c_or_nz  mov      arg1, val31bit
+              rdbyte   arg1, selectedWaveform2
+              shl      arg1, #24                         
+
 '===========================================================
 '            Envelope shaping channel 2 -> arg2           
 '===========================================================
@@ -381,17 +380,15 @@ Noise3        cmp      selectedWaveform3, #8            wz
   if_c        getrnd   noiseValue3
               jmp      #Envelope3
 '-----------------------------------------------------------
-Combined3     test     selectedWaveform3, #8            wz
-              sub      selectedWaveform3, #4             
+Combined3     sub      selectedWaveform3, #4             
               fges     selectedWaveform3, #0
               shl      selectedWaveform3, #8
-              mov      tempValue, phaseAccumulator3
-              shr      tempValue, #24
-              add      selectedWaveform3, tempValue
+              shr      arg1 , #24
+              add      selectedWaveform3, arg1
               add      selectedWaveform3, combTableAddr    
-  if_nc_and_z rdbyte   arg1, selectedWaveform3
-  if_nc_and_z shl      arg1, #24                         
-  if_c_or_nz  mov      arg1, val31bit
+              rdbyte   arg1, selectedWaveform3
+              shl      arg1, #24                         
+ 
 '===========================================================
 '            Envelope shaping channel 3 -> arg2           
 '===========================================================

@@ -8,7 +8,7 @@ dim v as class using "hng037rm.spin2"
 dim rm as class using "retrocog.spin2"
 dim tracker as class using "trackerplayer.spin2"
 dim paula as class using "audio090-8-sc.spin2"
-dim sid as class using "sidcog2.spin2"
+dim sid as class using "sidcog3.spin2"
 #include "dir.bi"
 
 dim audiocog,videocog as integer
