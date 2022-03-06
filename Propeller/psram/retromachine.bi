@@ -4,12 +4,12 @@
 '356352000=29*256*48000=356363636=11/196=48001,5673491
 
 'option implicit
-dim v as class using "hng037rm.spin2"
-dim rm as class using "retrocog.spin2"
-dim tracker as class using "trackerplayer.spin2"
+'dim v as class using "hng037rm.spin2"
+'dim rm as class using "retrocog.spin2"
+'dim tracker as class using "trackerplayer.spin2"
 'dim paula as class using "audio090-8-sc.spin2"
-dim sid as class using "sidcog3.spin2"
-#include "dir.bi"
+'dim sid as class using "sidcog3.spin2"
+'#include "dir.bi"
 
 dim audiocog,videocog as integer
 dim base as ulong
@@ -24,13 +24,13 @@ audiocog=-1
 end sub
 
 sub cls(fg=154,bg=147)
-v.cls(fg,bg)
+'v.cls(fg,bg)
 end sub
 
 function startvideo(mode=64, pin=0) 'todo return a cog#
-v.start(mode,pin)
-v.setbordercolor(0,0,0)
-open SendRecvDevice(@v.putchar, nil, nil) as #0
+'v.start(mode,pin)
+'v.setbordercolor(0,0,0)
+'open SendRecvDevice(@v.putchar, nil, nil) as #0
 end function
 
 'function startmachine()' todo return a cog
@@ -39,7 +39,7 @@ end function
 'end function
 
 #define startmachine rm.start
-#define plot v.plot1
+'#define plot v.plot1
 
 'sub putpixel(x,y,c)
 'v030.putpixel8(x,y,c)
@@ -93,9 +93,9 @@ return(cast(ulong,@v))
 end function
 
 sub position(x,y)
-v.setcursorpos(x,y)
+'v.setcursorpos(x,y)
 end sub
 
 sub waitvbl
-  v.waitvbl(1)
+ ' v.waitvbl(1)
 end sub

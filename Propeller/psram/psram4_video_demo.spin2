@@ -1,0 +1,391 @@
+{{
+PSRAM4 video sample code
+
+-------------
+LICENSE TERMS
+-------------
+Copyright 2020,2021,2022 Roger Loh
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell 
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in 
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE 
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN 
+THE SOFTWARE.
+
+ Revision history:
+ ----------------
+   0.91b   2 MAR 2022  rogloh      -pre-release demo-
+   0.92b   3 MAR 2022  rogloh      added more burst timing calculations for 4 bit PSRAM
+
+}}
+
+CON
+    _clkfreq = 200000000 ' initial clock rate (can be changed for video mode)
+    
+    RAM   = $00_000000  ' mapped start address of external PSRAM
+
+    DEBUG_BAUD = 115200 
+
+    MARGIN = 32 ' a safety margin (reduce this if you want to push the limits)
+    OVERHEAD = 100 ' FOR EXAMPLE actual value is TBD
+
+    XSIZE = 1024
+    YSIZE = 768
+    BPP   = 8 ' colour bit depth
+
+    RESOLUTION = vid.RES_1024x768    ' this should match the above
+
+    LINEBUFSIZE = XSIZE*BPP/8 ' assume 640 pixels @ 32bpp max * 2 scan lines
+    FRAMEBUFSIZE = XSIZE*YSIZE*BPP/8 ' assume worst case true colour
+
+    ' pin setup for VGA output board
+
+    VGA_BASE_PIN = 8
+    VGA_VSYNC_PIN = VGA_BASE_PIN + 4
+
+    CLEAR_TEXT = 1
+    TRANSPARENT_TEXT = 2
+
+OBJ
+    mem  : "psram4"
+    vid  : "p2videodrv"
+    
+VAR
+    long region[vid.REGION_SIZE/4]
+    long display[vid.DISPLAY_SIZE/4]
+    long textctx[11]
+    long contextPtr
+
+PUB main() | cog, timing, cogBurstLimit, frame
+    'get the timing for a video resolution
+    timing := vid.getTiming(RESOLUTION)
+    contextPtr:=0
+
+    'start PSRAM memory driver, compute delay based on P2 PLL frequency of video mode
+    cog := mem.startx(long[timing][1], 0, 10, -1)
+    if cog < 0
+        DEBUG("Failed to start PSRAM driver")
+        repeat
+
+    ' compute burst limit for COGs based on remaining bandwidth and transfer rate over scan line
+    cogBurstLimit := computeBurst(timing, BPP)
+    if cogBurstLimit <= 0
+        DEBUG("No write bandwidth left for reliable video")
+        repeat
+
+    'DEBUG(UDEC_LONG(cogBurstLimit))
+
+    'setup the writer COG's burst sizes, the video COG will be done on top of this once known
+    repeat cog from 0 to 7
+        mem.setQos(cog, cogBurstLimit << 16)
+
+    'clear initial frame buffer in external memory
+    mem.fillBytes(RAM, 0, FRAMEBUFSIZE, 0)
+
+    'setup an RGB8 graphics region sourced by framebuffer in external RAM using memory "bus 1"
+    vid.initRegion(@region, vid.RGB8, 0, 0, 0, 0, 0, (1<<28) | RAM, 0)
+
+    'start a VGA display using this region, providing the pins, twin scanline buffer, video timing and mailbox
+    cog := vid.initDisplay(-1, @display, vid.VGA, VGA_BASE_PIN, VGA_VSYNC_PIN, vid.RGBHV, @linebuffer, LINEBUFSIZE, timing, mem.getMailbox(0), @region)
+
+    'the video COG makes realtime requests so we give it highest priority service and
+    'its burst size should be limited only by the device
+    mem.setQoS(cog, $7ffff400) ' priority 7 & locked bursts
+    'light some pixels on the screen
+    cogspin(NEWCOG, pixels(), @stack1)
+    cogspin(NEWCOG, lines(), @stack2)
+    cogspin(NEWCOG, circles(), @stack3)
+    cogspin(NEWCOG, boxes(), @stack4)
+    cogspin(NEWCOG, text(), @stack5)
+    spiro()
+
+PRI pixels()
+    repeat 
+        setpixel2(XSIZE/2 + GETRND()+//(XSIZE/4), GETRND()+//(YSIZE/2), GETRND()&$ff)
+
+PRI lines()
+    repeat
+        line(GETRND()+//(XSIZE/2), YSIZE/2 + GETRND()+//(YSIZE/2), GETRND()+//(XSIZE/2), YSIZE/2 + GETRND()+//(YSIZE/2), GETRND()&$ff)
+    
+PRI circles()
+    repeat 
+        circle(GETRND()+//(XSIZE/2), GETRND()+//(YSIZE/2), GETRND()+//100, GETRND()&$ff)
+
+PRI boxes()
+    repeat 
+        fillRect(XSIZE/2 + GETRND()+//(XSIZE/2),YSIZE/2 + GETRND()+//(YSIZE/2), XSIZE/2 + GETRND()+//(XSIZE/2), YSIZE/2 + GETRND()+//(YSIZE/2),GETRND()&$ff)
+
+PRI spiro() | r1, t1, r2, t2, r3, t3, x, y, x2, y2, c, o, o2, lastx,lasty
+    repeat
+      repeat 30
+    '   vid.waitForVsync(@display)
+        c := GETRND()&$ff
+        t1:=0
+        t2:=0
+        r1:= GETRND()+//YSIZE/4
+        r2:= GETRND()+//YSIZE/8
+        o := $80000000 >> (5-GETRND()+//3)
+        o2 := o*(GETRND()+//8)
+        x, y := polxy(r1, t1)
+        x2, y2 := polxy(r2, t2)
+        lastx := x+x2
+        lasty := y+y2
+        repeat 128
+            x, y := polxy(r1, t1)
+            x2, y2 := polxy(r2, t2)
+            x+=x2
+            y+=y2
+            line(XSIZE/2 + x, YSIZE/2 + y, XSIZE/2 + lastx, YSIZE/2 + lasty, c)
+            lastx := x
+            lasty := y
+            t1 += $80000000>>6
+            t2 += o2
+      ' clear screen periodically
+      mem.fillBytes(RAM, 0, FRAMEBUFSIZE, 0)
+
+
+PRI text() | ch, ctxPtr
+    ctxPtr:=createTextWindow(@textctx, XSIZE/4+XSIZE/2, 0, XSIZE/4, YSIZE/2, @p2font, 16, 0, 0, CLEAR_TEXT)
+    send:=setTextOutput(ctxPtr)
+    repeat 
+        setTextColour(GETRND()&$ff, 0)
+        repeat ch from 0 to 2048
+            send(byte[@source][ch])
+        setTextColour(GETRND()&$ff, 0)
+        hexdump(source+1024, 1024)
+       
+
+PRI hexdump(startaddr,len) | addr
+    addr:=startaddr & !15
+    repeat len + startaddr & 15
+        hex(byte[addr],2)
+        send(" ")
+        addr++
+        if addr+//16 == 0
+            send(13)
+        
+
+PUB dec(value) | i, showzero
+' Print a signed decimal number
+  showzero := 0
+
+  if value < 0
+    value := -value
+    send("-")
+
+  i := 1_000_000_000
+
+  repeat 10
+    if value >= i
+      send(value / i + "0")
+      value //= i
+      showzero := 1
+    elseif showzero or i == 1
+      send("0")
+    i /= 10
+
+PRI hex(value, digits)
+' Print a hexadecimal number
+  value <<= (8 - digits) << 2
+  repeat digits
+    value ROL= 4
+    send(lookupz(value & $F : "0".."9", "A".."F"))
+
+PRI computeBurst(timingAddr, bits_per_pixel) : cogburst | scanline_clks, burst, video_transfers, active_pixels, video_clks, video_bytes, available_clks
+    active_pixels := byte[timingAddr+8] * 8 ' get active pixels from columns in video mode timing
+    scanline_clks := active_pixels
+    scanline_clks += byte[timingAddr+9]  ' add BP blanking pixels
+    scanline_clks += byte[timingAddr+10] ' add sync pixels
+    scanline_clks += byte[timingAddr+11] & $7f  ' add FP blanking pixels
+    scanline_clks *= byte[timingAddr+17]  ' NOTE: this ONLY supports integer clocks for now
+    burst := mem.getBurst()  ' get device's maximum allowed burst size
+    video_bytes := (active_pixels * bits_per_pixel) / 8 ' compute number of video bytes needed to be transferred per scanline
+    video_transfers := (video_bytes + (burst-1)) / burst ' figure out how many actual fragments will be sent
+    video_clks := (video_transfers * OVERHEAD) + video_bytes * 4 ' compute P2 clocks consumed per video scan line
+    available_clks := scanline_clks - video_clks ' compute remaining clocks on the scan line for other COGs use
+    cogburst := (available_clks - 132) / 4 - MARGIN ' transform into bytes allowed to be transferred from the device
+    cogburst &= !$f ' quantize transfer to a 16 byte multiple
+    if (cogburst < 0)
+        return 0
+
+
+PRI setpixel(x,y,c)
+    if XSIZE/2 +<=x or YSIZE/2 +<= y
+        return
+    mem.fillBytes(RAM+x+y*XSIZE, c, 1, 0)
+
+PRI setpixel2(x,y,c) 
+    ' range checking done by caller
+    mem.fillBytes(RAM+x+y*XSIZE, c, 1, 0)
+
+PRI circle(xc, yc, r, colour) | x, y, d
+    if XSIZE +<= xc or YSIZE +<= yc
+        return
+    if r+xc +>= XSIZE or r+yc +>= YSIZE
+        return
+    if r <= 0
+        return
+    x := 0
+    y := r
+    d := 3 - 2 * r
+    setpixel(xc+x, yc+y, colour)
+    setpixel(xc-x, yc+y, colour)
+    setpixel(xc+x, yc-y, colour)
+    setpixel(xc-x, yc-y, colour)
+    setpixel(xc+y, yc+x, colour)
+    setpixel(xc-y, yc+x, colour)
+    setpixel(xc+y, yc-x, colour)
+    setpixel(xc-y, yc-x, colour)
+    repeat while x <= y
+        setpixel(xc+x, yc+y, colour)
+        setpixel(xc-x, yc+y, colour)
+        setpixel(xc+x, yc-y, colour)
+        setpixel(xc-x, yc-y, colour)
+        setpixel(xc+y, yc+x, colour)
+        setpixel(xc-y, yc+x, colour)
+        setpixel(xc+y, yc-x, colour)
+        setpixel(xc-y, yc-x, colour)
+        if (d > 0)
+            d := d + 4 * (x - y) + 10
+            y--
+        else
+            d := d + 4 * x + 6
+        x++
+
+PRI line(x0, y0, x1, y1, colour) | dx, sx, dy, sy, err, e2
+    dx :=  abs(x1-x0)
+    sx := (x0<x1) ? 1 : -1
+    dy := -abs(y1-y0)
+    sy := (y0<y1) ? 1 : -1
+    err := dx+dy
+    repeat
+        setpixel2(x0, y0, colour)
+        if (x0 == x1 && y0 == y1)
+            return
+        e2 := err<<1
+        if (e2 >= dy)
+            err += dy
+            x0 += sx
+        if (e2 <= dx)
+            err += dx
+            y0 += sy
+
+PRI fillRect(x1,y1,x2,y2,c) | x,y
+    if x1 < x2
+        x:=x1
+    else
+        x:=x2
+        x2:=x1
+    repeat y from y1 to y2
+        mem.fill(RAM+x+y*XSIZE, c, x2-x1, 0, BPP/8)
+
+PRI createTextWindow(ctx, x, y, width, height, font, fontHeight, fgcolour, bgcolour, flags) : result
+    if width <= 8 or height <= 8
+        return 0
+    if flags & CLEAR_TEXT ' clear to begin with
+        fillRect(x,y,height, width, bgcolour)
+    if flags & TRANSPARENT_TEXT ' transparent
+        bgcolour := fgcolour
+    ' preserve values for later
+    longmove(ctx, @x, 9)
+    ' start drawing pos at 0,0
+    long[ctx][9]:=0
+    long[ctx][10]:=0
+
+    return ctx
+
+PRI setTextColour(fg, bg)
+    if contextPtr <> 0
+        long[contextPtr][6]:=fg
+        long[contextPtr][7]:=bg
+
+PRI setTextOutput(textWindow) :result | i
+    contextPtr:=textWindow
+    return @out
+
+PRI out(c) | xpos, ypos, width, height, font, fontheight, fgcolour, bgcolour, flags, xoffset, yoffset, scroll, mask
+    if contextPtr <> 0
+        longmove(@xpos, contextPtr, 11)
+    else
+        return
+    scroll:=0
+    if c == 13 ' carriage return
+        yoffset+=fontheight
+        if yoffset >= height
+            yoffset-=fontheight
+            scroll:=1
+        xoffset:=0
+    elseif c > 31 ' printable
+        gfxDrawChar(c, (xpos+xoffset)<<(bpp>>4), ypos+yoffset, font, fontheight, fgcolour, bgcolour)
+        xoffset+=8
+        if xoffset >= width
+            yoffset+=fontheight
+            if yoffset >= height
+                yoffset-=fontheight
+                scroll:=1
+            xoffset:=0
+
+    if scroll ' TODO: just wrap to top for now
+        yoffset:=0
+
+    'update cursor draw position
+    long[contextPtr][9] := xoffset
+    long[contextPtr][10] := yoffset
+
+PRI gfxDrawChar(ch, xstart, ystart, font, fontheight, fgcolour, bgcolour) | x, y, fontdata, addr, mask, transparent, stride
+    stride:=LINEBUFSIZE
+    addr := RAM + ystart*stride + xstart
+    'only 8bpp implementation
+    repeat y from 0 to fontheight-1
+        fontdata:=byte[font][(y<<8) + (ch & $ff)]
+        repeat x from 0 to 7
+            if (fontdata & (1<<x))
+                mem.fillbytes(addr, fgcolour, 1, 0)
+            elseif fgcolour <> bgcolour ' not transparent
+                mem.fillbytes(addr, bgcolour, 1, 0)
+            addr++
+        addr+=stride-8
+
+
+
+DAT 
+linebuffer  byte 0[2*LINEBUFSIZE]   ' two scanline buffers
+vgapalette
+            long    $00_00_00_00   ' 0 = black
+            long    $00_00_FF_00   ' 1 = dark blue
+            long    $00_FF_00_00   ' 2 = dark green
+            long    $00_FF_FF_00   ' 3 = dark cyan
+            long    $FF_00_00_00   ' 4 = dark red
+            long    $FF_00_FF_00   ' 5 = dark magenta
+            long    $FF_FF_00_00   ' 6 = yellow
+            long    $FF_FF_FF_00   ' 7 = light grey
+            long    $55_55_55_00   ' 8 = dark grey
+            long    $55_55_FF_00   ' 9 = light blue
+            long    $55_FF_55_00   '10 = light green
+            long    $55_FF_FF_00   '11 = light cyan
+            long    $FF_55_55_00   '12 = light red
+            long    $FF_55_FF_00   '13 = light magenta
+            long    $FF_FF_55_00   '14 = yellow
+            long    $FF_FF_FF_00   '15 = white
+
+ 
+'contextPtr  long 0
+stack1      long 0[200]
+stack2      long 0[200]
+stack3      long 0[200]
+stack4      long 0[200]
+stack5      long 0[200]
+p2font      file "p2font16"
+source      file "psram_spin2_demo.spin2" ' some sample text

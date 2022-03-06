@@ -1,0 +1,308 @@
+{{
+HyperRAM/HyperFlash memory delay timing test 
+
+-------------
+LICENSE TERMS
+-------------
+Copyright 2020, 2021 Roger Loh
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell 
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in 
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE 
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN 
+THE SOFTWARE.
+}}
+
+CON
+    _clkfreq = 100000000
+    
+    RAM_START   = $00_000000
+    FLASH_START = $02_000000
+    FLASH_SIZE  = 32*1024*1024
+    
+    BAUD = 115200 
+    BUFSIZE = 128 
+
+' clock source used below
+    #0, CLKSRC_XTAL, CLKSRC_XIN
+
+' setup one of these based on your P2 HW input clock, 
+' this will only be used if the PLL settings get automatically computed (see code below)
+    'CLKIN_HZ = _xtalfreq ' also only enable CLKSRC_XTAL below as CLKSRC
+    'CLKIN_HZ = _xinfreq  ' also only enable CLKSRC_XIN below as CLKSRC
+    CLKIN_HZ = 20000000 ' assume 20MHz crystal by default
+
+    CLKSRC = CLKSRC_XTAL ' enable this for crystal clock source (default)
+    'CLKSRC = CLKSRC_XIN ' enable this for direct input clock source on XI (no crystal)
+
+' parameters used when automatically determining PLL settings
+    TOLERANCE_HZ = 500000    ' pixel clock accuracy will be constrained by this when no exact ratios are found
+    MAXVCO_HZ    = 350000000 ' for safety, but you could try to overclock even higher at your own risk
+    MINVCO_HZ    = 100000000
+    MINPLLIN_HZ  = 500000    ' setting lower can find more PLL ratios but may begin to introduce more PLL jitter
+
+
+OBJ
+    mem  : "psram4"
+    uart : "SmartSerial"
+    f    : "ers_fmt"
+    
+PUB main() | startfreq, endfreq, frequency, bus, seed, i, flags, status, mismatches, pos, delay, failcount, mode, testdelays, testflash, base
+    'setup serial port output
+    uart.start(BAUD)
+    send := @uart.tx
+    
+    f.nl()
+    send("HyperRAM/HyperFlash memory read delay test over frequency, ESC exits", 13,10)
+    repeat 
+        repeat
+            send("Enter the base pin number for your HyperRAM/HyperFlash module (0,16,32) [32]: ")
+            base := getdec(32)
+        until (base +<= 32) and ((base & $f) == 0)
+        repeat 
+            send("Enter a starting frequency to test in MHz (50-350) : [50] ")
+            startfreq := getdec(50) 
+        until startfreq >= 50 and startfreq <= 350
+
+        repeat 
+            send("Enter the ending frequency to test in MHz (",f.dec(startfreq),"-350) : [350] ")
+                endfreq := getdec(350) 
+        until endfreq >= startfreq and endfreq <= 350 
+
+        startfreq := startfreq * 1000000
+        endfreq := endfreq * 1000000
+
+        send("Enter 1 for fast sysclk/1 read transfers, or 0 for sysclk/2 : [0] ")
+        flags := getdec(0) ? mem.F_FASTREAD : 0
+            
+        send("Enter 1 for unregistered clock pins, or 0 for registered pin : [0] ")
+        flags |= getdec(0) ? mem.F_UNREGCLK : 0
+
+        send("Enter 1 to use the automatic delay value only, or 0 to test over the delay range : [0] ")
+        testdelays := getdec(0) ? 0 : 1
+
+        send("Enter 1 to test HyperFLASH, or 0 for HyperRAM (WARNING test erases last sector of HyperFlash!) : [0] ")
+        testflash := getdec(0)
+
+        if testflash
+            'start HyperRAM memory driver
+            bus := mem.initHyperDriver(base, RAM_START, FLASH_START, flags, 0, -1)
+            send("Driver started, bus = ", f.dec(bus), 13,10)
+            send("Erasing last sector", 13,10)
+            status:= mem.eraseFlash(FLASH_START+FLASH_SIZE-1, mem.ERASE_SECTOR_256K) 
+            if status
+                send("Erase failed, status = ", f.dec(status),13,10)
+                quitterm()
+                
+            'randomize buffer
+            seed := randomizeBuf(seed)
+            send("Programming last sector with random data", 13,10)
+            status := mem.programFlash(FLASH_START+FLASH_SIZE-BUFSIZE*4, @writebuffer, BUFSIZE*4, 0, 0)
+
+            if status
+                send("Programming failed, status = ", f.dec(status),13,10)
+                quitterm()
+            send("Successful HyperFlash write",13,10)
+            mem.shutdown(bus, 0)
+            
+        send("Testing P2 from ", f.dec(startfreq), " - ", f.dec(endfreq), " Hz, driver config flags = $", f.hex(flags),13,10)
+        send(13,10,9,9,9,9,"Successful random transfer percentages ", 13,10)
+        send("Frequency      Delay")
+        if testdelays
+            repeat i from 3 to 13
+                send(9, f.dec(i))
+        f.nl()
+        repeat frequency from startfreq to endfreq step 1000000
+            mode := computeClockMode(frequency)
+            if mode == 0 
+                send("Frequency ", f.dec(frequency), " is unattainable, stopping")
+                quitterm()
+
+            waitms(20)
+            clkset(mode, frequency)
+            uart.start(BAUD)
+
+            'start HyperRAM memory driver
+            bus := mem.initHyperDriver(base, RAM_START, FLASH_START, flags, 0, -1)
+            'send("Driver started, bus = ", f.dec(bus), 13,10)
+            
+            seed := GETRND()
+            delay := mem.getDelay(testflash ? FLASH_START : RAM_START)
+            'send("Automatic RAM bank delay selected is ", f.dec(delay), " for ", f.dec(frequency), " MHz P2 frequency", 13,10)
+            
+            send(f.dec(frequency), 9," (", f.dec(delay),") ")
+                
+            repeat delay from 3 to 13
+                'send("New Delay= ", f.dec(delay))
+                if testdelays ' test delay range
+                    status := mem.setDelay(RAM_START, delay)
+                    if status 
+                        send("Set RAM Delay failed, status=", f.dec(status))
+                        quitterm()
+                    status := mem.setDelay(FLASH_START+FLASH_SIZE-1, delay)
+                    if status 
+                        send("Set Flash Delay failed, status=", f.dec(status))
+                        quitterm()
+                failcount:=0
+                repeat i from 1 to 100
+                    status := uart.rxcheck() 
+                    if status == 27
+                        quitterm()
+                    if not testflash ' if a RAM test
+                        'randomize buffer
+                        seed := randomizeBuf(seed)
+                        'write data to RAM
+                        status := mem.write(@writebuffer, RAM_START, BUFSIZE*4)
+                        if status <> 0
+                            send("Write failed, iteration ", f.dec(i), "status = ", f.dec(status), 13,10)
+                            quitterm()
+                    'clear read buffer
+                    longfill(@readbuffer, 0, BUFSIZE)
+                    'read data from RAM or flash
+                    status := mem.read(@readbuffer, testflash ? (FLASH_START+FLASH_SIZE-BUFSIZE*4) : RAM_START, BUFSIZE*4)
+                    if status <> 0
+                        send("Read failed, iteration ", f.dec(i), "status = ", f.dec(status), 13,10)
+                        quitterm()
+                    mismatches , pos := compareBuf()
+                    if mismatches
+                        failcount++
+{
+                    if mismatches
+                        send(13,10,"Iteration ", f.dec(i), " has ", f.dec(mismatches), " block read errors", 13,10)
+                        send("  sent ", f.hexn(long[@writebuffer][pos],8), " and received ", f.hexn(long[@readbuffer][pos], 8), " at offset = ",f.dec(pos), 13,10)
+}
+
+                send(9,f.dec(100-failcount))
+            f.nl()
+            mem.shutdown(bus, 0)           
+
+    send(255,0,0) ' quit terminal
+    
+' get decimal value from serial port, handles backspace, escape to quit
+PUB getdec(default) : num | ch, c
+    c := 0
+    repeat
+        ch := uart.rx()
+        if ch == 13
+            if c==0
+                num:=default
+                f.dec(default)
+            uart.tx(13)
+            uart.tx(10)
+            return
+        if ((ch == 8) or (ch == 127)) && c
+            uart.tx(8)
+            uart.tx(32)
+            uart.tx(8)
+            num:=num/10
+            c--
+        if ch == 27
+            quitterm()
+        if ch < "0" or ch > "9" or c == 10
+            next
+        uart.tx(ch)
+        num := num * 10 + ch-"0"
+        c++
+
+
+PUB quitterm()
+    send(13,10, "Exiting",13,10)
+    send(255,0,0)
+    repeat
+
+        
+PUB compareBuf() : mismatches, firstbad | i
+    firstbad := -1
+    repeat i from 0 to BUFSIZE-1
+        if long[@readbuffer][i]<>long[@writebuffer][i]
+            mismatches++
+            if firstbad < 0 ' capture first bad position found
+                firstbad := i
+    
+
+PUB randomizeBuf(seed) : r | i
+    repeat i from 0 to BUFSIZE-1
+        long[@writebuffer][i]:=??seed
+    
+    return seed
+
+PRI computeClockMode(desiredHz) : mode | vco, finput, fval, p, div, m, error, bestError
+    bestError := -1
+    repeat p from 0 to 30 step 2
+        ' compute the ideal VCO frequency fval at this value of P
+        if p <> 0
+            if desiredHz > MAXVCO_HZ/p ' test it like this to not overflow
+                quit
+            fval := desiredHz * p
+        else
+            fval := desiredHz
+            if fval > MAXVCO_HZ
+                quit
+        ' scan through D values, and find best M, retain best case
+        repeat div from 1 to 64
+            'compute the PLL input frequency from the crystal through the divider
+            finput := CLKIN_HZ/div
+            if finput < MINPLLIN_HZ ' input getting too low, and only gets lower so quit now
+                quit
+
+            ' determine M value needed for this ideal VCO frequency and input frequency
+            m := fval / finput
+
+            ' check for the out of divider range case
+            if m +> 1024
+                quit
+
+            ' zero is special and gets a second chance
+            if m == 0
+                m++
+
+            ' compute the actual VCO frequency at this particular M, D setting
+            vco := finput * m
+            if vco +< MINVCO_HZ
+                quit
+            if vco +> MAXVCO_HZ
+                next
+
+            ' compute the error and check next higher M value if possible, it may be closer
+            error := abs(fval - vco)
+            if m < 1024 and (vco + finput) +< MAXVCO_HZ
+                if error > abs(fval - (vco + finput))
+                    error := abs(fval - (vco + finput))
+                    m++
+
+            ' retain best allowed frequency error and divider bits found so far
+            if error +< bestError and error +< TOLERANCE_HZ+1
+                bestError := error
+                mode := ((div-1) << 18) + ((m-1) << 8) + (((p/2 - 1) & $f) << 4)
+
+            ' quit whenever perfect match found
+            if bestError == 0
+                quit
+
+        if bestError == 0
+            quit
+
+    ' final clock mode format is this #%0000_000E_DDDD_DDMM_MMMM_MMMM_PPPP_CCSS
+    if mode
+        ' also set 15 or 30pF capacitor loading based on input crystal frequency
+        mode |= (1<<24) ' enable PLL
+        if (CLKSRC == CLKSRC_XTAL) ' enable oscillator and caps for crystal
+            mode |= (CLKIN_HZ < 16000000) ? %1111 : %1011
+        else
+            mode |= %0111 ' don't enable oscillator
+
+DAT 
+writebuffer long 0[BUFSIZE]  ' data to be written
+readbuffer  long 0[BUFSIZE]  ' data that is read back

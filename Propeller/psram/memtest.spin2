@@ -1,0 +1,804 @@
+{{
+HyperRAM/HyperFlash memory driver test 
+          
+-------------
+LICENSE TERMS
+-------------
+Copyright 2020, 2021 Roger Loh
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell 
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in 
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR 
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE 
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER 
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN 
+THE SOFTWARE.
+}}
+
+CON
+    ' base pin of HyperRAM module
+    BASE  = 32  
+
+    ' addresses where external HyperRAM and HyperFlash are mapped to
+    RAM   = $10_000000  
+    FLASH = $12_000000
+
+    ' set these to 1 or 0 to experment
+    FASTREAD  = 1 
+    FASTWRITE = 0
+    UNREGCLK  = 0
+
+    ' startup flags for driver
+    FLAGS = (FASTREAD ? mem.F_FASTREAD : 0) | (FASTWRITE ?  mem.F_FASTWRITE : 0) | (UNREGCLK ? mem.F_UNREGCLK : 0)
+
+    ' serial port BAUD rate
+    BAUD  = 115200
+
+    ' P2 clock frequency
+    _clkfreq = 200000000
+
+    SCRATCHSIZE = 65536 ' 64 kB play area
+
+    FLASHSIZE = 32*1024*1024 '32 MB flash chip
+
+OBJ
+    mem  : "psram4"
+    uart : "SmartSerial"
+    f    : "ers_fmt"     ' useful formatting object
+
+VAR
+    long stack[1024]
+    long lastsource
+    long lastsize
+    long lastaddr
+
+
+PUB main() | i
+    cogspin(cogid(), memtest(), @stack)  ' give ourselves a stack
+
+
+PRI help()
+    send(f.nl(), "Commmands:", f.nl())
+    send(" [D] = Dump memory, space continues", 13, 10)
+    send(" [R] = Read memory", 13, 10)
+    send(" [W] = Write memory", 13, 10)
+    send(" [F] = Fill memory", 13, 10)
+    send(" [M] = Move memory", 13, 10)
+    send(" [C] = Compare memory", 13, 10)
+    send(" [E] = Erase Flash", 13, 10)
+    send(" [B] = Blank check", 13, 10)
+    send(" [P] = Program Flash", 13, 10)
+    send(" [S] = Show settings", 13,10)
+    send(" [G] = Generate Random data", 13, 10)
+'   send(" [*] = Read COG+LUT RAM", 13, 10)
+    send(" [Q] = Quit", 13, 10)
+
+
+PRI memtest() | mode, bus, i, j, v, starttime, delta, ch, destaddr, status, size, addr, source, dest, count, data, esc
+    ' setup serial port
+    uart.start(BAUD)
+    send:=@uart.tx
+
+    ' set some defaults
+    lastsource := "R"
+    lastsize := "B"
+    lastaddr := 0
+
+    ' spawn memory driver
+    bus := mem.initHyperDriver(BASE, RAM, FLASH, FLAGS, clkfreq, -1)
+    if bus < 0
+        send("Driver init failed, result = ", f.dec(bus), f.nl())
+        quitterm()
+    
+    send("Memory driver started, P2 Frequency = ", f.dec(clkfreq), f.nl())
+    f.nl()
+    send("External Memory Driver Test Tool, ESC aborts at any time", f.nl())
+
+    help() ' show command help at start
+    repeat
+        f.nl()
+        send("Enter command (?=HELP) : ")
+        repeat 
+            ch := uart.rx()
+            if (ch > 96) && (ch <= (96+26))
+                ch -= $20
+            if ch == 27
+                quitterm()
+        until inString(ch, string("DRWFMCEBPSG*Q? ",13))
+        if ch == 13
+            next
+        send(ch, 13, 10)
+        case ch
+            "?" : 
+                help()
+
+            "Q" : ' quit
+                quitterm()
+{
+            "*" : 'show COG+LUT contents
+                status := mem.dump(bus, @scratch[0])
+                if (status == 0)
+                    dumpMem("S", 0, 1024, "L")
+                else
+                    send("Result is ",f.dec(status), f.nl())
+}
+            
+            "B" : ' blank check
+                dest := getKeys(string("DS"), string("Test [D]evice or [S]ector : "))
+                if dest == "S"
+                    send("Enter HyperFlash offset address to check for sector being blank [0] : ")
+                    addr, esc := gethex(0,8) 
+                    if esc
+                        next
+                    addr := (addr + FLASH) & !$3ffff
+                    status := mem.isSectorBlank(addr)
+                    f.nl()
+                    if status == 0
+                        send("Hardware check of sector is not blank", f.nl())
+                    elseif status > 0
+                        send("Hardware check of sector is blank", f.nl())
+                    else 
+                        send("Hardware blank check failed, result = ", f.dec(status), f.nl())
+                    status := checkBlank(addr)
+                    if status == 0
+                        send("Manual check of sector is not blank", f.nl())
+                    elseif status > 0
+                        send("Manual check of sector is blank", f.nl())
+                    else
+                        send("Manual check of sector failed, result =", f.dec(status), f.nl())
+                elseif dest == "D"
+                    send(13,10,"Blank checking flash device")
+                    addr := FLASH
+                    repeat 
+                        send(".")
+                        status := mem.isSectorBlank(addr)
+                        if status > 0
+                            addr += 256*1024 'next sector
+                    while status > 0 and addr < (FLASH + FLASHSIZE)
+                    f.nl()
+                    if status == 0
+                        send("Flash device is not blank, first non-blank sector found was at offset address ", f.hex(addr-FLASH), f.nl() )
+                    elseif status > 0
+                        send("Flash device is blank", f.nl())
+                    else 
+                        send("Flash device blank check failed, result = ", f.dec(status), f.nl())
+
+            "S" : ' settings
+                showSettings(bus)
+
+            "R" : ' read memory
+                if (source := getKeys(string("RFHS"), string("Enter source, [R]AM, [F]lash, [H]ub, [S]cratch : "))) < 0
+                    next
+                if (size := getKeys(string("BWL"), string("Enter size, [B]ytes, [W]ords, [L]ongs : "))) < 0
+                    next
+                send("Enter offset address to read from [0] : ")
+                addr, esc := gethex(0, 8)
+                if esc
+                    next
+                data := readMem(source, addr, size)
+                send(13,10,"Data at offset [", f.hex(addr), "] is ",f.hex(data), f.nl())
+                f.nl()
+
+            "W" : ' write memory
+                if (dest := getKeys(string("RFS"), string("Enter destination, [R]AM, [F]lash, [S]cratch : "))) < 0
+                    next
+                if (size := getKeys(string("BWL"), string("Enter size, [B]ytes, [W]ords, [L]ongs : "))) < 0
+                    next
+                send("Enter offset address to write to [0] : ")
+                addr, esc := gethex(0, 8)
+                if esc
+                    next
+                case size 
+                    "B" : v := 2
+                    "W" : v := 4
+                    "L" : v := 8
+                send("Enter data value to write [0] : ")
+                data, esc := gethex(0, v)
+                if esc
+                    next
+                status := writeMem(dest, addr, size, data)
+                send("Write result = ", f.dec(status), 13, 10)
+
+            "F" : ' fill memory
+                if (dest := getKeys(string("RFS"), string("Enter destination, [R]AM, [F]lash, [S]cratch : "))) < 0
+                    next
+                if (size := getKeys(string("BWL"), string("Enter size, [B]ytes, [W]ords, [L]ongs : "))) < 0
+                    next
+                send("Enter start offset address to fill [0] : ")
+                addr, esc := gethex(0, 8)
+                if esc
+                    next
+                send("Enter number of items to fill (hex) [1] : ")
+                case dest
+                    "S" : count, esc := gethex(1, 4)
+                    other : count, esc := gethex(1, 8)
+                if esc or not count
+                    next
+                send("Enter data pattern to fill [0] : ")
+                if size == "B"
+                    v := 2
+                elseif size == "W"
+                    v := 4
+                elseif size == "L"
+                    v := 8
+                data, esc := gethex(0, v)
+                if esc
+                    next
+                status := fillMem(dest, addr, size, count, data)
+                send("Write result = ", f.dec(status), 13, 10)
+
+            "D", " " : ' dump memory
+                if ch == " "
+                    addr := lastaddr
+                    size := lastsize
+                    source := lastsource
+                else
+                    if (source := getKeys(string("RFHS"), string("Enter source, [R]AM, [F]lash, [H]ub, [S]cratch : "))) < 0
+                        next
+                    if (size := getKeys(string("BWL"), string("Enter size, [B]ytes, [W]ords, [L]ongs : "))) < 0
+                        next
+                    send("Enter offset address to dump [0] : ")
+                    addr, esc := gethex(0, 8)
+                    if esc 
+                        next
+                lastaddr := dumpMem(source, addr, 256, size)
+                lastsize := size
+                lastsource := source
+
+            "M" : ' move memory
+                if (source := getKeys(string("RFHS"), string("Enter source, [R]AM, [F]lash, [H]ub, [S]cratch : "))) < 0
+                    next
+                if (dest := getKeys(string("RS"), string("Enter destination, [R]AM, [S]cratch : "))) < 0
+                    next
+                send("Enter source offset address [0] : ")
+                addr, esc := gethex(0,8)
+                if esc
+                    next
+                send("Enter destination offset address [0] : ")
+                destaddr, esc := gethex(0, 8)
+                if esc
+                    next
+                send("Enter number of bytes to copy (hex) [1]: ")
+                count, esc := gethex(1, 8)
+                if count == 0 or esc
+                    next
+                status := moveMem(source, addr, dest, destaddr, count)
+                if status
+                    send("Failed, result = ", f.dec(status), f.nl())
+                else
+                    send("Transferred ", f.dec(count), " bytes", 13, 10)
+
+            "E" : ' erase flash
+                dest := getKeys(string("DS"), string("Erase [D]evice or [S]ector : "))
+                if dest == "S"
+                    send("Enter HyperFlash offset address of sector to erase [0] : ")
+                    destaddr, esc := gethex(0, 8)
+                    if esc
+                        next
+                    v := getKeys(string("YN"), string("Are you sure [Y]/[N] : "))
+                    if v <> "Y"
+                        next
+                    send("Sector contents before erase:", f.nl())
+                    dumpMem("F", destaddr, 256, "B")
+
+                    starttime := getct()
+                    status := mem.eraseFlash(destaddr + FLASH, mem.ERASE_SECTOR_256K)
+                    delta := getct() 
+                    delta -= starttime
+                    if (status)
+                        send("Erase failed, result = ", f.dec(status), f.nl())
+                    else
+                        send("Erase operation successful, completed in ", f.dec(delta/(clkfreq/1000)), " ms", f.nl())
+
+                        send("Sector contents after erase:", f.nl())
+                        dumpMem("F", destaddr, 256, "B")
+
+                elseif dest == "D" ' full device
+                    v := getKeys(string("YN"), string("Full device erase is slow, are you sure [Y]/[N] : "))
+                    if v <> "Y"
+                        next
+                        
+                    send("Erasing")
+                    starttime := getsec()
+                    status := mem.eraseFlash(FLASH, mem.ERASE_ENTIRE_FLASH | mem.ERASE_SHOW_PROGRESS)
+                    delta := getsec() 
+                    delta -= starttime
+                    if (status)
+                        send(f.nl(), "Erase failed, result = ", f.dec(status), f.nl())
+                    else
+                        send(f.nl(), "Erase operation successful, taking ", f.dec(delta), " seconds", f.nl())
+
+            "C" : ' compare memory
+                if (source := getKeys(string("RFHS"), string("Enter source 1 to compare, [R]AM, [F]lash, [H]ub, [S]cratch : "))) < 0
+                    next
+                if (dest := getKeys(string("RFHS"), string("Enter source 2 to compare, [R]AM, [F]lash, [H]ub, [S]cratch : "))) < 0
+                    next
+                send("Enter source 1 offset address to read from [0] : ")
+                addr, esc := gethex(0, 8)
+                if esc
+                    next
+                send("Enter source 2 offset address to read from [0] : ")
+                destaddr, esc := gethex(0, 8)
+                if esc
+                    next
+                send("Enter number of bytes to compare (hex) [0]: ")
+                count, esc := gethex(0, 8)
+                if count == 0 or esc
+                    next
+                send(13,10, "Comparing memory")
+                if compareMem(source, addr, dest, destaddr, count)
+                    send("Memory range matches", 13,10)
+                else
+                    send("Memory range mismatches!", 13, 10)
+                
+            "G" : ' generate random data
+                if (dest := getKeys(string("SR"), string("Enter destination for random data [R]am, [S]cratch : "))) < 0
+                    next
+                send("Enter offset address to write to [0] : ")
+                addr, esc := gethex(0, 8)
+                if esc
+                    next
+                send("Enter number of random bytes to write (hex) [0] : ")
+                case dest
+                    "R" : v := 8
+                    "S" : v := 4
+                count, esc := gethex(0, v)
+                if esc or count == 0
+                    next
+                send(13,10,"Generating random data")
+                if dest == "R"
+                    addr += RAM
+                    j := 0
+                    repeat while count
+                        repeat i from 0 to 1023 ' do 4k blocks
+                            long[@progbuf][i] := getrnd()
+                        i := 4096
+                        if count < i
+                            i := count
+                        if ++j & $fffff == 0 ' show progress
+                            send(".")
+                        status := mem.write(@progbuf, addr, i)
+                        addr += i
+                        if status <> 0
+                            send(13, 10, "Memory write failed, status = ", f.dec(status))
+                            quit
+                        count -= i
+                else 
+                    addr += @scratch 
+                    repeat i from 0 to count-1
+                        byte[addr][i] := getrnd()
+                f.nl()
+
+            "P" : ' program flash
+                if (size := getKeys(string("BWLHRS"), string("Enter source, [B]yte, [W]ord, [L]ong, [H]ub, [R]am, [S]cratch: "))) < 0
+                    next
+                send("Enter offset address to write to [0] : ")
+                destaddr, esc := gethex(0, 8)
+                destaddr += FLASH
+                if esc
+                    next
+                if size == "B" or size == "W" or size == "L"
+                    send("Enter data value to write [0] : ")
+                    case size
+                        "B" : v := 2
+                        "W" : v := 4
+                        "L" : v := 8
+                    data, esc := gethex(0, v)
+                    if esc
+                        next
+                    v := getKeys(string("YN"), string("Are you sure [Y]/[N] : "))
+                    if v <> "Y"
+                        next
+                    case size 
+                        "B" : status := mem.programFlashByte(destaddr, data)
+                        "W" : status := mem.programFlashWord(destaddr, data)
+                        "L" : status := mem.programFlashLong(destaddr, data)
+                    f.nl()
+                    if status == 0
+                        send("Program successful", 13,10)
+                    else
+                        send("Program failure, status = ", f.dec(status), 13,10)
+                else
+                    send("Enter offset address of source data [0] : ")
+                    addr, esc := gethex(0,8)
+                    if esc
+                        next
+                    case size
+                        "R" : addr += RAM
+                        "S" : addr += @scratch
+                    send("Enter number of bytes to write (hex) [0] : ")
+                    count, esc := gethex(0, 8)
+                    if esc or count == 0
+                        next
+                    
+                    v := getKeys(string("YN"), string("Are you sure [Y]/[N] : "))
+                    if v <> "Y"
+                        next
+                    send("Programming flash")
+                    j:=0
+                    starttime := getsec()
+                    repeat while count > 0
+                        i := count & 4095
+                        if i == 0
+                            i := 4096 
+                        if ++j & $fffff == 0
+                            send(".") ' print each MB
+                        if uart.rxCheck() == 27
+                            send(13,10,"Programming aborted")
+                            status := 1
+                            quit
+                        
+                        if size == "R"
+                            status := mem.read(@progbuf, addr, i)
+                            if status == 0 
+                                status := mem.programFlash(destaddr, @progbuf, i, 0, 0)
+                        else
+                            status := mem.programFlash(destaddr, addr, i, 0, 0)
+                            
+                        destaddr += 4096
+                        addr += 4096
+                        count -= 4096
+                        if status 
+                            quit
+                    delta := getsec() - starttime
+                    if status == 0
+                        send(13,10, "Flash successfully programmed, taking ", f.dec(delta), " seconds to complete", 13, 10)
+                    else
+                        send(13,10, "Flash write failed, result = ", f.dec(status),13,10)
+
+
+PRI readMem(source, addr, size) : value
+    case source 
+        "F" : addr += FLASH
+        "R" : addr += RAM
+        "S" : addr += @scratch[0]
+    case size
+        "B" : value := (source == "F" or source == "R") ? mem.readByte(addr) : byte[addr]
+        "W" : value := (source == "F" or source == "R") ? mem.readWord(addr) : word[addr]
+        "L" : value := (source == "F" or source == "R") ? mem.readLong(addr) : long[addr]
+
+
+PRI writeMem(dest, addr, size, data) : value
+    case dest
+        "F" : addr += FLASH
+        "R" : addr += RAM
+        "S" : addr += @scratch[0]
+    case size
+        "B" : 
+            if (dest == "F" or dest == "R") 
+                value :=  mem.writeByte(addr, data) 
+            else
+                byte[addr] := data
+        "W" : 
+            if (dest == "F" or dest == "R") 
+                value :=  mem.writeWord(addr, data) 
+            else
+                word[addr] := data
+        "L" :
+            if (dest == "F" or dest == "R") 
+                value :=  mem.writeLong(addr, data) 
+            else
+                long[addr] := data
+    
+
+PRI fillMem(dest, addr, size, count, data) : value
+    case dest
+        "F" : addr += FLASH
+        "R" : addr += RAM
+        "S" : addr += @scratch[0]
+    case size 
+        "B" : 
+            if (dest == "F" or dest == "R") 
+                value := mem.fillBytes(addr, data, count, 0) 
+            else
+                byteFill(addr, data, count)
+        "W" :
+            if (dest == "F" or dest == "R")
+                value := mem.fillWords(addr, data, count, 0) 
+            else
+                wordFill(addr, data, count)
+        "L" : 
+            if (dest == "F" or dest == "R") 
+                value := mem.fillLongs(addr, data, count, 0) 
+            else
+                longFill(addr, data, count)
+
+
+PRI compareMem(source, addr, dest, destaddr, count) : value | i, j
+    case source
+        "F" : addr += FLASH
+        "R" : addr += RAM
+        "S" : addr += @scratch[0]
+    case dest
+        "F" : destaddr += FLASH
+        "R" : destaddr += RAM
+        "S" : destaddr += @scratch[0]
+    repeat while count
+        send(".")
+        i := 4096
+        if count < i
+            i := count
+        j:=0
+        case source
+            "F", "R" : j:= mem.read(@compare1, addr, i)
+            other : longmove(@compare1, addr, 1024)
+        if j< 0
+            send("ERROR")
+        case dest
+            "F", "R" : j := mem.read(@compare2, destaddr, i)
+            other : longmove(@compare2, destaddr, 1024)
+        if j<0
+            send("ERROR")
+        repeat j from 0 to i-1
+            if byte[@compare1][j] <> byte[@compare2][j] ' we could speed this up a bit with longs if required
+                send(13,10, "Different byte value observed:", 13, 10)
+                send("   source 1 address ", f.hex(addr+j),     " value was ", f.hex(byte[@compare1][j]), 13, 10)
+                send("   source 2 address ", f.hex(destaddr+j), " value was ", f.hex(byte[@compare2][j]), 13, 10)
+                return 0
+        addr += i
+        destaddr += i
+        count-=i
+    f.nl()
+    return 1   
+    
+
+PRI dumpMem(source, addr, count, size) : final | i, j, val, width
+    case size
+        "B" : width := 1
+        "W" : width := 2
+        "L" : width := 4
+    final := addr + count*width
+    case source 
+        "F" : addr += FLASH
+        "R" : addr += RAM
+        "S" : addr += @scratch[0]
+    if count == 0
+        return addr
+    repeat i from 0 to count-1
+        if i // (16/width) == 0
+            case source
+                "F": send("HYPERFLASH ")
+                "R": send("HYPERRAM ")
+                "S": send("SCRATCH ")
+                "H": send("HUB RAM")
+            if source == "S"
+                send(f.hexn(addr+i*width-@scratch, 8) ," (", f.hexn(i, 8),  ")  : ")
+            else
+                send(f.hexn(addr+i*width, 8) ," (", f.hexn(i, 8),  ") : ")
+        case width
+            1: val:=(source == "F" or source == "R") ?  mem.readByte(addr +   i) : byte[addr][i]
+            2: val:=(source == "F" or source == "R") ?  mem.readWord(addr + 2*i) : word[addr][i]
+            4: val:=(source == "F" or source == "R") ?  mem.readLong(addr + 4*i) : long[addr][i]
+        send(f.hexn(val, width*2), " ")
+        if i // (16/width) == (16/width) - 1
+            send(" ")
+            repeat j from 0 to 15
+                val:=(source == "F" or source == "R") ?  mem.readByte(addr + (i+1)*width - 16 + j) : byte[addr][(i+1)*width-16+j]
+                send((val < 32 or val > 127) ? "." : val)
+                    
+            send(f.nl())
+    if (count) // (16/width) 
+        send(f.nl())
+
+
+PRI moveMem(source, addr, dest, destaddr, count) : value
+    case source 
+        "F" : addr += FLASH
+        "R" : addr += RAM
+        "S" : addr += @scratch[0]
+    case dest
+        "R" : destaddr += RAM
+        "S" : destaddr += @scratch[0]
+        other : return
+    if (source == "R" or source == "F") and dest == "R" ' extmem to extmem
+        value := mem.copy(destaddr, addr, count, @scratch[0], SCRATCHSIZE) 
+    elseif (source == "R" or source == "F") ' ram/flash to scratch
+        value := mem.read(destaddr, addr, count)
+    elseif (dest == "R") ' hub/scratch to RAM
+        value := mem.write(addr, destaddr, count)
+    else ' hub/scratch to scratch
+        byteMove(destaddr, addr, count) 
+        
+
+PRI getKeys(keystr, prompt) : ch | i
+    i:=0
+    repeat while byte[prompt][i]
+        send(byte[prompt][i++])
+
+    repeat 
+        ch := uart.rx()
+        if (ch > 96) && (ch <= (96+26))
+            ch -= $20
+        if ch == $1b
+            return -1
+    until inString(ch, keystr)
+    send(ch, 13,10)
+        
+
+PRI getdec(default) : num, escape | ch, c
+    c := 0
+    repeat
+        ch := uart.rx()
+        if ch == 13
+            if c==0
+                num:=default
+                f.dec(default)
+            f.nl()
+            return
+        if ((ch == 8) or (ch == 127)) && c
+            send(8,32,8)
+            num:=num/10
+            c--
+        if ch == 27
+            escape := 1
+            return
+        if ch < "0" or ch > "9" or c == 10
+            next
+        send(ch)
+        num := num * 10 + ch-"0"
+        c++
+
+
+PRI gethex(default, digits) : num, escape | ch, c
+    if digits < 0
+        return
+    c := 0
+    repeat
+        ch := uart.rx()
+        if ch == 13
+            if c==0
+                num:=default
+                f.hex(default)
+            f.nl()
+            return
+        if ((ch == 8) or (ch == 127)) && c
+            send(8,32,8)
+            num:=num/16
+            c--
+        if ch == 27
+            escape := 1
+            return
+        if c == digits
+            next
+        if ch >= "0" and ch <= "9"
+            num := num * 16 + ch - "0"
+        elseif ch >= "A" and ch <= "F"
+            num := num * 16 + ch - "A" + 10
+        elseif ch >= "a" and ch <= "f"
+            num := num * 16 + ch - "a" + 10
+        else
+            next
+        send(ch)
+        c++
+
+    
+PRI showSettings(bus) | i, cog, qos, bank, driverCog, pins, bankparams, prio, flagbits
+    send("HyperRAM IR0 die0 = ", f.hexn(mem.readRamIR(RAM,0,0),8), f.nl())
+    send("HyperRAM IR0 die1 = ", f.hexn(mem.readRamIR(RAM,0,1),8), f.nl())
+    send("HyperRAM IR1 die0 = ", f.hexn(mem.readRamIR(RAM,1,0),8), f.nl())
+    send("HyperRAM IR1 die1 = ", f.hexn(mem.readRamIR(RAM,1,1),8), f.nl())
+
+    send("HyperRAM CR0 die0 = ", f.hexn(mem.readRamCR(RAM,0,0),8), f.nl())
+    send("HyperRAM CR0 die1 = ", f.hexn(mem.readRamCR(RAM,0,1),8), f.nl())
+    send("HyperRAM CR1 die0 = ", f.hexn(mem.readRamCR(RAM,1,0),8), f.nl())
+    send("HyperRAM CR1 die1 = ", f.hexn(mem.readRamCR(RAM,1,1),8), f.nl())
+
+    send("HyperFlash Status = ", f.hexn(mem.readFlashStatus(FLASH),8), f.nl())
+    send("HyperFlash VCR    = ", f.hexn(mem.readFlashVCR(FLASH),8), f.nl())
+    send("HyperFlash ICR    = ", f.hexn(mem.readFlashICR(FLASH),8), f.nl())
+    send("HyperFlash ISR    = ", f.hexn(mem.readFlashISR(FLASH),8), f.nl())
+
+    send("getDelay RAM      = ", f.hexn(mem.getDelay(RAM),8), f.nl())
+    send("getDelay FLASH1   = ", f.hexn(mem.getDelay(FLASH),8), f.nl())
+    send("getDelay FLASH2   = ", f.hexn(mem.getDelay(FLASH+$1000000), 8), f.nl())
+
+    send("getBurst RAM      = ", f.hexn(mem.getBurst(RAM), 8), f.nl())
+    send("getBurst FLASH1   = ", f.hexn(mem.getBurst(FLASH), 8), f.nl())
+    send("getBurst FLASH2   = ", f.hexn(mem.getBurst(FLASH+$1000000), 8), f.nl())
+
+    send("getLatency RAM    = ", f.hexn(mem.getDriverLatency(RAM), 8), f.nl())
+    send("getLatency FLASH1 = ", f.hexn(mem.getDriverLatency(FLASH),8), f.nl())
+    send("getLatency FLASH2 = ", f.hexn(mem.getDriverLatency(FLASH+$1000000),8), f.nl())
+
+    send("Flash Device ID and CFI data:",f.nl())
+    repeat i from 0 to $7f
+        if i//16 == 0
+            send(f.hexn(i,4),":")
+        send(" ", f.hexn(mem.readFlashInfo(FLASH, i), 4))
+        if (i+1) // 16 == 0
+            f.nl()
+
+    ' get the driver COG for this bus to see if the bus is active, skip if not active
+    driverCog := mem.getDriverCogId(bus)
+    if driverCog +> 7
+        return
+
+    'display QoS parameters
+    send("COG QoS Parameters for bus:", f.nl())
+    repeat cog from 0 to 7
+        send("Cog", f.dec(cog))
+        'skip driver COG
+        if cog == driverCog
+            send(" is the HyperRAM/HyperFlash Driver COG", f.nl())
+            next
+        qos:=mem.getQoS(bus, cog)
+        if qos >> 16 == 0 
+            send(" is not polled", f.nl())
+            next
+        'display QOS values
+        send(" QoS = ", f.hexn(qos, 8))
+        send(9," Burst=", f.dec(qos >> 16))
+        prio:=qos >> 12 & 7
+        if (qos >> 15) & 1
+            send(9," Priority=", f.dec(prio))
+        else
+            send(9," Round-Robin", prio)
+        flagbits:=(qos >> 10) & 3
+        send(9," Flags: ")
+        if flagbits & 2
+             send("ATN-NOTIFY ")
+        if flagbits & 1 
+            send("LOCKED-BURST")
+        f.nl()
+    send("Bank Settings:", f.nl())
+    ' iterate through all possible banks and display the parameters
+    repeat bank from 0 to 15
+        bankparams := mem.getBankParameters(bus, bank)
+        send("Bank ", f.decn(bank, 2), " BankInfo ", f.hexn(bankparams, 8))
+        pins := mem.getPinParameters(bus, bank)
+        send("  PinInfo ", f.hexn(pins,8), "   ")
+        if pins & $80000000 == 0  ' decode if valid
+            if (bankparams & (1<<10))
+                send(" HyperFlash ")
+            else
+                send(" HyperRAM   ")
+            send(" RWDS_Pin =", f.decn((pins >> 16) & $3f, 2))
+            send("  CLK_Pin =", f.decn((pins >> 8) & $3f, 2))
+            send("  CS_Pin =", f.decn(pins & $3f, 2))
+        else
+            send(" [Unmapped]")
+        f.nl()
+
+
+PRI inString(ch, str) : r | i
+    i := 0
+    repeat
+        r := byte[str][i++]
+        if r == ch 
+            return
+    while r
+
+
+PRI quitterm()
+    send(13,10,255,0,0)
+    repeat
+
+
+PRI checkBlank(start) : r | i, j
+    start := start & !$3ffff
+    repeat i from 0 to 63 ' 64 x 4k blocks = 256kB sector
+        j := mem.read(@compare1[0], start, 4096)
+        if j < 0
+            return j
+        repeat j from 0 to 1023
+            if compare1[j] <> $ffffffff
+                return 0
+        start += 4096
+    return 1
+
+
+DAT
+    scratch  byte 0[SCRATCHSIZE]
+    compare1 long 0[1024]
+    compare2 long 0[1024]
+    progbuf  long 0[1024]
