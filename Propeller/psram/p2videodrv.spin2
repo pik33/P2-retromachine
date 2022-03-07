@@ -104,7 +104,12 @@ CON
     CLK40MHz    = %1_000100_0000100111_0001_10_11 '(20MHz/5) * 40/4 = 40    MHz
     CLK27MHz    = %1_000100_0000011010_0001_10_11 '(20MHz/5) * 27/4 = 27    MHz
     CLK25_2MHz  = %1_000100_0000111110_0100_10_11 '(20MHz/5) * 63/10= 25.2  MHz
-
+    CLK337MHz   = %1_101101_1100000110_1111_10_11 '(20MHz/46)* 775/1= 336956522 Hz
+    CLK340MHz   = %1_000001_0000100001_1111_10_11 '(20MHz/2)* 34/1= 340 MHz
+    CLK345MHz   = %1_000011_0001000100_1111_10_11 '(20MHz/4)* 69/1= 340 MHz
+    CLK344MHz   = %1_000100_0001010101_1111_10_11 '  59	1015	344067797
+    CLK343MHz   = %1_010011_0101010101_1111_10_11 '  20 343	344067797
+              
 
 ' clock source used below
     #0, CLKSRC_XTAL, CLKSRC_XIN
@@ -2628,8 +2633,8 @@ svga_dvi_timing   ' massively reduced blanking for 800x600 50Hz at 25.2MHz clk Y
             long    0   ' reserved for CFRQ parameter
 
 xga_timing ' 1024x768@60Hz at 65*5 MHz YMMV
-            long   CLK325MHz
-            long   325000000
+            long   CLK340MHz
+            long   340000000
        '    long   CLK200MHz
        '    long   200000000
                    '_HSyncPolarity___FrontPorch__SyncWidth___BackPorch__Columns

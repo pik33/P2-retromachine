@@ -74,7 +74,7 @@ PUB main() | cog, timing, cogBurstLimit, frame
     contextPtr:=0
 
     'start PSRAM memory driver, compute delay based on P2 PLL frequency of video mode
-    cog := mem.startx(long[timing][1], 0, 10, -1)
+    cog := mem.startx(long[timing][1], 0, 0, -1)
     if cog < 0
         DEBUG("Failed to start PSRAM driver")
         repeat
