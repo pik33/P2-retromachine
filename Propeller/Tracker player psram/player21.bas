@@ -2,8 +2,8 @@
 #include "retromachine.bi"
 
 const HEAPSIZE = 8192
-const version$="Prop2play v.0.20"
-const statusline$=" Propeler2 wav/sid/mod player v. 0.20 --- 2022.03.04 --- pik33@o2.pl --- use serial terminal or RPi KBM interface to control --- arrows up,down move - pgup/pgdn or w/s move 10 positions - enter selects - tab switches panels - +,- controls volume - 1..4 switch channels on/off - 5,6 stereo separation - 7,8,9 sample rate - a,d SID speed - R rescans current directory ------"
+const version$="Prop2play v.0.21"
+const statusline$=" Propeler2 wav/sid/mod player v. 0.21 --- 2022.03.08 --- pik33@o2.pl --- use serial terminal or RPi KBM interface to control --- arrows up,down move - pgup/pgdn or w/s move 10 positions - enter selects - tab switches panels - +,- controls volume - 1..4 switch channels on/off - 5,6 stereo separation - 7,8,9 sample rate - a,d SID speed - R rescans current directory ------"
 const hubset350=%1_000001__00_0010_0010__1111_1011 '350_000_000 =31*44100
 const hubset354=%1_110000__11_0110_1100__1111_1011 '354_693_878
 const hubset356=%1_001010__00_1100_0011__1111_1011 '356_352_000 =29*256*48001,5673491
@@ -601,7 +601,7 @@ newcnt=getcnt()+177000000
 bufptr=$21000
 do
   waitcnt(newcnt)
-  sidtime+=siddelay/(354_69) ' 100 us tick
+  sidtime+=siddelay/(336_96) ' 100 us tick
   newcnt+=siddelay
   for i=0 to 24: sid.regs(i)=peek(bufptr) : bufptr+=1 : next i
   if bufptr>=$21000+$50*250 then bufptr=$21000

@@ -2,13 +2,11 @@
 #include "retromachine.bi"
 
 const HEAPSIZE = 8192
-const version$="Prop2play v.0.20"
-const statusline$=" Propeler2 wav/sid/mod player v. 0.20 --- 2022.03.04 --- pik33@o2.pl --- use serial terminal or RPi KBM interface to control --- arrows up,down move - pgup/pgdn or w/s move 10 positions - enter selects - tab switches panels - +,- controls volume - 1..4 switch channels on/off - 5,6 stereo separation - 7,8,9 sample rate - a,d SID speed - R rescans current directory ------"
+const version$="Prop2play v.0.19"
+const statusline$=" Propeler2 wav/sid/mod player v. 0.19 --- 2022.03.02 --- pik33@o2.pl --- use serial terminal or RPi KBM interface to control --- arrows up,down move - pgup/pgdn or w/s move 10 positions - enter selects - tab switches panels - +,- controls volume - 1..4 switch channels on/off - 5,6 stereo separation - 7,8,9 sample rate - a,d SID speed - R rescans current directory ------"
 const hubset350=%1_000001__00_0010_0010__1111_1011 '350_000_000 =31*44100
 const hubset354=%1_110000__11_0110_1100__1111_1011 '354_693_878
 const hubset356=%1_001010__00_1100_0011__1111_1011 '356_352_000 =29*256*48001,5673491
-const hubset338=%1_111011__11_1111_0111__1111_1011 '338_666_667 =30*44100 
-const hubset336=%1_101101__11_0000_0110__1111_1011 '336_956_522 =paula*95
 
 ' Place graphics buffers at the top of memory so they will not move while editing the program
 const base2=$70000
@@ -269,7 +267,7 @@ do
       tracker.initmodule(ma,0)									' init the tracker player
       samples=15: if peek(ma+1080)=asc("M") and peek(ma+1082)=asc("K") then samples=31          ' get sample count
       getinfo(ma,samples)									' and information
-      hubset(hubset336)										' set the main clock to Paula (PAL) * 100       
+      hubset(hubset354)										' set the main clock to Paula (PAL) * 100       
       samplerate=100 : lpoke base+28,$8000_0064: waitms(2): lpoke base+28,0   	   	        ' set the sample rate to standard Paula
       cog=cpu (mainloop, @mainstack) 								' start the playing
       modtime=framenum										' get the current frame # for displaying module time
@@ -284,7 +282,7 @@ do
     if audiocog<1 then startaudio   
     for i=0 to 7 : lpoke base+32*i+20,0 : next i 						' mute the sound
     samplerate=256 : lpoke base+28,$80000100 : waitms(2) : lpoke base+28,0			' samplerate=clock/256 allows for HQ DAC
-    hubset(hubset338)										' main clock=350 MHz, sample rate 1367187.5 Hz=31*44102.8 Hz - Todo: get a sample rate from a header and set it properly     
+    hubset(hubset350)										' main clock=350 MHz, sample rate 1367187.5 Hz=31*44102.8 Hz - Todo: get a sample rate from a header and set it properly     
     filename3$=currentdir$+filename$								' get a filename with the path
     close #8: open filename3$ for input as #8: get #8,1,wavebuf(0),$1000			' open the file and preload the buffer
     needbuf=1: currentbuf=0 :wavepos=$1001 : waveplaying=1   					' init buffering variables
@@ -293,14 +291,14 @@ do
     lpoke base+16,$4FFFC                                       					' loop end, we will use $50000 bytes as $50 4k buffers
     dpoke base+20,16384                                                                         ' set volume 
     dpoke base+22,16384                                                              		' set pan
-    dpoke base+24,30 					                			' set period
+    dpoke base+24,31 					                			' set period
     dpoke base+26, 4    									' set skip, 1 stereo sample=4 bytes
 
     lpoke base+32+12,0                 								' loop start   
     lpoke base+32+16,$4FFFC                                        				' loop end
     dpoke base+32+20,16384                                                                      ' volume
     dpoke base+32+22,0     	                                                                ' pan
-    dpoke base+32+24, 30                                                                        ' period
+    dpoke base+32+24, 31                                                                        ' period
     dpoke base+32+26, 4    									' skip
     
     lpoke base+8, $21000 or $c0000000  								' sample ptr, 16 bit, restart from 0 
@@ -317,7 +315,7 @@ do
     if waveplaying=1 then waveplaying= 0: waitms(100): close #8                                   ' if dmp file is playing, stop it
     if audiocog>0 then stopaudio    
    
-    hubset(hubset336)										' main clock=350 MHz, sample rate 1367187.5 Hz=31*44102.8 Hz - Todo: get a sample rate from a header and set it properly     
+    hubset(hubset354)										' main clock=350 MHz, sample rate 1367187.5 Hz=31*44102.8 Hz - Todo: get a sample rate from a header and set it properly     
   
 
     filename3$=currentdir$+filename$								' get a filename with the path

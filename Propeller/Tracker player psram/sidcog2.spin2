@@ -35,7 +35,7 @@ CON  PAL = 985248.0, NTSC = 1022727.0, MAXF = 1031000.0, TRIANGLE = 16, SAW = 32
   INIT_8BIT_DAC_VALUE  = 128
   ANALOG_OUT_MODE      = %10111 '  75 ohm, 2.0V DAC mode
   SMARTPIN_DAC_MODE    = (ANALOG_OUT_MODE << 16) | (INIT_8BIT_DAC_VALUE << 8) | (DIR_MODE << 6) | DAC_MODE
-  SAMPLE_PERIOD        = 684 'clocks between samples 
+  SAMPLE_PERIOD        = 800 'clocks between samples 
 
 
 
@@ -51,14 +51,13 @@ long SIDSample
 
 pub start():cog
 
-combinedptr:=@combinedWaveforms
-sidsample:=@cv2
 cog:=coginit(16,@SIDEMU,@regs )
+combinedptr:=@combinedWaveforms
 return cog
 
 dat
 combinedWaveforms   file "combinedwaveforms.bin"
-cv2 file "cv2.bin"
+
 
 
 
@@ -70,10 +69,6 @@ SIDEMU        wrpin   smartConfigAudioDAC, #L_PIN   addpins 1        ' Config sm
               wxpin   samplePeriod, #L_PIN  addpins 1                ' Sample period for left audio channel
               dirh    #L_PIN       addpins 1                         ' Enable smartpin DAC mode on left pin
               setse1  #%001_000000 | L_PIN                  ' Event triggered every new sample period (when "left in pin rises")
-              rdlong  combTableAddr,ptra[8]
-              setq2 ##1024
-              rdlong   0, combTableAddr   
-              rdlong  combTableAddr,ptra[7]
 
 '----------------------------------------------------------------------------------------------------------------------
 ' Read all SID-registers from hub memory and convert
@@ -84,9 +79,9 @@ getRegisters
               wrlong cnt2,#0
 	      getct cnt1
 
-              setq      #6                              ' Number of longs, minus 1, to read
+              setq      #7                               ' Number of longs, minus 1, to read
               rdlong    sidRegsCogCopy, ptra                 ' Read 6 longs to cog address
-
+              
 
               
 '===========================================================
@@ -238,15 +233,17 @@ Noise1        cmp      selectedWaveform1, #8            wz
   if_c        getrnd   noiseValue1
               jmp      #Envelope1
 '-----------------------------------------------------------                
-Combined1     sub      selectedWaveform1, #4             
+Combined1     test     selectedWaveform1, #8            wz
+              sub      selectedWaveform1, #4             
               fges     selectedWaveform1, #0         
               shl      selectedWaveform1, #8
-              shr      arg1, #24
-              add      selectedWaveform1, arg1' tempValue
+              mov      tempValue, phaseAccumulator1
+              shr      tempValue, #24
+              add      selectedWaveform1, tempValue
               add      selectedWaveform1, combTableAddr
-              rdbyte   arg1, selectedWaveform1
-              shl      arg1, #24
-
+  if_nc_and_z rdbyte   arg1, selectedWaveform1
+  if_nc_and_z shl      arg1, #24
+  if_c_or_nz  mov      arg1, val31bit
 '===========================================================
 '            Envelope shaping channel 1 -> arg2           
 '===========================================================  
@@ -279,12 +276,7 @@ Amplitude1    shr      arg1, #14
               sub      arg1, val15bit             
               mov      arg2, envelopeLevel1     
               shr      arg2, #24
-              getword  r1,arg1,#1
-              mul      r1, arg2
-              shl      r1, #16
-              mul      arg1, arg2
-'              add      r1, arg1
-'              call     #multiply
+              call     #multiply
               mov      out1, r1
 '===========================================================
 '            Waveform shaping channel 2 -> arg1                           
@@ -315,15 +307,17 @@ Noise2        cmp      selectedWaveform2, #8            wz
   if_c        getrnd   noiseValue2
               jmp      #Envelope2
 '-----------------------------------------------------------                
-Combined2     sub      selectedWaveform2, #4
+Combined2     test     selectedWaveform2, #8            wz
+              sub      selectedWaveform2, #4
               fges     selectedWaveform2, #0     
               shl      selectedWaveform2, #8
-              shr      arg1,#24
-              add      selectedWaveform2, arg1
+              mov      tempValue, phaseAccumulator2
+              shr      tempValue, #24
+              add      selectedWaveform2, tempValue
               add      selectedWaveform2, combTableAddr    
-              rdbyte   arg1, selectedWaveform2
-              shl      arg1, #24                         
-
+  if_nc_and_z rdbyte   arg1, selectedWaveform2
+  if_nc_and_z shl      arg1, #24                         
+  if_c_or_nz  mov      arg1, val31bit
 '===========================================================
 '            Envelope shaping channel 2 -> arg2           
 '===========================================================
@@ -356,12 +350,7 @@ Amplitude2    shr      arg1, #14
               sub      arg1, val17bit
               mov      arg2, envelopeLevel2
               shr      arg2, #24
-              getword  r1,arg1,#1
-              mul      r1, arg2
-              shl      r1, #16
-              mul      arg1, arg2
-              add      r1, arg1
- '             call     #multiply
+              call     #multiply
               mov      out2, r1
 '===========================================================            
 '            Waveform shaping channel 3 -> arg1                           
@@ -392,15 +381,17 @@ Noise3        cmp      selectedWaveform3, #8            wz
   if_c        getrnd   noiseValue3
               jmp      #Envelope3
 '-----------------------------------------------------------
-Combined3     sub      selectedWaveform3, #4             
+Combined3     test     selectedWaveform3, #8            wz
+              sub      selectedWaveform3, #4             
               fges     selectedWaveform3, #0
               shl      selectedWaveform3, #8
-              shr      arg1 , #24
-              add      selectedWaveform3, arg1
+              mov      tempValue, phaseAccumulator3
+              shr      tempValue, #24
+              add      selectedWaveform3, tempValue
               add      selectedWaveform3, combTableAddr    
-              rdbyte   arg1, selectedWaveform3
-              shl      arg1, #24                         
- 
+  if_nc_and_z rdbyte   arg1, selectedWaveform3
+  if_nc_and_z shl      arg1, #24                         
+  if_c_or_nz  mov      arg1, val31bit
 '===========================================================
 '            Envelope shaping channel 3 -> arg2           
 '===========================================================
@@ -433,13 +424,7 @@ Amplitude3    shr      arg1, #14
               sub      arg1, val17bit            
               mov      arg2, envelopeLevel3
               shr      arg2, #24
-              getword  r1,arg1,#1
-              mul      r1, arg2
-              shl      r1, #16
-              mul      arg1, arg2
-              add      r1, arg1 
- 
-   '           call     #multiply
+              call     #multiply
               mov      out3, r1
 
 '===========================================================
@@ -461,12 +446,7 @@ filter        mov      ordinaryOutput, #0                  '|
               add      arg2, #RESONANCE_OFFSET             '|
               mov      arg1, bandPassFilter                '|  
               sar      arg1, #RESONANCE_FACTOR             '|
-              getword  r1,arg1,#1
-              mul      r1, arg2
-              shl      r1, #16
-              mul      arg1, arg2
-              add      r1, arg1
-'              call     #multiply                           '| High pass filter
+              call     #multiply                           '| High pass filter
               sub      highPassFilter, bandPassFilter      '|
               add      highPassFilter, r1                  '| 
               sub      highPassFilter, lowPassFilter       '|
@@ -475,23 +455,13 @@ filter        mov      ordinaryOutput, #0                  '|
               sar      arg1, #BP_MAX_CUTOFF                '|
               mov      arg2, filterCutoff                  '| Band pass filter
               'fle      arg2, maxCutoff                     '|
-              getword  r1,arg1,#1
-              mul      r1, arg2
-              shl      r1, #16
-              mul      arg1, arg2
-              add      r1, arg1
- '             call     #multiply                           '|
+              call     #multiply                           '|
               add      bandPassFilter, r1                  '|
 '----------------------------------------------------------- 
               mov      arg1, bandPassFilter                '| 
               sar      arg1, #LP_MAX_CUTOFF                '| 
               mov      arg2, filterCutoff                  '| Low pass filter 
-              getword  r1,arg1,#1
-              mul      r1, arg2
-              shl      r1, #16
-              mul      arg1, arg2
-              add      r1, arg1 
- '             call     #multiply                           '| 
+              call     #multiply                           '| 
               add      lowPassFilter, r1                   '| 
 '-----------------------------------------------------------  
               mov      filterOutput, #0                    '|
@@ -511,12 +481,7 @@ mixer         mov      arg1, filterOutput
               fles     arg1, clipLevelHigh                 '|
               fges     arg1, clipLevelLow                  '|
               mov      arg2, volume
-              getword  r1,arg1,#1
-              mul      r1, arg2
-              shl      r1, #16
-              mul      arg1, arg2
-              add      r1, arg1
-        '      call     #multiply                           '| 
+              call     #multiply                           '| 
 '-----------------------------------------------------------
               add      r1, val31bit                        '  DC offset
 '-----------------------------------------------------------  

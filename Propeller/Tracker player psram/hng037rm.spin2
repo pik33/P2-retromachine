@@ -1179,7 +1179,8 @@ timings000      long   16,   80,    20,    1024,    112,     8,     48,      16,
 'timings064      long   48,   80,    52 ,    960,     32,     8,      22,       24,      36,    24,     64,  112,   496,     354693878,   %1_111111__11_1000_1011__1111_1011,   540
 'timings064      long   48,   80,    52 ,    960,     32,     8,      22,       24,      36,    24,     64,  112,   496,     354693878,   %1_110000__11_0110_1100__1111_1011,   540
 'timings064      long   48,   80,    52 ,    960,     32,     8,      22,       24,      36,    24,     64,  112,   496,     354693878,   %1_000001__00_0010_0010__1111_1011,   540
-timings064      long   24,   80,   16 ,    960,     32,     8,      22,       24,      36,    24,     64,  112,   496,     336956522,   %1_101101__11_0000_0110__1111_1011,   540
+timings064      long   24,   80,   16 ,    960,     32,     8,      22,       24,      36,    24,     64,  112,   496,     336956522,   %1_101101__11_0000_0110__1111_1011,   540 '960x540 @ 336 MHz
+'timings064      long   8,   48,  8 ,    1024,    64,     8,      22,      16,      16,    16,     64,  112,   496,     336956522,   %1_101101__11_0000_0110__1111_1011,   576   '1024x576 @ 336 MHz
 
 'timings064      long   18,   48,    16,     944,     24,     8,     24,      24,      32,    24,     64,  112,   496,     320000000,   %1_0000_00__00_0000_1111__1111_1011,   544
 timings128      long   16,   64,    16,     816,      8,     8,     8,       32,      64,    32,    128,  100,   480,     283750000,   %1_111111__11_1000_1011__1111_1011,   496
@@ -1202,14 +1203,13 @@ DAT             org
 
 hdmi            setq    #9
                 rdlong  framebuf,  ptra                    'read pointers
-                wrlong  #aend,#0                           'write driver length to hub#0: DEBUG/demo
+
                 setcmod #$100                              'enable HDMI mode
                 mov     ii,#448                            '7 << 6          
                 add     ii,hbase
                 drvl    ii                                 '#7<<6 + hdmi_base      ' enable HDMI pins
 '               wrpin   #0, ii  '#7<<6 + hdmi_base         'for Adafruit breakout board - full logic as in Pico, the board has 220 Ohm resistors on it
                 wrpin   ##%10110_1111_0111_10_00000_0, ii  '#7<<6 + hdmi_base      ' a '123 ohm BITDAC for Parallax breakout board
-  
                 setxfrq ##$0CCCCCCC+1                      'set streamer freq to 1/10th clk
 
 
@@ -1286,6 +1286,7 @@ p307            mov     framebuf2,dl wcz                 'move this to framebuf2
 '' - set live change        %aaaa_aaaa_aaaa_aaaa_nnnn_cccc_cccc_1111    a: 16 bit addr. 00 added to 18 aligned, 2 upper bits=11; nnnn: new font line if charmode cccc cpl to change
 '' - set hscroll            %0000_0000_0000_0000_0000_ssss_0101_0011
 '' - set hi bit for live    %0000_0000_0000_bb00_0000_0000_0110_0011    
+'' - read from PSRAM	    %aaaa_aaaa_aaaa_aaaa_aaaa_aaab_0111_0011   read from PSRAM, 23bit+alihgn=25bit=32M, b=buffer#
 
 '' todo: set horizontal scroll (if needed)
 
@@ -1345,8 +1346,27 @@ p391             getnib dlc,framebuf2,#1                    ' get subcommand fro
                  cmp dlc,#%0110 wz
         if_z     mov hibits,framebuf2         
         if_z     and hibits,##%1111_1111_1111_1111_1111_1111_0000_0000           
-               
-                 jmp #p301    ' not implemented yet
+            
+        
+        if_z         jmp #p301    ' not implemented yet
+              cmp dlc,#%0111 wz
+              if_nz jmp #p301
+   
+               mov t1,framebuf2
+   	       shr t1,#9 wc  ' if c, buf=1
+  	       
+   	       shl t1,#2    ' addr in t4
+               setnib t1,%1011,#7 ' read burst from addr
+   if_nc            mov t2,buf1
+   if_c mov t2,buf2
+               mov t3,t2
+               shr t3,#20
+               and t2,##$FFFFF
+               setq #2
+               wrlong t1,mailbox
+              
+           
+  jmp #p301            
         
 ' repeat
 
@@ -1442,15 +1462,15 @@ p102            getword t1,m_border,#0
           if_z  jmp     #p420                           ' x4
                 cmp     zoom,#1 wz                      ' x2
           if_z  jmp     #p410                           '
-                cmp     zoom,#0 wz                      ' x1 
-          if_z  jmp     #p400                           '
-                jmp     #p430                           ' empty line
-
+ '               cmp     zoom,#0 wz                      ' x1 
+   '       if_z  jmp     #p400                           '
+  '              jmp     #p430                           ' empty line
+ jmp #p400
                    '
  ''---------------------------------------------------------------------------------------------------------
  p400                   cmp cpl2,lc_char wz             ' check if switch needed '5
             
-                        if_nz skipf #%111               ' if not, skip. Make skip instead of if_nz or jmp saves a nop
+                 if_nz  skipf #%111               ' if not, skip. Make skip instead of if_nz or jmp saves a nop
                         sub t2,fontline                 ' switch the fontline
                         add t2,lc_fontline     
                         mov framebuf2,lc_address        ' update the address
@@ -1607,7 +1627,7 @@ p102            getword t1,m_border,#0
  p421                   jmp    #p103
 
 '--------------------------------------------------------------------------------------------------------------
-
+{{
  p430                   rdlong  char,framebuf2          ' read a long char                          '1
                         getbyte backcolor,char,#2       ' byte #2 - background color                '2
                         getbyte charcolor,char,#3       ' byte #3 - foreground color                '3
@@ -1623,7 +1643,7 @@ p102            getword t1,m_border,#0
 
                         djnz   cpl2,#p430
  p431                   jmp    #p103
-
+}}
 ''------------------------------------------------------------------------------------------------------------
 
 
@@ -1870,6 +1890,14 @@ dlptr           long 0
 
 fontnumptr      long     1
 hbase           long     1
+mailbox long 0
+buf1 long 0
+buf2 long 0
+
+
+
+
+
 borderptr2      long     1
 dlptr2 long 1
 dl              long 1
@@ -1906,7 +1934,7 @@ hscroll1 long 24
 hscroll2 long 16
 hibits long %0100_0000_0000_0000_0000
 aend             long 0
-                fit     496                     '
+                fit     496                   '
 
 
 
