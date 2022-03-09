@@ -11,15 +11,22 @@
 const _clkfreq = 336956522
 
 'option implicit
-dim v as class using "hng037rm.spin2"
+dim v as class using "hng038psram.spin2"
 dim rm as class using "retrocog.spin2"
 dim tracker as class using "trackerplayer.spin2"
 dim paula as class using "audio090-8-sc.spin2"
 dim sid as class using "sidcog3.spin2"
+dim psram as class using "psram4.spin2"
 #include "dir.bi"
 
 dim audiocog,videocog as integer
 dim base as ulong
+dim mbox as ulong
+
+sub startpsram
+psram.startx(0, 0, 0, -1)
+mbox=psram.getMailbox(0)
+end sub
 
 sub startaudio
 audiocog,base=paula.start()
@@ -34,8 +41,8 @@ sub cls(fg=154,bg=147)
 v.cls(fg,bg)
 end sub
 
-function startvideo(mode=64, pin=0) 'todo return a cog#
-v.start(mode,pin)
+function startvideo(mode=64, pin=0, mb=0) 'todo return a cog#
+v.start(mode,pin,mbox)
 v.setbordercolor(0,0,0)
 open SendRecvDevice(@v.putchar, nil, nil) as #0
 end function

@@ -44,7 +44,7 @@ dim currentdir$ as string
 dim channelvol(4), channelpan(4) as integer
 dim mainvolume, mainpan as integer
 dim samplerate,wavepos,currentbuf as ulong
-declare wavebuf alias $21000 as ubyte($50000)
+declare wavebuf alias $22000 as ubyte($50000)
 declare filebuf alias $721B8 as ubyte(127)
 'declare wavebuf2 alias $48000 as ubyte($28000)
 dim modplaying,waveplaying,dmpplaying, needbuf,playnext as ubyte
@@ -58,6 +58,7 @@ dim newcnt,bufptr,siddelay,scog2,sidfreq,sidtime as integer
 channelvol(0)=1 : channelvol(1)=1 : channelvol(2)=1 : channelvol(3)=1    
 mainvolume=127 : mainpan=2048  ' vol: 1..128..(255)  pan 0 (mono)..8192 (full)
 startmachine
+startpsram
 startvideo
 startaudio
 v.cursoroff
@@ -303,8 +304,8 @@ do
     dpoke base+32+24, 30                                                                        ' period
     dpoke base+32+26, 4    									' skip
     
-    lpoke base+8, $21000 or $c0000000  								' sample ptr, 16 bit, restart from 0 
-    lpoke base+32+8, $21002 or $c0000000							' sample ptr+2 (=another channel), it is now 44 clocks delayed and the phase is random. Todo: synchronizing command in the driver
+    lpoke base+8, $22000 or $c0000000  								' sample ptr, 16 bit, restart from 0 
+    lpoke base+32+8, $22002 or $c0000000							' sample ptr+2 (=another channel), it is now 44 clocks delayed and the phase is random. Todo: synchronizing command in the driver
     v.setwritecolors($ea,$e1)									' yellow
     position 2,15:v.write(space$(38)): filename3$=right$(filename3$,38) 		 	' clear the place for a file name
     position 2,15: v.write(filename3$)							        ' display the 'now playing' filename 
