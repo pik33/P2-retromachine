@@ -42,9 +42,12 @@ v.cls(fg,bg)
 end sub
 
 function startvideo(mode=64, pin=0, mb=0) 'todo return a cog#
-v.start(mode,pin,mbox)
+dim videocog as ulong
+videocog=v.start(mode,pin,mbox)
 v.setbordercolor(0,0,0)
+psram.setQoS(videocog, $7ffff400) 
 open SendRecvDevice(@v.putchar, nil, nil) as #0
+return videocog
 end function
 
 'function startmachine()' todo return a cog

@@ -10,16 +10,29 @@ startvideo
 v.setmode(512+64+48)
 v.cls(154,147)
 print("kwas") 
- 
- 
-for i=0 to 8191 
-for j=0 to 1023: random(j)=getrnd() and $7F: next j
-
-psram.write(addr(random(0)),i*1024,1024)
-next i
- 
- 
 makedl
+ 
+let aa=addr(random(0))
+
+v.waitvbl(50)
+
+let k=0
+do
+  for j=0 to 495
+''  let c=getct()
+  let qq=j+k mod 256 
+  bytefill(aa,qq,1024)
+
+  psram.write(addr(random(0)),j*1024,1024) 
+  'c=getct()-c : print c
+  next j
+k=(k+1)  mod 256
+v.waitvbl(1)
+loop
+
+
+ 
+
 
 
 sub makedl
@@ -29,8 +42,16 @@ sub makedl
 let dltest=v.dl_ptr
 let palettetest=v.palette_ptr
 for i=0 to 4095 : newdl(i)=0: next i
-for i=0 to 539 : newdl(i)=lpeek(dltest+4*i) : next i
-newdl(1)=  %0101_0000_0000_0000_0000__1111_0111_0011
+for i=0 to 539 : newdl(i+1)=lpeek(dltest+4*i) :next i
+newdl(0)=  %0101_0000_0000_0000_0000__1111_0111_0011
+
+for i=23 to 23+495 
+  let q=lpeek(dltest+4*i)
+  let q2=(q and $0000FFF)+((i-22)*8) shl 14
+  newdl(i)=q2   
+ 
+next i
+
 
 /'
 ' Prepare the title

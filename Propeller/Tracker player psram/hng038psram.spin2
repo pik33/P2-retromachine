@@ -1,21 +1,59 @@
 '********************************************************************************************
 ' Nostalgic displaylisted HDMI for P2 Retromachine
-' Version 0.36 alpha -20220202
+' Version 0.38 alpha -20220309
 ' 1 cog,text and graphics with or without border, 8x16 selectable and redefinable font
-' The P2 Retromachine version
+' The P2 Retromachine version with PSRAM enabled
 ' (c) 2012-2021 Piotr Kardasz pik33@o2.pl
 ' MIT license
 '********************************************************************************************
+
+' Available standard graphic modes:
+
+' - PAL based 50 Hz/624 total lines: 1024x576 or 960x540
+'   - 800x480 @ 1024x576 with wide borders
+'   - 896x496 @ 960x540 with medium borders
+'   - 960x540 borderless, fullHD/2 
+'   - 1024x576 borderless
+
+'  NTSC based 60 Hz/524 total lines: 
+
+'   - 640x400 @ 896x496 with wide borders
+'   - 880x480 @ 896x496 with narrow borde
+'   - 800x480 borderless
+'   - 896x496 borderless
+     
+' This selection is based on: 
+
+'   - 1024x576 is the best I can do at 336 MHz and 50 Hz
+'   - 896x496 is the best I can do at 60 Hz
+'   - 960x540 is fullHD/2 - in a DL enabled VGA driver (to do) the DL may cope with resizing the same framebuffer as for HDMI screen
+'   - 800x480x60 Hz is used in a lot of HDMI LCD 5 or 7 inch screens
+
+' Custom graphic modes
+
+' The graphic modes are controlled by:
+
+'  - a timings set
+'  - a display list
+
+'  Both elements are controllable by user 
+
+'  The timings table fields:
+
+'   - 0 - before horizontal sync (in pixels)
+'   - 1 - horizontal sync
+'   - 2 - before visible
+'   - 3 - visible
+'   - 4 - left/right border size
+'   - 5 - pixels per char, always 8                   bf.hs, hs,  bf.vis  visible, lr bord, pixel, ud bord,  up p., vsync, down p., mode, cpl, scanlines,  clock,                  hubset                  total vis lines
+ '   timings000      long   16,   80,    20,    1024,    112,     8,     48,      16,      16,    16,      0,  100,   480,     354693878,   %1_110000__11_0110_1100__1111_1011,   576
+ 
 
 CON
 
 
 hdmi_base       = 0            'must be a multiple of 8
-_clkfreq        = 320_000_000    'start safe, hubset will do the rest. The clock will be changed to:
-
-' 354_689_500   200x Atari 8-bit PAL,  50x Amiga PAL  - real settings: 49,869-> 354_693_878  - 1.0000123 - mode 0 
-' 357_954_500   200x Atari 8-bit NTSC, 50x Amiga NTSC - real settings: 49,877-> 357_959_184  - 1.0000131 - mode 256
-
+_clkfreq        = 336956522    'this is the retromachine standard main clock
 
 ''--------- VGA DOS color definition constants
 
@@ -42,8 +80,8 @@ var
 
 '----------  A pointer block, these pointers will be passed to the cog
 
-long buf_ptr           'main buffer pointer
-long font_ptr          'font definition pointer
+long buf_ptr           'initial main buffer pointer
+long font_ptr          'initial font definition pointer
 long border_ptr        'border colors buffer pointer
 long vblank_ptr        'vblank signalling variable pointer
 long cursor_ptr        'cursor position pointer
@@ -52,7 +90,7 @@ long palette_ptr       '256-color palette pointer; bit 31 set: do not read
 long dl_ptr            'display list pointer
 long fontnum_ptr       'offset to font pointer : TODO - remove this, use byte #1 in the buffer
 long hdmibase          'HDMI pin#
-long mailbox_ptr
+long mailbox_ptr       'PSRAM mailbox pointer. If zero, no PSRAM
 
 '----------
 
@@ -112,143 +150,18 @@ long p1,p2,p4,p8
 '                                                                        *
 '*************************************************************************
 
-pub dummy()|i,x,y,ntsc,bbb,ccc,zzx,zzy,amode,x1,x2,y1,y2,r
+pub dummy()
 '' this is not a main program.
 
-start(512+64+48,hdmi_base,0)
-'start(512+256+64+32,hdmi_base)
-
-cls(15,1)
-setfontfamily(0)
-waitvbl(100)
-outtextxycg(0,0,inttostr(long[0]),11,1)
-waitvbl(300)
-'maketestdl(512+48)
-waitvbl(1200)
-repeat i from 0 to 10000
-  ccc:=getrnd()&255
-  x1:=getrnd()+//896
-  x2:=getrnd()+//896
-  y1:=getrnd()+//496
-  y2:=getrnd()+//496
 
 
-  line(x1,y1,x2,y2,ccc)
+'*************************************************************************
+'                                                                        *
+'  Graphic primitives                                                    *
+'                                                                        *
+'*************************************************************************
 
-repeat i from 0 to 1000
-
-  x1:=getrnd()+//896
-  y1:=getrnd()+//496
-  r:=getrnd()+//100
-  ccc:=getrnd()&255
-  fcircle(x1,y1,r,ccc)   
-
-repeat i from 0 to 10000
-  ccc:=getrnd()&255
-  x1:=getrnd()+//896
-  x2:=getrnd()+//896
-  y1:=getrnd()+//496
-  y2:=getrnd()+//496
-
-
-  frame(x1,y1,x2,y2,ccc)
-  
-repeat i from 0 to 10000
-
-  x1:=getrnd()+//896
-  y1:=getrnd()+//496
-  r:=getrnd()+//100
-  ccc:=getrnd()&255
-  circle(x1,y1,r,ccc) 
-  
-repeat i from 0 to 1000
-  ccc:=getrnd()&255
-  x1:=getrnd()+//896
-  x2:=getrnd()+//100
-  y1:=getrnd()+//496
-  y2:=getrnd()+//100
-
-
-  box(x1,y1,x1+x2,y1+y2,ccc)  
-      
-  
-{
-repeat ntsc from 0 to 1
-  repeat bbb from 0 to 3
-    repeat zzy from 0 to 3
-      repeat zzx from 0 to 2
-        amode:=256*ntsc+64*bbb+4*zzy+zzx
-        setmode(amode)
-        cls(4,0)
-        outtextxy(0,0,string("mode"))
-        outtextxy(0,1,string("cpl"))
-        outtextxy(0,2,string("bufptr"))
-        outtextxy(0,3,string("buflen"))
-        outtextxy(0,4,string("lines"))
-        outtextxy(8,0,inttostr(amode))
-        outtextxy(8,1,inttostr(cpl))
-        outtextxy(8,2,inttostr(buf_ptr))
-        outtextxy(8,3,inttostr(buflen*4))
-        outtextxy(8,4,inttostr(lines))
-        waitvbl(50)
-}
-setfontfamily(4)
-repeat amode from 512 to 1023
-  setmode(amode)
-  ccc:=((amode>>4)&3)
-  if (ccc==0)
-    cls(0,1)
-    outtextxycg(0,0,string("mode"),0,1)
-    outtextxycg(0,16,string("cpl"),0,1)
-    outtextxycg(0,32,string("bufptr"),0,1)
-    outtextxycg(0,48,string("buflen"),0,1)
-    outtextxycg(0,64,string("lines"),0,1)
-    outtextxycg(64,0,inttostr(amode),0,1)
-    outtextxycg(64,16,inttostr(cpl),0,1)
-    outtextxycg(64,32,inttostr(buf_ptr),0,1)
-    outtextxycg(64,48,inttostr(buflen*4),0,1)
-    outtextxycg(64,64,inttostr(lines),0,1)
-  elseif (ccc==1)
-    cls(0,0)
-    outtextxycg(0,0,string("mode"),3,0)
-    outtextxycg(0,16,string("cpl"),3,0)'
-    outtextxycg(0,32,string("buf_ptr"),3,0)
-    outtextxycg(0,48,string("buflen"),3,0)
-    outtextxycg(0,64,string("lines"),3,0)
-    outtextxycg(64,0,inttostr(amode),2,0)
-    outtextxycg(64,16,inttostr(cpl),2,0)
-    outtextxycg(64,32,inttostr(buf_ptr),2,0)
-    outtextxycg(64,48,inttostr(buflen*4),2,0)
-    outtextxycg(64,64,inttostr(lines),2,0)
-  elseif (ccc==2)
-    cls(0,0)
-    outtextxycg(0,0,string("mode"),9,0)
-    outtextxycg(0,16,string("cpl"),9,0)'
-    outtextxycg(0,32,string("buf_ptr"),9,0)
-    outtextxycg(0,48,string("buflen"),9,0)
-    outtextxycg(0,64,string("lines"),9,0)
-    outtextxycg(64,0,inttostr(amode),4,0)
-    outtextxycg(64,16,inttostr(cpl),4,0)
-    outtextxycg(64,32,inttostr(buf_ptr),4,0)
-    outtextxycg(64,48,inttostr(buflen*4),4,0)
-    outtextxycg(64,64,inttostr(lines),4,0)
-  elseif (ccc==3)
-    cls(0,0)
-    outtextxycg(0,0,string("mode"),120,0)
-    outtextxycg(0,16,string("cpl"),120,0)'
-    outtextxycg(0,32,string("buf_ptr"),120,0)
-    outtextxycg(0,48,string("buflen"),120,0)
-    outtextxycg(0,64,string("lines"),120,0)
-    outtextxycg(64,0,inttostr(amode),40,0)
-    outtextxycg(64,16,inttostr(cpl),40,0)
-    outtextxycg(64,32,inttostr(buf_ptr),40,0)
-    outtextxycg(64,48,inttostr(buflen*4),40,0)
-    outtextxycg(64,64,inttostr(lines),40,0)
-  waitvbl(300)
-
-repeat
-
-'------------------------------
+'-- A filled circle -----------------------------------------------------
 
 pub fcircle(x0,y0,r,c) | d,x,y,da,db
 
@@ -274,7 +187,7 @@ repeat while (x<=y)
     da+=2*4
     db+=2*4
  
- 
+'-- A circle ------------------------------------------------------------ 
  
 pub circle(x0,y0,r,c) | d,x,y,da,db
 
@@ -305,7 +218,7 @@ repeat while (x<=y)
     da+=2*4
     db+=2*4
 
-
+'-- A frame --------------------------------------------------------------
 pub frame(x1,y1,x2,y2,c)
 
 line(x1,y1,x2,y1,c)
@@ -933,8 +846,11 @@ putpixel4(x,y,c)
 
 pub setmode(mode) | i', 'xzoom, yzoom, azoom
 
-'' mode:tn_bb_cc_vv_hh
-'' hh - h.zoom, vv-v.zoom, cc-c.depth,
+'' mode:p_tn_bb_cc_vv_hh
+'' p - 1 - psram, 0 - hub
+'' t - 1 - graphics, 0 - text
+'' n - 1 - 60 Hz 524 line based, 0 - 50 Hz 624 line based
+'' hh - h.zoom, vv-v.zoom, cc-color depth if graphic, unused in text,
 '' bb - borders/total pixels, 00-wide/1140, 01 medium/1026, 10 narrow/912, 11 no border, 1024 px PAL, 880 px NTSC
 
 if mode==(512+192+48)
@@ -1136,6 +1052,8 @@ cursor_sh:=14
 cog:=coginit(16,@hdmi, @buf_ptr)
 waitms(20)
 
+
+
 ' clear the screen and set the colors to green on black
 
 cls(c_green,c_black)
@@ -1171,6 +1089,11 @@ ataripalette   file "ataripalettep2.def"
 '
 '**********************************************************************************
 
+
+' *** Modes
+
+
+
    'streamer sets for text mode, to add to timings[0..5]
 ' todo for the retromachine: 768x576
 
@@ -1182,7 +1105,8 @@ timings000      long   16,   80,    20,    1024,    112,     8,     48,      16,
 'timings064      long   48,   80,    52 ,    960,     32,     8,      22,       24,      36,    24,     64,  112,   496,     354693878,   %1_110000__11_0110_1100__1111_1011,   540
 'timings064      long   48,   80,    52 ,    960,     32,     8,      22,       24,      36,    24,     64,  112,   496,     354693878,   %1_000001__00_0010_0010__1111_1011,   540
 timings064      long   24,   80,   16 ,    960,     32,     8,      22,       24,      36,    24,     64,  112,   496,     336956522,   %1_101101__11_0000_0110__1111_1011,   540 '960x540 @ 336 MHz
-'timings064      long   8,   48,  8 ,    1024,    64,     8,      22,      16,      16,    16,     64,  112,   496,     336956522,   %1_101101__11_0000_0110__1111_1011,   576   '1024x576 @ 336 MHz
+'timings064      long   8,   60,  32 ,    1024,    0,     8,      22,      16,      16,    16,     64,  128,   400,     336956522,   %1_101101__11_0000_0110__1111_1011,   576   '1024x576 @ 336 MHz borderless don't work
+'timings064     long  16,   66,    20,    1024,      12,     8,     0,       16,      16,    16,    192,  125,   576,     354693878,   %1_110000__11_0110_1100__1111_1011,   576
 
 'timings064      long   18,   48,    16,     944,     24,     8,     24,      24,      32,    24,     64,  112,   496,     320000000,   %1_0000_00__00_0000_1111__1111_1011,   544
 timings128      long   16,   64,    16,     816,      8,     8,     8,       32,      64,    32,    128,  100,   480,     283750000,   %1_111111__11_1000_1011__1111_1011,   496
@@ -1213,8 +1137,8 @@ hdmi            setq    #10
 '               wrpin   #0, ii  '#7<<6 + hdmi_base         'for Adafruit breakout board - full logic as in Pico, the board has 220 Ohm resistors on it
                 wrpin   ##%10110_1111_0111_10_00000_0, ii  '#7<<6 + hdmi_base      ' a '123 ohm BITDAC for Parallax breakout board
                 setxfrq ##$0CCCCCCC+1                      'set streamer freq to 1/10th clk
-
-                rdlong mailbox,ptra[10]
+'
+ '               rdlong mailbox,ptra[10]
                 cogid   pa              ' copute cogid
                 mul     pa, #12         ' and mailbox spacing
                 add     mailbox, pa     ' add offset to find this COG's mailbox
@@ -1261,10 +1185,10 @@ p101
 p301                
                 cmp rcnt,#0 wz			        ' check the DL repeat counter 				
 
-        if_z    jmp #p306 
+       if_z     jmp #p306 
                                                         ' no repeat, goto Read and interpret next DL entry
-                sub rcnt,#1 wz                            ' decrement the repeat counter
-   if_nz         sub dlptr2,#4                           ' repeat. DL pointer was incremented while interpreting, now decrement it as it is repeated
+                sub rcnt,#1 wz                           ' decrement the repeat counter
+   if_nz        sub dlptr2,#4                           ' repeat. DL pointer was incremented while interpreting, now decrement it as it is repeated
 
                 mov dl,rdl                              ' restore repeating DL entry from temporary buffer
                 getnib t1,dl,#2                         ' fontline, unused in graphmode
