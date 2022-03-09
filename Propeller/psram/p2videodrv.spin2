@@ -2639,6 +2639,7 @@ xga_timing ' 1024x768@60Hz at 65*5 MHz YMMV
 =======
             long   CLK325MHz
             long   325000000
+>>>>>>> Stashed changes
        '    long   CLK200MHz
        '    long   200000000
                    '_HSyncPolarity___FrontPorch__SyncWidth___BackPorch__Columns
