@@ -2633,8 +2633,12 @@ svga_dvi_timing   ' massively reduced blanking for 800x600 50Hz at 25.2MHz clk Y
             long    0   ' reserved for CFRQ parameter
 
 xga_timing ' 1024x768@60Hz at 65*5 MHz YMMV
+<<<<<<< Updated upstream
             long   CLK337MHz
             long   337000000
+=======
+            long   CLK325MHz
+            long   325000000
        '    long   CLK200MHz
        '    long   200000000
                    '_HSyncPolarity___FrontPorch__SyncWidth___BackPorch__Columns
