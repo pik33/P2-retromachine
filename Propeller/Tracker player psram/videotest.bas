@@ -7,7 +7,7 @@ startmachine
 startpsram
 startvideo
 
-v.setmode(512+256+192+32)
+v.setmode(512+0+128+32)
 v.cls(154,147)
 
 waitms(5000)
@@ -49,17 +49,17 @@ sub makedl
 let dltest=v.dl_ptr
 let palettetest=v.palette_ptr
 for i=0 to 4095 : newdl(i)=0: next i
-for i=0 to 575 : newdl(i+1)=lpeek(dltest+4*i) :next i
+for i=0 to 495 : newdl(i+1)=lpeek(dltest+4*i) :next i
 newdl(0)=  %0111_0000_0000_0000_0000__1111_0111_0011
-'for i=1 to 576
-'  let q=lpeek(dltest+4*i)
-'  let q2=(q and $0000000)+((i-1)*8) shl 14+12+2
+ for i=1 to 496
+   let q=lpeek(dltest+4*i)
+   let q2=(q and $0000000)+((i-1)*8) shl 14+12+2
 
-'  newdl(i)=q2   
+   newdl(i)=q2   
  
-'next i
+next i
 'v.timings(5)=8 : v.timings(11)=128 
-'v.setpalette(256)
+v.setpalette(256)
 
 
 v.dl_ptr=addr(newdl(0))
