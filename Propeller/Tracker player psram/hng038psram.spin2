@@ -1169,8 +1169,6 @@ ataripalette   file "ataripalettep2.def"
 '   - 960x540 borderless, fullHD/2 
 '   - 1024x576 borderless
 
-
-
 '  NTSC based 60 Hz/524 total lines: 
 '   - 640x400 @ 896x496 with wide borders
 '   - 800x480 @ 896x496 with narrow border
