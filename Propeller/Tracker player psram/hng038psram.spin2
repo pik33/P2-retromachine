@@ -15,6 +15,8 @@
 '   - 960x540 borderless, fullHD/2 
 '   - 1024x576 borderless
 
+'' - 1024x576: I-have-a-psram-and-I-want-the-mode-!!!. It is not PAL 624 lines based no more, there is no place for that at 336 MHz. It's 1104x610
+
 '  NTSC based 60 Hz/524 total lines: 
 
 '   - 640x400 @ 896x496 with wide borders
@@ -29,14 +31,10 @@
 '   - 960x540 is fullHD/2 - in a DL enabled VGA driver (to do) the DL may cope with resizing the same framebuffer as for HDMI screen
 '   - 800x480x60 Hz is used in a lot of HDMI LCD 5 or 7 inch screens
 
+' The driver allows setting horizontal and vertical zoom (independent) which allows to set graphic resolution as low as 100x60 (8x zoom for 8bbb) or 200x60 at the 1,2 o4 4 bpp 
+
 ' Custom graphic modes
-
-' The graphic modes are controlled by:
-
-'  - a timings set
-'  - a display list
-
-'  Both elements are controllable by user 
+' User can set any physically possible graphic mode using a timing table and a display list 
 
 '  The timings table fields:
 
@@ -45,17 +43,77 @@
 '   - 2 - before visible
 '   - 3 - visible
 '   - 4 - left/right border size
-'   - 5 - pixels per char, always 8                   bf.hs, hs,  bf.vis  visible, lr bord, pixel, ud bord,  up p., vsync, down p., mode, cpl, scanlines,  clock,                  hubset                  total vis lines
- '   timings000      long   16,   80,    20,    1024,    112,     8,     48,      16,      16,    16,      0,  100,   480,     354693878,   %1_110000__11_0110_1100__1111_1011,   576
+'   - 5 - pixels per char, now always 8  
+'   - 6 - up/down border
+'   - 7 - up porch
+'   - 8 - vsync
+'   - 9 - down porch
+'   -10 - mode number
+'   -11 - character per line
+'   -12 - visible scan lines
+'   -13 - CPU clock
+'   -14 - HUBSET value for CPU clock
+'   -15 - total visible lines (including borders)
+
+'  The display list
+
+' The display list controls every line of the display. When the driver starts or setmode function is called, the new DL is created for this mode. 
+' At every moment the user can create a new display list and point the driver to it.
+
+' The DL command list
+
+'' - display a blank line   %rrrr_rrrr_rrrr_rrrr_rrrr_rrrr_rrrr_rr00    display a blank line with a border color, do not use any framebuffer, r - reserved, unused
+'' - display a text line    %aaaa_aaaa_aaaa_aaaa_aazz_nnnn_llll_ll_01   a-framebuffer address for the line, z- horizontal zoom, n-font line, l - text line (for the cursor)
+'' - display a graphic line %aaaa_aaaa_aaaa_aaaa_aazz_rrrr_rrrr_cc_10 - fields as in text, cc - color depth, r - reserved, unused
+'' Special commands:
+'' - repeat                 %nnnn_nnnn_nnnn_qqqq_mmmm_mmmm_mmmm_0111    repeat the next dl line n times, after q lines add offset m to the address
+'' - reload palette         %mmmm_mmmm_nnnn_nnnn_qqqq_qqqq_qqqq_1011    reload n palette entries from m color from palette_ptr+q --- not yet implemented, TODO
+'' - set border color       %rrrr_rrrr_gggg_gggg_bbbb_bbbb_0001_0011    set border color to rgb
+'' - set border color       %0000_0000_0000_0000_pppp_pppp_0010_0011    set border color to palette entry #p
+'' - set font size          %0000_0000_0000_0000_0000_ssss_0011_0011    ssss - bit for font size, 3=8, 4=16
+'' - set font pointer       %aaaa_aaaa_aaaa_aaaa_aaaa_0000_0100_0011    a - addres for the font definition table
+'' - set live change        %aaaa_aaaa_aaaa_aaaa_nnnn_cccc_cccc_1111    a: 16 bit addr. hibits (look below) added to 18 aligned, default hibits=11; nnnn: new font line, if charmode cccc - cpl to change
+'' - set hscroll            %0000_0000_0000_0000_0000_ssss_0101_0011    ssss - amount (in pixels) to scroll the text mode to the right
+'' - set hi bit for live    %0000_0000_0000_bb00_0000_0000_0110_0011    set 2 high bits of the framebuffer for live change command
+'' - switch to PSRAM	    %aaaa_aaaa_aaaa_aaaa_aaaa_bbbb_0111_0011    a=0 read from hub, a<>0 read from PSRAM, (bbbb+1)*128 - HUB buffer size for PSRAM, should be >= than line size in bytes
+
+''  Line start addresses are 18 bit. They are SHL #2 for HUB giving long aligned adderss or SHL #7 for PSRAM gives 128 aligned address allowing to use full 32 MB of PSRAM for the pixel data
+''  If the dislay data source is switched to PSRAM and the live change is used, the rest of the line data after the change will be loaded from the hub and not from the PSRAM
  
+''-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 CON
 
 
-hdmi_base       = 0            'must be a multiple of 8
-_clkfreq        = 336956522    'this is the retromachine standard main clock
+hdmi_base       = 0           				 	'must be a multiple of 8
+_clkfreq        = 336956522    					'this is the retromachine standard main clock, PAL color frequency * 95
 
-''--------- VGA DOS color definition constants
+' Builtin mode setting constant. Add these to define a mode number to set, mode# = %p_tn_bb_cc_vv_hh
+
+m_use_psram     = 1024						' if set, use PSRAM for the frame buffer  (p)
+m_use_hub       = 0
+m_graphics      = 512						' if set, graphic mode, else text         (t)       
+m_text		= 0
+m_60Hz          = 256						' if set, 60 Hz, else 50 Hz		  (n)
+m_50Hz          = 0
+m_wideborder    = 0										        ' (bb)
+m_mediumborder  = 64
+m_borderless    = 128                                          	 'borderless      960x540/800x480
+m_borderless2   = 192						 'big borderless 1024x576/896x496
+m_color8	= 48					       	' 8 bpp                                   (cc)
+m_color4	= 32						' 4 bpp
+m_color2        = 16						' 2 bpp
+m_color1        = 0						' 1 bpp
+m_vzoom8	= 12						' vertical zoom				  (vv)
+m_vzoom4  	= 8
+m_vzoom2	= 4
+m_vzoom1  	= 0
+m_hzoom8	= 3						' horizontal zoom. 8x available only for 8bpp graphic modes (hh)
+m_hzoom4  	= 2
+m_hzoom2 	= 1
+m_hzoom1	= 0
+
+''--------- VGA DOS color definition constants. These are numbers of standard palette used (16 colors*16 luminances, 8-bit Atari based)
 
 c_black         =    0
 c_blue          =  117
@@ -73,6 +131,8 @@ c_lightred      =   43
 c_lightmagenta  =   75
 c_yellow        =  234
 c_white         =   15
+
+''---------- A constant to add to timing values for the streamer
 
 timingsxxt      =  $70810000
 
@@ -92,7 +152,7 @@ long fontnum_ptr       'offset to font pointer : TODO - remove this, use byte #1
 long hdmibase          'HDMI pin#
 long mailbox_ptr       'PSRAM mailbox pointer. If zero, no PSRAM
 
-'----------
+'---------- Variables. Todo: check if all of these are still needed in the current version of the driver
 
 long cog               'driver cog#
 long bordercolor       'border color
@@ -115,6 +175,8 @@ byte colors[16]        'vga colors
 long graphmode
 long font_family
 
+'---------- Temporary variables for accessing different parts of the complex screen
+
 long s_buf_ptr
 long s_font_ptr
 long s_lines
@@ -122,26 +184,9 @@ long s_cpl
 long s_buflen
 
 long xzoom, yzoom, azoom
-long putpixel
-long p1,p2,p4,p8
 
-
-''--------- timings
-' 0  m_bs        - before sync,             16      80
-' 1  m_sn        - sync                     80     160
-' 2  m_bv        - before visible           20      84
-' 3  m_vi        - visible                1024     816
-' 4  m_border    - left and right borders  112       8
-' 5  m_lut1      - pixels per char           8       8
-' 6  i_vborder   - up and down border       48       8
-' 7  i_upporch   - up non visible           16       8
-' 8  i_vsync     - vsync                    16      12
-' 9  i_downporch - down non visible         16       8
-'10  mode #
-'11  cpl         - character per line
-'12  scanlines #
-'13  clock
-'14  hubset value for clock settings
+long putpixel         ' putpixel function variables 
+long p1,p2,p4,p8      ' 
 
 
 '*************************************************************************
@@ -154,12 +199,46 @@ pub dummy()
 '' this is not a main program.
 
 
-
 '*************************************************************************
 '                                                                        *
 '  Graphic primitives                                                    *
 '                                                                        *
 '*************************************************************************
+
+
+''---------- putpixel - put a pixel on the screen
+
+pub putpixel1(x,y,c) |byte b
+
+if ((x>=0) & (x<32*s_cpl) & (y>=0) & (y<s_lines))
+    b:=byte[s_buf_ptr+4*s_cpl*y+(x>>3)]
+    if (c==0)
+      b:=b & !(1<<(x//8))
+    else
+      b:=b |(1<<(x//8))
+    byte[s_buf_ptr+4*s_cpl*y+(x>>3)]:=b
+
+pub putpixel2(x,y,c) |byte b
+
+if ((x>=0) && (x<16*s_cpl) && (y>=0) && (y<s_lines))
+    b:=byte[s_buf_ptr+4*s_cpl*y+(x>>2)]
+    b:=b & !(%11<<((x//4)<<1))
+    b:=b |(c<<((x//4)<<1))
+    byte[s_buf_ptr+4*s_cpl*y+(x>>2)]:=b
+
+pub putpixel4(x,y,c) |byte b
+
+if ((x>=0) & (x<16*s_cpl) & (y>=0) & (y<s_lines))
+    b:=byte[s_buf_ptr+4*s_cpl*y+(x>>1)]
+    b:=b & !(%1111<<((x//2)<<2))
+    b:=b |(c<<((x//2)<<2))
+    byte[s_buf_ptr+4*s_cpl*y+(x>>1)]:=b
+
+pub putpixel8(x,y,c)
+
+if ((x>=0) & (x<4*s_cpl) & (y>=0) & (y<s_lines))
+    byte[s_buf_ptr+4*s_cpl*y+x]:=c
+
 
 '-- A filled circle -----------------------------------------------------
 
@@ -217,8 +296,9 @@ repeat while (x<=y)
     x+=1
     da+=2*4
     db+=2*4
+    
+'-- A frame (an empty rectangle) ---------------------------------------
 
-'-- A frame --------------------------------------------------------------
 pub frame(x1,y1,x2,y2,c)
 
 line(x1,y1,x2,y1,c)
@@ -226,15 +306,20 @@ line(x1,y2,x2,y2,c)
 line(x1,y1,x1,y2,c)
 line(x2,y1,x2,y2,c)
 
+'-- A box (a filled rectangle) ----------------------------------------
+
 pub box(x1,y1,x2,y2,c) |yy
 
 repeat yy from y1 to y2
   line(x1,yy,x2,yy,c)
+ 
+  
+'-- A line  ----------------------------------------
+ 
+pub line(x1,y1,x2,y2,c) | d,dx,dy,ai,bi,xi,yi,x,y
+line1(x1,y1,x2,y2,c)
 
 pub line1(x1,y1,x2,y2,c) | d,dx,dy,ai,bi,xi,yi,x,y
-line(x1,y1,x2,y2,c)
-
-pub line(x1,y1,x2,y2,c) | d,dx,dy,ai,bi,xi,yi,x,y
 
 
 x:=x1
@@ -282,18 +367,25 @@ else
       d+=bi
       y+=yi
     putpixel(x, y,c)
+    
+    
+'*************************************************************************
+'                                                                        *
+'  Characters on graphic screen                                          *
+'                                                                        *
+'*************************************************************************    
 
+' ------  Transparent character
 
-
-
-
-pub putcharxycf(x,y,achar,f) |xx, yy,bb
+pub putcharxycf(x,y,achar,f) |xx, yy, bb
 
 repeat yy from 0 to 15
   bb:=byte[@vga_font+font_family<<10+achar<<4+yy]
   repeat xx from 0 to 7
     if (bb&(1<<xx))<>0
       putpixel(xx+x,yy+y,f)
+      
+' ------  Opaque character      
 
 pub putcharxycg(x,y,achar,f,b) |xx, yy,bb
 
@@ -305,6 +397,8 @@ repeat yy from 0 to 15
     else
       putpixel(xx+x,yy+y,b)
       
+' ------  Opaque  8x8 character      
+ 
 pub putcharxycg8(x,y,achar,f,b) |xx, yy,bb
 
 repeat yy from 0 to 7
@@ -314,7 +408,8 @@ repeat yy from 0 to 7
       putpixel(xx+x,yy+y,f)
     else
       putpixel(xx+x,yy+y,b)      
-      
+
+'' ------  Opaque zoomed 8x16 character       
 
 pub putcharxycz(x,y,achar,f,b,xz,yz) |xx,xxx,yy,yyy,bb
 
@@ -329,6 +424,8 @@ repeat yy from 0 to 15
       repeat yyy from 0 to yz-1
         repeat xxx from 0 to xz-1
           putpixel(xz*xx+xxx+x,yz*yy+yyy+y,b)
+          
+'' ----- String output using above          
 
 pub outtextxycg(x,y,text,f,b) | iii,c
 
@@ -351,54 +448,6 @@ repeat iii from 0 to strsize(text)-1
   putcharxycz(x+8*xz*iii,y,byte[text+iii],f,b,xz,yz)
 
 
-''---------- putpixel - put a pixel on the screen
-
-pub putpixel1(x,y,c) |byte b
-
-
-if ((x>=0) & (x<32*s_cpl) & (y>=0) & (y<s_lines))
-    b:=byte[s_buf_ptr+4*s_cpl*y+(x>>3)]
-    if (c==0)
-      b:=b & !(1<<(x//8))
-    else
-      b:=b |(1<<(x//8))
-    byte[s_buf_ptr+4*s_cpl*y+(x>>3)]:=b
-
-
-pub putpixel2(x,y,c) |byte b
-
-
-if ((x>=0) && (x<16*s_cpl) && (y>=0) && (y<s_lines))
-    b:=byte[s_buf_ptr+4*s_cpl*y+(x>>2)]
-    b:=b & !(%11<<((x//4)<<1))
-    b:=b |(c<<((x//4)<<1))
-    byte[s_buf_ptr+4*s_cpl*y+(x>>2)]:=b
-
-
-pub putpixel4(x,y,c) |byte b
-
-if ((x>=0) & (x<16*s_cpl) & (y>=0) & (y<s_lines))
-    b:=byte[s_buf_ptr+4*s_cpl*y+(x>>1)]
-    b:=b & !(%1111<<((x//2)<<2))
-    b:=b |(c<<((x//2)<<2))
-    byte[s_buf_ptr+4*s_cpl*y+(x>>1)]:=b
-
-pub putpixel4a(x,y,c)
-
-
-    asm
-    
-    
-    endasm
-    
-
-pub putpixel8(x,y,c)
-
-if ((x>=0) & (x<4*s_cpl) & (y>=0) & (y<s_lines))
-    byte[s_buf_ptr+4*s_cpl*y+x]:=c
-
-
-
 
 '**********************************************************************r***
 '                                                                        *
@@ -406,7 +455,7 @@ if ((x>=0) & (x<4*s_cpl) & (y>=0) & (y<s_lines))
 '                                                                        *
 '*************************************************************************
 
-''--------- Set a font offset. TODO: rremove, use byte#1 instead
+''--------- Set a font offset. TODO: remove, use byte#1 instead
 
 pub setfontfamily(afontnum)
 
@@ -541,7 +590,7 @@ if (place>s_buflen-1)
 color:=(long[s_buf_ptr+4*place] &$FF00FFFF) | (c<<16)
 long[s_buf_ptr+4*place]:=color
 
-''---------- Set the border color, o is upper border, lines+1 is lower border
+''---------- Set the border color
 
 pub setbordercolor(r,g,b) | color
 
@@ -556,7 +605,6 @@ bordercolor:=color
 ''---------- Set colors for putchar, write and writeln
 
 pub setwritecolors(ff,bb)
-
 
 write_color:=ff
 write_background:=bb
@@ -636,20 +684,25 @@ pub putchar(achar) | c,x,y
 
 if achar==10
   crlf()
-else  
+if achar==9
+  x:=(cursor_x+8) and %11111000
+if (achar<>9) && (achar<>10) 
   x:=cursor_x
   y:=cursor_y
   c:=write_color<<24+write_background<<16
   long[s_buf_ptr+4*(s_cpl*y+x)]:=long[s_buf_ptr+4*(s_cpl*y+x)] &$FFFF | c
   long[s_buf_ptr+4*(s_cpl*y+x)]:=(long[s_buf_ptr+4*(s_cpl*y+x)] & $FFFFFF00)  |(achar & $000000FF)
   cursor_x+=1
-  if cursor_x==s_cpl
-    cursor_x:=0
-    cursor_y+=1
-    if cursor_y>s_lines-1
-      scrollup()
-      cursor_y:=s_lines-1
+  
+if cursor_x==s_cpl
+  cursor_x:=0
+  cursor_y+=1
+  if cursor_y>s_lines-1
+    scrollup()
+    cursor_y:=s_lines-1
     
+''---------- Output a char at the cursor position, move the cursor, don't react for tab or lf
+
 pub putchar2(achar) | c,x,y
 
 x:=cursor_x
@@ -782,7 +835,7 @@ else
 q:=@n_string
 return q
 
-
+''---------- Convert a integer to dec string using d digits, return a pointer
 
 pub inttostr2(i,d):result |q,pos,k,j
 
@@ -834,9 +887,14 @@ return q
 pub plot1(x,y,c)
 putpixel4(x,y,c)
 
+pub setpalette(colors)
+
+if colors==256 
+  palette_ptr:=@ataripalette
+
 '*************************************************************************
 '                                                                        *
-'  Mode setting and driver start                                                          *
+'  Mode setting and driver start                                         *
 '                                                                        *
 '*************************************************************************
 
@@ -857,6 +915,19 @@ if mode==(512+192+48)
   return 'no RAM
 
 case_fast (mode>>6) & 7 ' timings are the same for graphic and text
+
+' - PAL based 50 Hz/624 total lines: 1024x576 or 960x540
+'   - 800x480 @ 1024x576 with wide borders
+'   - 896x496 @ 960x540 with medium borders
+'   - 960x540 borderless, fullHD/2 
+'   - 1024x576 borderless
+
+'  NTSC based 60 Hz/524 total lines: 
+
+'   - 640x400 @ 896x496 with wide borders
+'   - 880x480 @ 896x496 with narrow borde
+'   - 800x480 borderless
+'   - 896x496 borderless
 
     0:  longmove(@timings,@timings000,16)   'PAL 50 Hz signaling 1140x624, active 800x480, 100x30 text, wide border, 2 colors per pixel, 00_00_00_00_00=0, 354_693_878 Hz
     1:  longmove(@timings,@timings064,16)   'PAL 50 Hz signaling 1026x624, active 880x496, 110x31 text, medium border, 2 colors per pixel 00_01_00_00_00=64, 319_215_686 Hz
@@ -1092,30 +1163,33 @@ ataripalette   file "ataripalettep2.def"
 
 ' *** Modes
 
+' - PAL based 50 Hz/624 total lines: 1024x576 or 960x540
+'   - 800x480 @ 960x540 with wide borders
+'   - 896x496 @ 960x540 with medium borders
+'   - 960x540 borderless, fullHD/2 
+'   - 1024x576 borderless
 
+
+
+'  NTSC based 60 Hz/524 total lines: 
+'   - 640x400 @ 896x496 with wide borders
+'   - 880x480 @ 896x496 with narrow borde
+'   - 800x480 borderless
+'   - 896x496 borderless
 
    'streamer sets for text mode, to add to timings[0..5]
 ' todo for the retromachine: 768x576
 
-'                     bf.hs, hs,  bf.vis  visible, lr bord, pixel, ud bord,  up p., vsync, down p., mode, cpl, scanlines,  clock,                  hubset                  total vis lines
-timings000      long   16,   80,    20,    1024,    112,     8,     48,      16,      16,    16,      0,  100,   480,     354693878,   %1_110000__11_0110_1100__1111_1011,   576
-'timings064      long   18,   48,    16,     944,     24,     8,     24,      24,      32,    24,     64,  112,   496,     319215686,   %1_110010__11_0010_1101__1111_1011,   544'
-'timings064      long   8,   50,    8 ,    960,     32,     8,      22,       24,      36,    24,     64,  112,   496,     319215686,   %1_110010__11_0010_1101__1111_1011,   540
-'timings064      long   48,   80,    52 ,    960,     32,     8,      22,       24,      36,    24,     64,  112,   496,     354693878,   %1_111111__11_1000_1011__1111_1011,   540
-'timings064      long   48,   80,    52 ,    960,     32,     8,      22,       24,      36,    24,     64,  112,   496,     354693878,   %1_110000__11_0110_1100__1111_1011,   540
-'timings064      long   48,   80,    52 ,    960,     32,     8,      22,       24,      36,    24,     64,  112,   496,     354693878,   %1_000001__00_0010_0010__1111_1011,   540
-timings064      long   24,   80,   16 ,    960,     32,     8,      22,       24,      36,    24,     64,  112,   496,     336956522,   %1_101101__11_0000_0110__1111_1011,   540 '960x540 @ 336 MHz
-'timings064      long   8,   60,  32 ,    1024,    0,     8,      22,      16,      16,    16,     64,  128,   400,     336956522,   %1_101101__11_0000_0110__1111_1011,   576   '1024x576 @ 336 MHz borderless don't work
-'timings064     long  16,   66,    20,    1024,      12,     8,     0,       16,      16,    16,    192,  125,   576,     354693878,   %1_110000__11_0110_1100__1111_1011,   576
-
-'timings064      long   18,   48,    16,     944,     24,     8,     24,      24,      32,    24,     64,  112,   496,     320000000,   %1_0000_00__00_0000_1111__1111_1011,   544
-timings128      long   16,   64,    16,     816,      8,     8,     8,       32,      64,    32,    128,  100,   480,     283750000,   %1_111111__11_1000_1011__1111_1011,   496
-timings192      long   16,   66,    20,    1024,      0,     8,     0,       16,      16,    16,    192,  128,   576,     354693878,   %1_110000__11_0110_1100__1111_1011,   576
-timings256      long   80,  160,    84,     816,      8,     8,     8,        8,      12,     8,    256,  100,   480,     357959184,   %1_110000__11_0110_0100__1111_1011,   496
-timings320      long   80,   50,    80,     816,      8,     8,     8,        8,      12,     8,    320,  100,   480,     322162162,   %1_100100__10_0101_0011__1111_1011,   496
-timings384      long   24,   48,    24,     816,      8,     8,     8,        8,      12,     8,    384,  100,   480,     286363636,   %1_010101__01_0011_1010__1111_1011,   496
-timings448      long   32,   64,    34,     896,      0,     8,     0,        8,      12,     8,    448,  112,   496,     322162162,   %1_100100__10_0101_0011__1111_1011,   496
-'timings999      long    0,    0,     0,       0,      0,     0,     0,        0,       0,     0,      0,    0,     0,             0,                                    0,     0
+'                      bf.hs, hs,  bf.vis  visible, lr bord, pixel, ud bord,  up p., vsync, down p., mode, cpl, scanlines, clock,       hubset                                total vis lines
+timings000      long   24,    80,  16,      960,    80,      8,     30,       24,    36,    24,        0,  100, 480,       336956522,   %1_101101__11_0000_0110__1111_1011,   540 
+timings064      long   24,    80,  16,      960,    32,      8,     22,       24,    36,    24,       64,  112, 496,       336956522,   %1_101101__11_0000_0110__1111_1011,   540  '960x540 @ 336 MHz
+timings128      long   24,    80,  16,      960,     0,      8,      0,       24,    36,    24,      128,  120, 540,       336956522,   %1_101101__11_0000_0110__1111_1011,   540   
+timings192      long   24,    76,   8,     1024,     0,      8,      0,        4,    8,     8,      192,  128, 576,       336956522,   %1_101101__11_0000_0110__1111_1011,   576  ' 104x610
+timings256      long   56,   80,   50,      896,   128,      8,     48,        8,    12,     8,      256,   80, 400,       340000000,   %1_000011__00_0100_0011__1111_1011,   496
+timings320      long   66,  160,   68,      896,    48,      8,      8,        8,    12,     8,      320,  100, 480,       340000000,   %1_000011__00_0100_0011__1111_1011,   496  
+timings384      long   120, 160,  130,      800,     0,      8,      0,       12,    20,    12,      384,  100, 480,       340000000,   %1_000011__00_0100_0011__1111_1011,   480
+timings448      long   66,   160,  68,      896,     0,      8,      0,        8,    12,     8,      448,  112, 496,       340000000,   %1_000011__00_0100_0011__1111_1011,   496
+'timings999      long    0,    0,     0,       0,      0,     0,     0,        0,       0,     0,      0,    0,     0,             0,                                    0,     0 1190
 vgacolors       byte   0, 117, 199, 151, 39, 71, 246, 10, 5, 121, 203, 155, 43, 75, 234, 15
 
 
