@@ -45,7 +45,7 @@ function startvideo(mode=64, pin=0, mb=0) 'todo return a cog#
 dim videocog as ulong
 videocog=v.start(mode,pin,mbox)
 v.setbordercolor(0,0,0)
-for thecog=0 to 7:psram.setQos(thecog, 192 << 16) :next thecog
+for thecog=0 to 7:psram.setQos(thecog, 112 << 16) :next thecog
 psram.setQoS(videocog, $7FFFf400) 
 open SendRecvDevice(@v.putchar, nil, nil) as #0
 return videocog
