@@ -6,7 +6,7 @@
 '-------------------------------------------------------------------
 con
 
-_clkfreq = 354693878  ' This is 100x Amiga PAL 3546895, 360 x SID (PAL) 
+'_clkfreq = 354693878  ' This is 100x Amiga PAL 3546895, 360 x SID (PAL) 
 
 
 left= 14
@@ -33,7 +33,7 @@ var
 'channel+26 word skip
 'channel+28 long reserved
 '
-
+long mailboxaddr
 long channel1[8]
 long channel2[8]
 long channel3[8]
@@ -48,8 +48,10 @@ long channel8[8]
 '---------- Init the variables, start the cog. ----------------
 '--------------------------------------------------------------
 
-pub start() :cog,base | iii
+pub start(mbox) :cog,base | iii
 
+
+mailboxaddr:=mbox 
 base:=@channel1[0]
 
 repeat iii from 0 to 7
@@ -63,7 +65,7 @@ repeat iii from 0 to 7
   word[base+32*iii+26]:=2
   long [base+32*iii+8]:=@null | $C0000000
   
-cog:=coginit(16,@audio,@channel1)
+cog:=coginit(16,@audio,@mailboxaddr)
 waitms(100)
 return cog,base
 
@@ -74,6 +76,14 @@ return cog,base
 dat
 
 audio       org     0
+
+            rdlong  mailbox2, ptra++     ' get start address of all mailboxes
+
+            cogid   pa                  ' compute cogid
+            mul     pa, #12             ' and mailbox spacing
+            add     mailbox2, pa         ' add offset to find this COG's mailbox
+            mov mailbox,mailbox2
+
             mov     ptrb,#0             ' A tail pointer for the buffer
             wrpin   dac,#left           ' Noise dither DACs at clk/100
             wxpin   #95,#left       
@@ -138,7 +148,12 @@ p401        mov     channeladd,cn             ' compute the pointer to channel p
             'wxpin qq,#righ
             
             
-p404            getword oldls,sample0,#0          ' extract old sample value
+p404       testb command0,#30 wz
+    if_nz   mov mailbox,mailbox2
+    if_z  mov mailbox,#0   
+
+
+             getword oldls,sample0,#0          ' extract old sample value
             getword oldrs,sample0,#1
      	    getword apan0,volpan0,#1          ' extract vol,pan,skip and freq from longs 
     	    getword avol0,volpan0,#0
@@ -159,13 +174,32 @@ p404            getword oldls,sample0,#0          ' extract old sample value
             mov     qq,pointer0               ' compute place in the hub memory from where the sample will be loaded
             add     qq,sstart0
 
-            testb   sstart0,#31 wz            ' if bit #31 set, this is 16 bit sample, else it is 8 bit
+'            alts    cn,#spl1
+'            mov     spl0,  0-0
 
-    if_nz   rdbyte  spl,qq                    ' 8 bit, read and shifr
+            cmps mailbox,#$1FF wcz
+  if_le      jmp #p405
+    
+            setnib  qq, #%1000, #7  ' read word from external memory
+      
+            rep     #2, #1          ' disable interrupts for write burst consistency
+            setq    #2              ' write 3 longs
+            wrlong  qq, mailbox     ' write command request to external mem driver mailbox
+
+poll        setq    #1              ' read 2 longs
+            rdlong  qq, mailbox     ' poll mailbox for result
+            tjs     qq, #poll       ' retry until valid (doesn't handle errors!)
+            testb   sstart0,#31 wz 
+      
+  if_nz      shl     spl, #8         ' align data if 8 bit sample
+             jmp     #p406
+
+p405        testb   sstart0,#31 wz            ' if bit #31 set, this is 16 bit sample, else it is 8 bit
+            rdword  spl,qq                    ' 8 bit, read and shifr
     if_nz   shl     spl,#8
-    if_z    rdword  spl,qq                    ' 16 bit, only read
 
-            scas    spl,avol0                 ' apply volume
+
+p406        scas    spl,avol0                 ' apply volume
             mov     spl,0-0
  
             scas    spl,apan0                 ' apply pan
@@ -273,15 +307,28 @@ time6       long 6
 time7       long 7
 time8       long 8
 
+'spl0        long 0    
+'spl1        long 1     
+'spl2        long 2
+'spl3        long 3
+'spl4        long 4
+'spl5        long 5
+'spl6        long 6
+'spl7        long 7
+'spl8        long 8
+
+
 
 channeladd long 0
 
 front       long 0
 
 ' temporary variables 
- 
 qq          long 0
 spl         long 0
+zero        long 0
+mailbox     long 0
+mailbox2 long 0
 
 ' Interrupt ISR variables
 

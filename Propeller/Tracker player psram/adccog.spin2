@@ -1,0 +1,112 @@
+' ADC driver for a robot
+' v.0.02 - 20220110
+' pik33@o2.pl
+' MIT License
+
+
+var
+long aresult
+long adcpina
+long agnd
+long avcc
+long bresult
+long adcpinb
+long bgnd
+long bvcc
+
+
+
+pub start(apin,bpin) :cog    |iii, m, n
+
+adcpina:=apin
+adcpinb:=bpin
+cog:=coginit(16,@mixer,@aresult)
+waitms(100)
+return cog
+
+pub measure() :vx,vy  
+
+
+return 33000*(aresult-agnd)/(avcc-agnd), 33000*(bresult-bgnd)/(bvcc-bgnd)
+
+
+
+DAT
+              org
+mixer         setq #7
+              rdlong aaresult,ptra
+              
+              fltl   aapin
+              wrpin  adc_config1, aapin 
+              wxpin  #%00_1101, aapin
+              dirh   aapin
+              
+              fltl   abpin
+              wrpin  adc_config1, abpin 
+              wxpin  #%00_1101, abpin
+              dirh   abpin
+              
+              mov    x, #%001<<6
+              add    x,aapin
+              setse1 x
+	
+loop          waitse1
+              rdpin x,aapin
+              rdpin x,abpin
+              waitse1
+              rdpin x,aapin
+              rdpin x,abpin   
+              waitse1
+              rdpin gnda,aapin
+              rdpin gndb,abpin 
+              
+              wrpin adc_config2, aapin
+              wrpin adc_config2, abpin
+              
+              waitse1
+              rdpin x,aapin
+              rdpin x,abpin
+              
+              waitse1
+              rdpin x,aapin  
+              rdpin x,abpin 
+              waitse1
+              rdpin vcca,aapin  
+              rdpin vccb,abpin
+              
+              wrpin adc_config3, aapin
+              wrpin adc_config3, abpin
+              
+              waitse1
+              rdpin x,aapin
+              rdpin x,abpin
+              waitse1
+              rdpin x,aapin 
+              rdpin x,abpin 
+                
+              waitse1
+              rdpin aaresult,aapin  
+              rdpin abresult,abpin  
+              
+              wrpin adc_config1, aapin 
+              wrpin adc_config1, abpin 
+              setq #7
+              wrlong aaresult,ptra
+
+              jmp     #loop          'loop
+
+
+adc_config1      long    %0000_0000_000_100000_0000000_00_11000_0 ' 100000 gnd
+adc_config2      long    %0000_0000_000_100001_0000000_00_11000_0 ' 100001 3v3
+adc_config3      long    %0000_0000_000_100011_0000000_00_11000_0 ' 100011 pin
+
+x                long    0
+
+aaresult long 0
+aapin long 0
+gnda long 0
+vcca long 0
+abresult long 0
+abpin long 0
+gndb long 0
+vccb long 0

@@ -1,7 +1,7 @@
 '********************************************************************************************
-' Nostalgic displaylisted HDMI for P2 Retromachine
-' Version 0.39 alpha -20220312
-' 1 cog,text and graphics with or without border, 8x16 selectable and redefinable font
+' Displaylisted HDMI for P2 Retromachine
+' Version 0.01 alpha -20220312
+' 1 cog, graphics with or without border
 ' The P2 Retromachine version with PSRAM enabled
 ' (c) 2012-2021 Piotr Kardasz pik33@o2.pl
 ' MIT license
@@ -63,15 +63,16 @@
 ' The DL command list
 
 '' - display a blank line   %rrrr_rrrr_rrrr_rrrr_rrrr_rrrr_rrrr_rr00    display a blank line with a border color, do not use any framebuffer, r - reserved, unused
-'' - display a text line    %aaaa_aaaa_aaaa_aaaa_aazz_nnnn_llll_ll_01   a-framebuffer address for the line, z- horizontal zoom, n-font line, l - text line (for the cursor)
-'' - display a graphic line %aaaa_aaaa_aaaa_aaaa_aazz_rrrr_rrrr_cc_10 - fields as in text, cc - color depth, r - reserved, unused
+'' - display a graphic line %aaaa_aaaa_aaaa_aaaa_aaaa_aaaa_aaaa_zz_10 - fields as in text, cc - color depth, r - reserved, unused
+'' - display a graphic line %aaaa_aaaa_aaaa_aaaa_aaaa_aaaa_aaaa_zz_01 - graphics line from psram
+
 '' Special commands:
 '' - repeat                 %nnnn_nnnn_nnnn_qqqq_mmmm_mmmm_mmmm_0111    repeat the next dl line n times, after q lines add offset m to the address
 '' - reload palette         %mmmm_mmmm_nnnn_nnnn_qqqq_qqqq_qqqq_1011    reload n palette entries from m color from palette_ptr+q --- not yet implemented, TODO
 '' - set border color       %rrrr_rrrr_gggg_gggg_bbbb_bbbb_0001_0011    set border color to rgb
 '' - set border color       %0000_0000_0000_0000_pppp_pppp_0010_0011    set border color to palette entry #p
-'' - set font size          %0000_0000_0000_0000_0000_ssss_0011_0011    ssss - bit for font size, 3=8, 4=16
-'' - set font pointer       %aaaa_aaaa_aaaa_aaaa_aaaa_0000_0100_0011    a - addres for the font definition table
+'' - set font size   //       %0000_0000_0000_0000_0000_ssss_0011_0011    ssss - bit for font size, 3=8, 4=16
+'' - set font pointer ??      %aaaa_aaaa_aaaa_aaaa_aaaa_0000_0100_0011    a - addres for the font definition table
 '' - set live change        %aaaa_aaaa_aaaa_aaaa_nnnn_cccc_cccc_1111    a: 16 bit addr. hibits (look below) added to 18 aligned, default hibits=11; nnnn: new font line, if charmode cccc - cpl to change
 '' - set hscroll            %0000_0000_0000_0000_0000_ssss_0101_0011    ssss - amount (in pixels) to scroll the text mode to the right
 '' - set hi bit for live    %0000_0000_0000_bb00_0000_0000_0110_0011    set 2 high bits of the framebuffer for live change command

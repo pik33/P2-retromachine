@@ -3,7 +3,7 @@
 
 const HEAPSIZE = 8192
 const version$="Prop2play v.0.22"
-const statusline$=" Propeler2 wav/sid/mod player v. 0.21 --- 2022.03.08 --- pik33@o2.pl --- use serial terminal or RPi KBM interface to control --- arrows up,down move - pgup/pgdn or w/s move 10 positions - enter selects - tab switches panels - +,- controls volume - 1..4 switch channels on/off - 5,6 stereo separation - 7,8,9 sample rate - a,d SID speed - R rescans current directory ------"
+const statusline$=" Propeler2 wav/sid/mod player v. 0.22 --- 2022.03.13 --- pik33@o2.pl --- use serial terminal or RPi KBM interface to control --- arrows up,down move - pgup/pgdn or w/s move 10 positions - enter selects - tab switches panels - +,- controls volume - 1..4 switch channels on/off - 5,6 stereo separation - 7,8,9 sample rate - a,d SID speed - R rescans current directory ------"
 const hubset350=%1_000001__00_0010_0010__1111_1011 '350_000_000 =31*44100
 const hubset354=%1_110000__11_0110_1100__1111_1011 '354_693_878
 const hubset356=%1_001010__00_1100_0011__1111_1011 '356_352_000 =29*256*48001,5673491
@@ -265,7 +265,7 @@ do
       do
         get #4,pos,filebuf(0),128,r : pos+=r	
         psram.write(addr(filebuf(0)),mb,128)	
-        position 1,15: print mb					        ' get 128 bytes and update file position
+        position 1,16: print mb					        ' get 128 bytes and update file position
         if mb<addr(mainstack) then for i=0 to r-1 : poke mb+i,filebuf(i) : next i 
         mb+=128 					' move the buffer to the RAM and update RAM position. Todo: this can be done all at once
 

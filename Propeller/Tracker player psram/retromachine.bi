@@ -24,12 +24,12 @@ dim base as ulong
 dim mbox as ulong
 
 sub startpsram
-psram.startx(0, 0, 0, -1)
+psram.startx(0, 0, 12, -1)
 mbox=psram.getMailbox(0)
 end sub
 
 sub startaudio
-audiocog,base=paula.start()
+audiocog,base=paula.start(mbox)
 end sub 
 
 sub stopaudio
@@ -45,8 +45,8 @@ function startvideo(mode=64, pin=0, mb=0) 'todo return a cog#
 dim videocog as ulong
 videocog=v.start(mode,pin,mbox)
 v.setbordercolor(0,0,0)
-for thecog=0 to 7:psram.setQos(thecog, 112 << 16) :next thecog
-psram.setQoS(videocog, $7FFFf400) 
+'for thecog=0 to 7:psram.setQos(thecog, 112 << 16) :next thecog
+'psram.setQoS(videocog, $7FFFf400) 
 open SendRecvDevice(@v.putchar, nil, nil) as #0
 return videocog
 end function
