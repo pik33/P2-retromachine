@@ -174,22 +174,17 @@ p404        testb command0,#30 wz             ' bit #30: select PSRAM/HUB
             testb   sstart0,#31 wz 
     if_z    setnib  qq, #%1001, #7            ' read a word from external memory
     if_nz   setnib  qq, #%1000, #7            ' read a bytefrom external memory
-  '          rep     #2, #1                    ' disable interrupts for write burst consistency
             setq    #2                        ' write 3 longs
             wrlong  qq, mailbox               ' write command request to external mem driver mailbox
-
-poll        setq    #1              ' read 2 longs
-            rdlong  qq, mailbox     ' poll mailbox for result
-            tjs     qq, #poll       ' retry until valid (doesn't handle errors!)
- '           testb   sstart0,#31 wz 
-      
-  if_nz      shl     spl, #8         ' align data if 8 bit sample
-             jmp     #p406
+poll        setq    #1                        ' read 2 longs
+            rdlong  qq, mailbox               ' poll mailbox for result
+            tjs     qq, #poll                 ' retry until valid (doesn't handle errors!)
+    if_nz   shl     spl, #8                   ' align data if 8 bit sample
+            jmp     #p406
 
 p405        testb   sstart0,#31 wz            ' if bit #31 set, this is 16 bit sample, else it is 8 bit
-            rdword  spl,qq                    ' 8 bit, read and shifr
+            rdword  spl,qq                    ' 8 bit, read and shift, 16-bit read saves a nop (and adds a cycle sometimes)
     if_nz   shl     spl,#8
-
 
 p406        scas    spl,avol0                 ' apply volume
             mov     spl,0-0
@@ -217,11 +212,11 @@ p403        setq #1                          ' write new pointer and sample valu
             wrlong  pointer0,ptra
             sub     ptra, channeladd         ' reset the pointer to channel parameters
                       
-            cmp     oldt0,time0 wz           '  If more than 1 sample is computed at the same time, write only the last result
+            cmp     oldt0,time0 wz           ' If more than 1 sample is computed at the same time, write only the last result
     if_z    decmod  front, #511          
          
             getword oldls,ls,#0              ' reuse oldls variable to convert the sample to unsigned
- 	        getword oldrs,rs,#0              ' getword instead of mov makes the upper bits=0
+ 	    getword oldrs,rs,#0              ' getword instead of mov makes the upper bits=0
             bitnot  oldls,#15                ' convert to unsigned. TODO: compute and apply the gain for samples to not exceed 16 bit range
             bitnot  oldrs,#15		     ' warning: no filter here (yet) but before applying any, remember to and sample values with $FFFF and use signed samples 
 	    
@@ -244,11 +239,11 @@ p301        alts    ptrb,#511                ' checking if the buffer is full - 
             incmod  scope,#127 wc
             if_c    mov scptr2,scptr
             if_c    shl scptr2,#2
-            if_c    add scptr2,##$72238             '' todo !!!!!!!!! get rid of this const!!!!
+            if_c    add scptr2,##$72238      '' todo !!!!!!!!! get rid of this const!!!!
             if_c    wrlong oldsample,scptr2
             if_c    incmod scptr,##639
 			    
-            wrlut   oldsample, front         ' if there is a free slot, put the sample into the buffer
+            wrlut   oldsample, front        ' if there is a free slot, put the sample into the buffer
             incmod  front, ##511
             djnz    qq,#p301
             
@@ -298,18 +293,6 @@ time5       long 5
 time6       long 6
 time7       long 7
 time8       long 8
-
-'spl0        long 0    
-'spl1        long 1     
-'spl2        long 2
-'spl3        long 3
-'spl4        long 4
-'spl5        long 5
-'spl6        long 6
-'spl7        long 7
-'spl8        long 8
-
-
 
 channeladd long 0
 

@@ -14,7 +14,7 @@ const _clkfreq = 336956522
 dim v as class using "hng039psram.spin2"
 dim rm as class using "retrocog.spin2"
 dim tracker as class using "trackerplayer.spin2"
-dim paula as class using "audio090-8-sc.spin2"
+dim paula as class using "audio091-8-sc.spin2"
 dim sid as class using "sidcog3.spin2"
 dim psram as class using "psram4.spin2"
 #include "dir.bi"

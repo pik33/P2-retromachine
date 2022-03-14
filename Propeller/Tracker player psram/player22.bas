@@ -220,7 +220,7 @@ do
 
   if (ansibuf(3)=13 orelse ansibuf(3)=141) andalso panel=0 then
     close #7: open currentdir$+"dirlist.txt" for input as #7					' open a directory list file
-    for i=0 to dirnum2 : input #7,filename$ :next i						' read dirnum2 entries - todo: use get instead
+    for  iii=0 to dirnum2 : input #7,filename$ :next iii						' read dirnum2 entries - todo: use get instead
      filename$=rtrim$(filename$)								' delete spaces at the end
      if filename$<>".." then									' if not ".." then change the directory								
        close #7: chdir(currentdir$+filename$) : currentdir$=currentdir$+rtrim$(filename$)+"/"   ' and update currentdir$ as curdir$ function doesn't yet work as expected

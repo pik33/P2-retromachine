@@ -1,3 +1,14 @@
+20220314: the new version 0.91 added
+8 channel only this time, PSRAM and oscilloscope support
+
+long #7 is now command. Used at the channel #0
+ - bit 31 - set sample rate (new sample rate divider for DACs at word #0)
+ - bit 30 - 0 - use PSRAM, 1- use HUB
+
+There are several TODOs. The oscilloscope data pointer is hardcoded at scope_ptr=$72238 (640 longs) and this should be (1) switchable (2) configurable via a command
+A HUB/PSRAM selector should be set at individual channel level and not global.
+
+---------------
 This is a first beta version of Amiga inspired audio driver.
 There are 4 files now, maybe this will reduce to one file and a preprocessor definitions
 These are 8, 16 and 32 channel versions which work at standard Paula speed (PAL version,3.54 MHz)
