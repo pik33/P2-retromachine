@@ -275,7 +275,7 @@ do
       samples=15: if peek(ma+1080)=asc("M") and peek(ma+1082)=asc("K") then samples=31          ' get sample count
       getinfo(ma,samples)									' and information
       hubset(hubset336)										' set the main clock to Paula (PAL) * 100       
-      samplerate=100 : lpoke base+28,$8000_0064: waitms(2): lpoke base+28,0   	   	        ' set the sample rate to standard Paula
+      samplerate=100 : lpoke base+28,$8000_005F: waitms(2): lpoke base+28,0   	   	        ' set the sample rate to standard Paula
       cog=cpu (mainloop, @mainstack) 								' start the playing
       modtime=framenum										' get the current frame # for displaying module time
       v.setwritecolors($ea,$e1)									' yellow
@@ -288,7 +288,7 @@ do
     if dmpplaying=1 then dmpplaying= 0: waitms(20): close #8 : cpustop(scog)                    ' if dmp file is playing, stop it
     if audiocog<1 then startaudio   
     for i=0 to 7 : lpoke base+32*i+20,0 : next i 						' mute the sound
-    samplerate=256 : lpoke base+28,$80000100 : waitms(2) : lpoke base+28,0			' samplerate=clock/256 allows for HQ DAC
+    samplerate=256 : lpoke base+28,$80000100 : waitms(2) : lpoke base+28,$40000000             ' samplerate=clock/256 allows for HQ DAC
     hubset(hubset338)										' main clock=350 MHz, sample rate 1367187.5 Hz=31*44102.8 Hz - Todo: get a sample rate from a header and set it properly     
     filename3$=currentdir$+filename$								' get a filename with the path
     close #8: open filename3$ for input as #8: get #8,1,wavebuf(0),$1000			' open the file and preload the buffer
@@ -322,19 +322,19 @@ do
     if waveplaying=1 then waveplaying= 0: waitms(100): close #8                                   ' if dmp file is playing, stop it
     if audiocog>0 then stopaudio    
    
-    hubset(hubset336)										' main clock=350 MHz, sample rate 1367187.5 Hz=31*44102.8 Hz - Todo: get a sample rate from a header and set it properly     
+    hubset(hubset336)										 
   
 
     filename3$=currentdir$+filename$								' get a filename with the path
     close #8: open filename3$ for input as #8:      		                        	' open the file and preload the buffer
-    close #8: open filename3$ for input as #8: get #8,1,wavebuf(0),250			' open the file and preload the buffer
+    close #8: open filename3$ for input as #8: get #8,1,wavebuf(0),250			        ' open the file and preload the buffer
     needbuf=1: currentbuf=0 :dmppos=251: dmpplaying=1   	
     
     v.setwritecolors($ea,$e1)									' yellow
     position 2,15:v.write(space$(38)): filename3$=right$(filename3$,38) 		 	' clear the place for a file name
     position 2,15: v.write(filename3$)	
 					        ' display the 'now playing' filename 
-    siddelay=354_693_878/50 : sidfreq=50 :sidtime=0
+    siddelay=336956522/50 : sidfreq=50 :sidtime=0
     scog=sid.start()
     scog2=cpu(sidloop,@mainstack)
     waitms(100)

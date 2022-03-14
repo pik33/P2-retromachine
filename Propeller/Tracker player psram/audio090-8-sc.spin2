@@ -1,5 +1,5 @@
 ' A Paula inspired sample based synthesizer/audio driver for a P2
-' v. 0.90 beta - 20220131
+' v. 0.91 beta - 20220314
 ' MIT license
 ' Piotr Kardasz pik33@o2.pl with the help from P2 forum community :) 
 ' 8 channel version
@@ -50,7 +50,6 @@ long channel8[8]
 
 pub start(mbox) :cog,base | iii
 
-
 mailboxaddr:=mbox 
 base:=@channel1[0]
 
@@ -79,20 +78,20 @@ audio       org     0
 
             rdlong  mailbox2, ptra++     ' get start address of all mailboxes
 
-            cogid   pa                  ' compute cogid
-            mul     pa, #12             ' and mailbox spacing
+            cogid   pa                   ' compute cogid
+            mul     pa, #12              ' and mailbox spacing
             add     mailbox2, pa         ' add offset to find this COG's mailbox
-            mov mailbox,mailbox2
+            mov     mailbox,mailbox2     ' we need 2 copies of this to ensble switching between hub and psram
 
-            mov     ptrb,#0             ' A tail pointer for the buffer
-            wrpin   dac,#left           ' Noise dither DACs at clk/100
+            mov     ptrb,#0              ' A tail pointer for the buffer
+            wrpin   dac,#left            ' Noise dither DACs at clk/100
             wxpin   #95,#left       
             wrpin   dac,#right
             wxpin   #95,#right    
             dirh    #left addpins 1
-            setse1  #%001<<6 + left     ' Set the event - DAC empty
-            mov     ijmp1,#isr1         ' Init the interrupt
-            setint1 #4                  ' Interrupt from DAC empty event
+            setse1  #%001<<6 + left      ' Set the event - DAC empty
+            mov     ijmp1,#isr1          ' Init the interrupt
+            setint1 #4                   ' Interrupt from DAC empty event
             
 '---------------------------------------------------------------------------------        
 '----------------- The main loop -------------------------------------------------
