@@ -1260,26 +1260,22 @@ p301            cmp     rcnt,#0 wz			   ' check the DL repeat counter
     if_nz       sub     dlptr2,#4                          ' repeat. DL pointer was incremented while interpreting, now decrement it as it is repeated
                 mov     dl,rdl                             ' restore repeating DL entry from temporary buffer
                 getnib  t1,dl,#2                           ' fontline, unused in graphmode
-                add     t1,#1                              ' when character mode line repeat, you have to add #1 to the fontline#'
+                add     t1,#1                              ' when character mode line repeat, you have to add #1 to the fontline#
                 incmod  rcnt2a,rcnt2 wcz                   ' address update counter
-                if_nc jmp #p309
-         add     dl,roffset                         ' if it rollovers, add the offset to the data address
-        mov     t1,#0                              ' and reset the font line# - this has no effect for graphic line
-    
-                   getbyte t1,dl,#0
-                  rczr    t1 wcz               
-  if_z_and_nc  add     dl,#4                              ' if text mode, increment text line #  
-    
-p309            setnib  dl,t1,#2                           ' set the fontline in DL command
-
-                
-             mov     rdl,dl                             ' and save the result
+    if_c        add     dl,roffset                         ' if it rollovers, add the offset to the data address
+    if_c        mov     t1,#0                              ' and reset the font line# - this has no effect for graphic line
+                setnib  dl,t1,#2                           ' set the fontline in DL command
+    if_nc       jmp     #p309            
+                mov     t1,dl                              ' if repeating the text mode, textline has to be incremented
+                rczr    t1 wcz                             ' to allow the cursor display at  the proper line							
+    if_nc_and_z add     dl,#4                              ' Now I didn't expect to use 8x8 font and max textline is 63 while 576 pixels gives 72 text lines Todo: reuse font line bit if 8x8                   
+p309            mov     rdl,dl                             ' save the result
                 jmp     #p307                              ' jump over reading new DL line 
 p306            rdlong  dl,dlptr2                          ' read the DL enry
 p307            mov     framebuf2,dl wcz                   ' move this to framebuf2. If normal DL entry, the frame buffer start will be extracted from this
                 rczr    framebuf2 wcz                      ' check if 2 lower bits=11. If yes, this is special command
     if_nz_or_nc jmp     #p303                              ' if not, this is standard DL entry - start to interpret the line at p303 
-
+                      
                 add     dlptr2,#4                          ' move the pointer to the next DL entry    
                 shl     framebuf2,#2                       ' restore the DL entry after rczr, now 2 lower bits are 00 instead of 11
                 getnib  dlc,framebuf2,#0                   ' get a command family from nibble #0
