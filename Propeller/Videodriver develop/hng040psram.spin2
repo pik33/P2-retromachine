@@ -1,6 +1,6 @@
 '********************************************************************************************
 ' Nostalgic displaylisted HDMI for P2 Retromachine
-' Version 0.39 alpha -20220312
+' Version 0.40 alpha -20220315
 ' 1 cog,text and graphics with or without border, 8x16 selectable and redefinable font
 ' The P2 Retromachine version with PSRAM enabled
 ' (c) 2012-2021 Piotr Kardasz pik33@o2.pl
@@ -32,6 +32,9 @@
 '   - 800x480x60 Hz is used in a lot of HDMI LCD 5 or 7 inch screens
 
 ' The driver allows setting horizontal and vertical zoom (independent) which allows to set graphic resolution as low as 100x60 (8x zoom for 8bbb) or 200x60 at the 1,2 o4 4 bpp 
+' As in text modes the screen has to fit integer number of text lines, the driver will add borders to the top and bottom of the screen if needed
+' (for example: 960x540 fits 33 lines of text - they needs 528 lines - 6 scanlines of up/down borders will be added to make 540 lines total)
+
 
 ' Custom graphic modes
 ' User can set any physically possible graphic mode using a timing table and a display list 

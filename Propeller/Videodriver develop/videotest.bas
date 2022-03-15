@@ -7,19 +7,25 @@ startmachine
 startpsram
 startvideo
 
-v.setmode(196)
-v.cls(154,147)
-v.writeln("1dupakwas")
-v.writeln("2dupakwas")
-print v.s_buf_ptr
-print v.s_font_ptr
-print v.s_lines
-print v.s_cpl
-print v.s_buflen
-for i=1 to 10:print i: next i
-waitms(5000)
-waitms(5000)
-waitms(5000)
+'' text mode testing
+for mainmode=0 to 7
+  for vzoom=0 to 3
+    for hzoom= 0 to 2
+      let mode=64*mainmode+4*vzoom+hzoom
+      v.setmode(mode)
+      v.cls(154,147)
+      print "Mode: "; mode
+  '    v.write("Mode: "): v.write(v.inttostr(mode))
+      print "Fb start: ";v.s_buf_ptr
+      print "Lines: "; v.s_lines
+      print "Cpl: "; v.s_cpl
+      print "Buffer length: ";4*v.s_buflen;
+
+      waitms(2000)
+
+    next hzoom
+  next vzoom
+next mainmode    
 
 do: loop 
 v.setmode(512+0+192+32)
