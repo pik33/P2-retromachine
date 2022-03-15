@@ -73,7 +73,7 @@
 '' - reload palette         %mmmm_mmmm_nnnn_nnnn_qqqq_qqqq_qqqq_1011    reload n palette entries from m color from palette_ptr+q --- not yet implemented, TODO
 '' - set border color       %rrrr_rrrr_gggg_gggg_bbbb_bbbb_0001_0011    set border color to rgb
 '' - set border color       %0000_0000_0000_0000_pppp_pppp_0010_0011    set border color to palette entry #p
-'' - set font size          %0000_0000_0000_0000_0000_ssss_0011_0011    ssss - bit for font size, 3=8, 4=16
+'' - set font size          %aaaa_aaaa_aaaa_aaaa_aaaa_ssss_0011_0011    ssss - bit for font size, 3=8, 4=16
 '' - set font pointer       %aaaa_aaaa_aaaa_aaaa_aaaa_0000_0100_0011    a - addres for the font definition table
 '' - set live change        %aaaa_aaaa_aaaa_aaaa_nnnn_cccc_cccc_1111    a: 16 bit addr. hibits (look below) added to 18 aligned, default hibits=11; nnnn: new font line, if charmode cccc - cpl to change
 '' - set hscroll            %0000_0000_0000_0000_0000_ssss_0101_0011    ssss - amount (in pixels) to scroll the text mode to the right
@@ -1355,33 +1355,36 @@ p391            getnib  dlc,framebuf2,#1                   ' get the subcommand 
 
 p393            cmp     dlc,#%0011 wz                      ' 0011: set the font size -                       %0000_0000_0000_0000_0000_ssss_0011_0011
     if_z        getnib  fontsize,framebuf2,#2		   ' extract the size
-    if_z        jmp     #p301			           ' and go to the next DL entry
-        
-                cmp     dlc,#%0100 wz                      ' 0100: set the font pointer                      %aaaa_aaaa_aaaa_aaaa_aaaa_0000_0100_0011
+    if_z        shr     framebuf,#12     
     if_z        shr     framebuf2,#12                      ' get a pointer form the command
     if_z        mov     fontbuf,framebuf2		   ' and save it  	
-    if_z        jmp     #p301                              ' then go to the next entry
+'    if_z        jmp     #p301			           ' and go to the next DL entry
+        
+'                cmp     dlc,#%0100 wz                      ' 0100: set the font pointer                      %aaaa_aaaa_aaaa_aaaa_aaaa_0000_0100_0011
+'    if_z        shr     framebuf2,#12                      ' get a pointer form the command
+'    if_z        mov     fontbuf,framebuf2		   ' and save it  	
+'    if_z        jmp     #p301                              ' then go to the next entry
         
                 cmp     dlc,#%0101 wz                      ' 0101: set horizontal fine scroll
     if_z        getbyte hscroll2,framebuf2,#1              ' we need 2 vars, hscroll1=24 and hscroll2=16 - no scroll, 
     if_z	mov     hscroll1,hscroll2                  ' 0..15 scroll left
     if_z	add     hscroll1,#8                        ' hscroll1:=hscroll2+8, to not do this in the line display loop
-    if_z        jmp     #p301                              ' go next
+'    if_z        jmp     #p301                              ' go next
         	 
                 cmp     dlc,#%0010 wz		           ' 0010: set the border color from the palette    %0000_0000_0000_0000_pppp_pppp_0010_0011
     if_z        getbyte t1,framebuf2,#1         	   ' get a palette entry #
     if_z        rdlut   border,t1                          ' read a color
-    if_z        jmp     #p301       	                   ' go next
+'    if_z        jmp     #p301       	                   ' go next
 
                 cmp     dlc,#%0001 wz                      ' 0011: set the border color to rgb              %rrrr_rrrr_gggg_gggg_bbbb_bbbb_0001_0011 
     if_z        mov     border,framebuf2                   ' get the color
     if_z        and     border,affffff00       	           ' and clear the lowest byte
-    if_z        jmp     #p301                              ' then goto next
+'    if_z        jmp     #p301                              ' then goto next
         
                 cmp     dlc,#%0110 wz                      ' set hi bits for live change                    %0000_0000_0000_bb00_0000_0000_0110_0011 
     if_z        mov     hibits,framebuf2                   ' get the value
     if_z        and     hibits,affffff00                   ' clear the lowest byte
-    if_z        jmp     #p301        
+'    if_z        jmp     #p301        
                 
                 cmp     dlc,#%1000 wz			   ' 1000 : set simple vertical zoom
     if_z        getbyte rcnt3,framebuf2,#1               
@@ -1847,7 +1850,7 @@ affffff00       long    $FFFFFF00
                
 rcnt3 long 0
 rcnt4 long 0               
-                'fit     496       
+                fit     496       
                 
                       
                 
