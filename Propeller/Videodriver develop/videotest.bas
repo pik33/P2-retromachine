@@ -7,8 +7,23 @@ startmachine
 startpsram
 startvideo
 
-v.setmode(512+0+192+32)
+v.setmode(196)
 v.cls(154,147)
+v.writeln("1dupakwas")
+v.writeln("2dupakwas")
+print v.s_buf_ptr
+print v.s_font_ptr
+print v.s_lines
+print v.s_cpl
+print v.s_buflen
+for i=1 to 10:print i: next i
+waitms(5000)
+waitms(5000)
+waitms(5000)
+
+do: loop 
+v.setmode(512+0+192+32)
+
 
 waitms(5000)
  

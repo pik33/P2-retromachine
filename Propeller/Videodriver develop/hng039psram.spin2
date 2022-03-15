@@ -76,6 +76,7 @@
 '' - set hscroll            %0000_0000_0000_0000_0000_ssss_0101_0011    ssss - amount (in pixels) to scroll the text mode to the right
 '' - set hi bit for live    %0000_0000_0000_bb00_0000_0000_0110_0011    set 2 high bits of the framebuffer for live change command
 '' - switch to PSRAM	    %aaaa_aaaa_aaaa_aaaa_aaaa_bbbb_0111_0011    a=0 read from hub, a<>0 read from PSRAM, (bbbb+1)*128 - HUB buffer size for PSRAM, should be >= than line size in bytes
+'' - set simple vzoom       %0000_0000_0000_0000_zzzz_zzzz_1000_0011    simply repeat every line z times. Can be nested with 0111 repeat command to make zoomed text modes
 
 ''  Line start addresses are 18 bit. They are SHL #2 for HUB giving long aligned adderss or SHL #7 for PSRAM gives 128 aligned address allowing to use full 32 MB of PSRAM for the pixel data
 ''  If the dislay data source is switched to PSRAM and the live change is used, the rest of the line data after the change will be loaded from the hub and not from the PSRAM
@@ -187,6 +188,8 @@ long xzoom, yzoom, azoom
 
 long putpixel         ' putpixel function variables 
 long p1,p2,p4,p8      ' 
+
+long displaylist[8]            ' now 8 longs is sufficient for a DL for simple modes
 
 
 '*************************************************************************
@@ -410,19 +413,39 @@ else
 
 vzoom:=((mode>>2) & 3)
 
-if mode<512 '' text modes
+if mode<512 '' text modes in HUB
+   
+  if vzoom==0
+   
+    if timings[6]>0 'borders
+       displaylist[0]:= timings[6]<<20+%0111                               ' repeat
+       displaylist[1]:=0
+       displaylist[2]:=timings[12]<<20+%1111_0000_0000_0000_0111+4*cpl<<4
+       displaylist[3]:=(buf_ptr+(mode & 3))<<12+%1111_0000_0001            ' for text mode repeat initial fontline has to be set at %1111 
+       displaylist[4]:= timings[6]<<20+%0111                               ' repeat
+       displaylist[5]:=0   
+    else
+       displaylist[0]:=timings[12]<<20+%1111_0000_0000_0000_0111+4*cpl<<4
+       displaylist[1]:=(buf_ptr+(mode & 3))<<12+%1111_0000_0001    
 
-  if timings[6]>0 'borders
-    repeat i from 0 to timings[6]-1 '0 to -1
-      long[dl_ptr+4*i]:=$0
-    repeat i from timings[6]+timings[12] to timings[15]-1
-      long[dl_ptr+4*i]:=$0
-  lpc:=16<<vzoom
-  repeat i from timings[6] to timings[6]+timings[12]-1
-    fontline2:=((i-timings[6])+//lpc)>>vzoom
-    charline:=(i-timings[6])+/lpc
-    bufstart:=buf_ptr+4*((cpl)*charline)+(mode&3)
-    long[dl_ptr+4*i]:=(bufstart<<12)+(fontline2<<8)+(charline<<2)+1
+     
+  else
+    vzoom:=1<<vzoom
+    if timings[6]>0 'borders
+       displaylist[0]:=%0000_0000_0000_0000_0000_0000_1000_0011 + ((vzoom-1)<<8)
+       displaylist[1]:= timings[6]<<20+%0111                               ' repeat
+       displaylist[2]:=0
+       displaylist[3]:=timings[12]<<20+%1111_0000_0000_0000_0111+4*cpl<<4
+       displaylist[4]:=(buf_ptr+(mode & 3))<<12+%1111_0000_0001            ' for text mode repeat initial fontline has to be set at %1111 
+       displaylist[5]:= timings[6]<<20+%0111                               ' repeat
+       displaylist[6]:=0   
+    else
+       displaylist[0]:=%0000_0000_0000_0000_0000_0000_1000_0011 + ((vzoom-1)<<8)
+       displaylist[1]:=timings[12]<<20+%1111_0000_0000_0000_0111+4*cpl<<4
+       displaylist[2]:=(buf_ptr+(mode & 3))<<12+%1111_0000_0001    
+     
+  dl_ptr:=@displaylist[0]    
+
 
 if (mode>=512)' and (mode & (%10_00_00_0000))==(%10_00_00_0000) ' graphics -> all modes TODO :mode 560+192=752 = 10_11_11_0000 impossib,e because out of memory
 
@@ -1256,6 +1279,11 @@ p101            setq    #9				   ' read variables
                 
 p301            cmp     rcnt,#0 wz			   ' check the DL repeat counter 				
     if_z        jmp     #p306                              ' no repeat, goto read and interpret the next DL entry
+    
+                incmod  rcnt4,rcnt3 wcz
+    if_nc       sub     dlptr2,#4 
+    if_nc       jmp #p307
+        
                 sub     rcnt,#1 wz                         ' decrement the repeat counter
     if_nz       sub     dlptr2,#4                          ' repeat. DL pointer was incremented while interpreting, now decrement it as it is repeated
                 mov     dl,rdl                             ' restore repeating DL entry from temporary buffer
@@ -1339,7 +1367,11 @@ p393            cmp     dlc,#%0011 wz                      ' 0011: set the font 
                 cmp     dlc,#%0110 wz                      ' set hi bits for live change                    %0000_0000_0000_bb00_0000_0000_0110_0011 
     if_z        mov     hibits,framebuf2                   ' get the value
     if_z        and     hibits,affffff00                   ' clear the lowest byte
-            
+    if_z        jmp     #p301        
+                
+                cmp     dlc,#%1000 wz			   ' 1000 : set simple vertical zoom
+    if_z        getbyte rcnt3,framebuf2,#1               
+ 
                 jmp #p301                                  ' the end of known subcommands 
 
 '' -------- repeat -  %nnnn_nnnn_nnnn_qqqq_mmmm_mmmm_mmmm_0111 
@@ -1798,7 +1830,12 @@ hscroll2        long    16
 hibits          long    %1100_0000_0000_0000_0000
 affffffff       long    $ffffffff
 affffff00       long    $FFFFFF00
-                fit     496             
+               
+rcnt3 long 0
+rcnt4 long 0               
+                'fit     496       
+                
+                      
                 
 '' 11longs left now    '
 
