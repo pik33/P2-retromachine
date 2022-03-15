@@ -1,6 +1,6 @@
 '********************************************************************************************
 ' Nostalgic displaylisted HDMI for P2 Retromachine
-' Version 0.38 alpha -20220309
+' Version 0.39 alpha -20220312
 ' 1 cog,text and graphics with or without border, 8x16 selectable and redefinable font
 ' The P2 Retromachine version with PSRAM enabled
 ' (c) 2012-2021 Piotr Kardasz pik33@o2.pl
@@ -201,10 +201,202 @@ pub dummy()
 
 '*************************************************************************
 '                                                                        *
-'  Graphic primitives                                                    *
+'Start the driver with graphics mode 'mode' at pins 'base'               *
 '                                                                        *
 '*************************************************************************
 
+pub start(mode,base,mb):result
+
+'' mode number: :  %p_tn_bb_cc_vv_hh
+
+'' p - 1 - psram, 0 - hub
+'' t - 1 - graphics, 0 - text
+'' n - 1 - 60 Hz,  0 - 50 Hz 
+'' hh - h.zoom, vv-v.zoom, cc-color depth if graphic, unused in text,
+'' bb - borders, 00-wide, 01 medium, 10 no border, 11 no border, extended resolution (1024x576/896x496)
+
+'' base: base pin of HDMI
+'' mb: mailbox for PSRAM, 0 if no PSRAM
+
+'--------------------------- initialize pointers and variables
+
+border_ptr:=@bordercolor
+font_ptr:=@st_font
+hdmibase:=base
+mailbox_ptr:=mb
+p1:=@putpixel1
+p2:=@putpixel2
+p4:=@putpixel4
+p8:=@putpixel8
+
+'---------------------------- the mode has to be set here to enable computing the buffer length
+
+setmode(mode)
+vblank_ptr:=@vblank
+cursor_ptr:=@cursor_x
+fontnum_ptr:=@fontnum
+fontnum:=0  ' PC type font ' TODO: font# in buffer byte #1
+bytemove(@colors,@vgacolors,16)
+
+'---------------------------- initialize a cursor (MSDOS type)
+
+cursor_x:=0
+cursor_y:=0
+cursor_sh:=14
+
+'---------------------------- start the cog
+
+cog:=coginit(16,@hdmi, @buf_ptr)
+waitms(20)
+return cog
+
+
+'*************************************************************************
+'                                                                        *
+'  Mode setting                                                          *
+'                                                                        *
+'*************************************************************************
+
+
+pub setmode(mode) | i', 'xzoom, yzoom, azoom
+
+if mode==(512+192+48)
+  return 'no RAM
+
+case_fast (mode>>6) & 7 ' timings are the same for graphic and text
+
+    0:  longmove(@timings,@timings000,16)   'PAL 50 Hz signaling 1140x624, active 800x480, 100x30 text, wide border, 2 colors per pixel, 00_00_00_00_00=0, 354_693_878 Hz
+    1:  longmove(@timings,@timings064,16)   'PAL 50 Hz signaling 1026x624, active 880x496, 110x31 text, medium border, 2 colors per pixel 00_01_00_00_00=64, 319_215_686 Hz
+    2:  longmove(@timings,@timings128,16)   'PAL 50 Hz signaling 912x624, active 800x480, 100x30 text, medium border, 2 colors per pixel 00_10_00_00_00=64, 283750000z
+    3:  longmove(@timings,@timings192,16)   'PAL 50 Hz signaling 1140x624, active 1024x576, 128x36 text, borderless, 2 colors per pixel 00_11_00_00_00=6192, 354_693_878 Hz
+    4:  longmove(@timings,@timings256,16)   'NTSC 50 Hz signaling 1140x524, active 800x480, 100x30 text, NO PLACE FOR wide border, 2 colors per pixel, 01_00_00_00_00=256, 357959184 Hz
+    5:  longmove(@timings,@timings320,16)   'NTSC 50 Hz signaling 1026x524, active 800x480, 100x30 text, NO PLACE FOR wide border, 2 colors per pixel, 01_01_00_00_00=320, 322162162 Hz
+    6:  longmove(@timings,@timings384,16)   'NTSC 50 Hz signaling 912x524, active 800x480, 100x30 text, NO PLACE FOR wide border, 2 colors per pixel, 01_10_00_00_00=384, 286363636 Hz
+    7:  longmove(@timings,@timings448,16)   'NTSC 50 Hz signaling 1026x524, active 880x496, 110x31 text, borderless, 2 colors per pixel, 01_11_00_00_00=496, 322162162 Hz
+
+' TODO here: write a settimings function enalbling user defined modes
+
+if (mode & 1023)<512
+  palette_ptr:=@ataripalette                    'text mode, 8-bit palette          
+
+if (mode & (%10_00_11_0000))==(%10_00_11_0000) ' 8bit graphics, 4 pixels per long instead of 8, cpp x2
+  timings[5]:=4
+  timings[11]:=timings[11]<<1
+  putpixel:=p8
+  palette_ptr:=@ataripalette
+
+if (mode & (%10_00_11_0000))==(%10_00_01_0000) ' 2bit graphics, 16 pixels per long instead of 8, cpp /2
+  timings[5]:=16
+  timings[11]:=timings[11]>>1
+  putpixel:=p2
+  palette_ptr:=@fourcolors
+
+if (mode & (%10_00_11_0000))==(%10_00_00_0000) ' 1bit graphics, 32 pixels per long instead of 8, cpp /4
+  timings[5]:=32
+  timings[11]:=timings[11]>>2
+  putpixel:=p1
+  palette_ptr:=@twocolors
+
+if (mode & (%10_00_11_0000))==(%10_00_10_0000) ' 4bit graphics,' 4-bit graphics: do nothing with timings :)
+  putpixel:=p4
+  palette_ptr:=@vga16
+  
+' -----  TODO!!!!!! These timings has to be set via DL in the driver cog and not here. This disables bpp switching via DL !!!!!
+
+repeat i from 0 to 4
+  timings[i]:=timings[i]+hdmibase<<17+ timingsxxt
+timings[5]:=timings[5]+hdmibase<<17
+clkfreq:=timings[13]
+hubset(timings[14])
+waitms(1)
+
+xzoom:=1<<(mode & 3)
+
+if (xzoom==8) && (((mode>>4)&3)<>3)
+  xzoom:=4
+
+yzoom:=1<<((mode>>2) & 3)
+azoom:=xzoom*yzoom
+
+cpl:=timings[11]
+if (mode<512)
+  lines:=(timings[12]>>4)+/yzoom
+  if ((timings[12]>>4)+//yzoom) <>0
+    lines +=1
+
+else
+  lines:=timings[12]/yzoom
+  if cpl//xzoom==0
+    cpl:=cpl/xzoom
+  else
+    cpl:=cpl/xzoom+1
+
+buflen:=(cpl*lines)
+buf_ptr:=$80000-4*buflen
+mode_ptr:=@timings
+graphmode:=mode
+makedl(mode)
+s_buf_ptr:=buf_ptr
+s_font_ptr:=font_ptr
+s_lines:=lines
+s_cpl:=cpl
+s_buflen:=buflen
+
+
+
+'*************************************************************************
+'                                                                        *
+'  Make a display list                                                   *
+'                                                                        *
+'*************************************************************************
+
+'TODO1: use a PSRAM
+'TODO2: use repeat where possible 
+
+pub makedl (mode) |i, fontline2,charline,bufstart,zoom1,vzoom,lpc,hzoom
+
+''--%aaaa_aaaa_aaaa_aaaa_aazz_nnnn_llll_ll_01 - txt
+  '' aaaa_aaaa_aaaa_aaaa_aazz_rrrr_rrrr_cc_10 - graph
+  '' aaaa_aaaa_aaaa-aaaa_aarr_rrrr_rrrr_rr_11 - extended, next long to read
+
+if (mode &256==0)
+  dl_ptr:=buf_ptr-4*576
+else
+  dl_ptr:=buf_ptr-4*496
+
+vzoom:=((mode>>2) & 3)
+
+if mode<512 '' text modes
+
+  if timings[6]>0 'borders
+    repeat i from 0 to timings[6]-1 '0 to -1
+      long[dl_ptr+4*i]:=$0
+    repeat i from timings[6]+timings[12] to timings[15]-1
+      long[dl_ptr+4*i]:=$0
+  lpc:=16<<vzoom
+  repeat i from timings[6] to timings[6]+timings[12]-1
+    fontline2:=((i-timings[6])+//lpc)>>vzoom
+    charline:=(i-timings[6])+/lpc
+    bufstart:=buf_ptr+4*((cpl)*charline)+(mode&3)
+    long[dl_ptr+4*i]:=(bufstart<<12)+(fontline2<<8)+(charline<<2)+1
+
+if (mode>=512)' and (mode & (%10_00_00_0000))==(%10_00_00_0000) ' graphics -> all modes TODO :mode 560+192=752 = 10_11_11_0000 impossib,e because out of memory
+
+  if timings[6]>0 'borders
+    repeat i from 0 to timings[6]-1 '0 to -1
+      long[dl_ptr+4*i]:=$0
+    repeat i from timings[6]+timings[12] to timings[15]-1
+      long[dl_ptr+4*i]:=$0
+  repeat i from timings[6] to timings[6]+timings[12]-1
+    bufstart:=buf_ptr+4*(cpl*((i-timings[6])>>vzoom))+(mode&3)
+    long[dl_ptr+4*i]:=(bufstart<<12)+2+(mode &48)>>2
+
+
+'*************************************************************************
+'                                                                        *
+'  Graphic primitives                                                    *
+'                                                                        *
+'*************************************************************************
 
 ''---------- putpixel - put a pixel on the screen
 
@@ -460,6 +652,17 @@ repeat iii from 0 to strsize(text)-1
 pub setfontfamily(afontnum)
 
 font_family:=afontnum
+
+''--------- Get a pointer to a font definition
+
+pub getfontaddr(num)
+
+if num==1
+  return @vga_font
+if num==2
+  return @st_font
+if num==3
+  return @a8_font  
 
 ''--------- Redefine a character
 
@@ -892,254 +1095,6 @@ pub setpalette(colors)
 if colors==256 
   palette_ptr:=@ataripalette
 
-'*************************************************************************
-'                                                                        *
-'  Mode setting and driver start                                         *
-'                                                                        *
-'*************************************************************************
-
-''---------  Set the graphics mode
-
-
-
-pub setmode(mode) | i', 'xzoom, yzoom, azoom
-
-'' mode:p_tn_bb_cc_vv_hh
-'' p - 1 - psram, 0 - hub
-'' t - 1 - graphics, 0 - text
-'' n - 1 - 60 Hz 524 line based, 0 - 50 Hz 624 line based
-'' hh - h.zoom, vv-v.zoom, cc-color depth if graphic, unused in text,
-'' bb - borders/total pixels, 00-wide/1140, 01 medium/1026, 10 narrow/912, 11 no border, 1024 px PAL, 880 px NTSC
-
-if mode==(512+192+48)
-  return 'no RAM
-
-case_fast (mode>>6) & 7 ' timings are the same for graphic and text
-
-' - PAL based 50 Hz/624 total lines: 1024x576 or 960x540
-'   - 800x480 @ 1024x576 with wide borders
-'   - 896x496 @ 960x540 with medium borders
-'   - 960x540 borderless, fullHD/2 
-'   - 1024x576 borderless
-
-'  NTSC based 60 Hz/524 total lines: 
-
-'   - 640x400 @ 896x496 with wide borders
-'   - 880x480 @ 896x496 with narrow borde
-'   - 800x480 borderless
-'   - 896x496 borderless
-
-    0:  longmove(@timings,@timings000,16)   'PAL 50 Hz signaling 1140x624, active 800x480, 100x30 text, wide border, 2 colors per pixel, 00_00_00_00_00=0, 354_693_878 Hz
-    1:  longmove(@timings,@timings064,16)   'PAL 50 Hz signaling 1026x624, active 880x496, 110x31 text, medium border, 2 colors per pixel 00_01_00_00_00=64, 319_215_686 Hz
-    2:  longmove(@timings,@timings128,16)   'PAL 50 Hz signaling 912x624, active 800x480, 100x30 text, medium border, 2 colors per pixel 00_10_00_00_00=64, 283750000z
-    3:  longmove(@timings,@timings192,16)   'PAL 50 Hz signaling 1140x624, active 1024x576, 128x36 text, borderless, 2 colors per pixel 00_11_00_00_00=6192, 354_693_878 Hz
-    4:  longmove(@timings,@timings256,16)   'NTSC 50 Hz signaling 1140x524, active 800x480, 100x30 text, NO PLACE FOR wide border, 2 colors per pixel, 01_00_00_00_00=256, 357959184 Hz
-    5:  longmove(@timings,@timings320,16)   'NTSC 50 Hz signaling 1026x524, active 800x480, 100x30 text, NO PLACE FOR wide border, 2 colors per pixel, 01_01_00_00_00=320, 322162162 Hz
-    6:  longmove(@timings,@timings384,16)   'NTSC 50 Hz signaling 912x524, active 800x480, 100x30 text, NO PLACE FOR wide border, 2 colors per pixel, 01_10_00_00_00=384, 286363636 Hz
-    7:  longmove(@timings,@timings448,16)   'NTSC 50 Hz signaling 1026x524, active 880x496, 110x31 text, borderless, 2 colors per pixel, 01_11_00_00_00=496, 322162162 Hz
-
-' 4-bit graphics: do nothing with timings :)
-if mode<512
-  palette_ptr:=@ataripalette
-
-if (mode & (%10_00_11_0000))==(%10_00_11_0000) ' 8bit graphics, 4 pixels per long instead of 8, cpp x2
-  timings[5]:=4
-  timings[11]:=timings[11]<<1
-  putpixel:=p8
-  palette_ptr:=@ataripalette
-
-if (mode & (%10_00_11_0000))==(%10_00_01_0000) ' 2bit graphics, 16 pixels per long instead of 8, cpp /2
-  timings[5]:=16
-  timings[11]:=timings[11]>>1
-  putpixel:=p2
-  palette_ptr:=@fourcolors
-
-if (mode & (%10_00_11_0000))==(%10_00_00_0000) ' 1bit graphics, 32 pixels per long instead of 8, cpp /4
-  timings[5]:=32
-  timings[11]:=timings[11]>>2
-  putpixel:=p1
-  palette_ptr:=@twocolors
-
-if (mode & (%10_00_11_0000))==(%10_00_10_0000) ' 4bit graphics,
-  putpixel:=p4
-  palette_ptr:=@vga16
-
-repeat i from 0 to 4
-  timings[i]:=timings[i]+hdmibase<<17+ timingsxxt
-timings[5]:=timings[5]+hdmibase<<17
-clkfreq:=timings[13]
-hubset(timings[14])
-waitms(1)
-
-
-xzoom:=1<<(mode & 3)
-
-if (xzoom==8) && (((mode>>4)&3)<>3)
-  xzoom:=4
-
-yzoom:=1<<((mode>>2) & 3)
-azoom:=xzoom*yzoom
-
-cpl:=timings[11]
-if (mode<512)
-  lines:=(timings[12]>>4)+/yzoom
-  if ((timings[12]>>4)+//yzoom) <>0
-    lines +=1
-
-else
-  lines:=timings[12]/yzoom
-  if cpl//xzoom==0
-    cpl:=cpl/xzoom
-  else
-    cpl:=cpl/xzoom+1
-
-buflen:=(cpl*lines)
-buf_ptr:=$80000-4*buflen
-mode_ptr:=@timings
-graphmode:=mode
-makedl(mode)
-s_buf_ptr:=buf_ptr
-s_font_ptr:=font_ptr
-s_lines:=lines
-s_cpl:=cpl
-s_buflen:=buflen
-
-
-
-'---------- Make a display list
-
-pub makedl (mode) |i, fontline2,charline,bufstart,zoom1,vzoom,lpc,hzoom
-
-''--%aaaa_aaaa_aaaa_aaaa_aazz_nnnn_llll_ll_01 - txt
-  '' aaaa_aaaa_aaaa_aaaa_aazz_rrrr_rrrr_cc_10 - graph
-  '' aaaa_aaaa_aaaa-aaaa_aarr_rrrr_rrrr_rr_11 - extended, next long to read
-
-'   0 - display a up/down border line
-
-'  ' aaaa_aaaa_aaaa_aaaa_aazz_nnnn_llll_ll_01 - text line
-'    aaaa_aaaa_aaaa_aaaa_aa00 - buffer start, has to be aligned, 1 long for char, ff_bb_rr_cc, foreground, background,reserved, charcode
-'    zz - zoom, 00-x1, 01-x2, 10-x4, 11-blank line
-'    nnnn - font line to display, 0..15
-'    llllll - character line, determines the cursor Y position
-
-
-if (mode &256==0)
-  dl_ptr:=buf_ptr-4*576
-else
-  dl_ptr:=buf_ptr-4*496
- ' dl_ptr:=buf_ptr-4*540
-
-vzoom:=((mode>>2) & 3)
-
-
-if mode<512 '' text modes
-
-  if timings[6]>0 'borders
-    repeat i from 0 to timings[6]-1 '0 to -1
-      long[dl_ptr+4*i]:=$0
-    repeat i from timings[6]+timings[12] to timings[15]-1
-      long[dl_ptr+4*i]:=$0
-  lpc:=16<<vzoom
-  repeat i from timings[6] to timings[6]+timings[12]-1
-    fontline2:=((i-timings[6])+//lpc)>>vzoom
-    charline:=(i-timings[6])+/lpc
-    bufstart:=buf_ptr+4*((cpl)*charline)+(mode&3)
-    long[dl_ptr+4*i]:=(bufstart<<12)+(fontline2<<8)+(charline<<2)+1
-
-
-
-if (mode>=512)' and (mode & (%10_00_00_0000))==(%10_00_00_0000) ' graphics -> all modes TODO :mode 560+192=752 = 10_11_11_0000 impossib,e because out of memory
-
-  if timings[6]>0 'borders
-    repeat i from 0 to timings[6]-1 '0 to -1
-      long[dl_ptr+4*i]:=$0
-    repeat i from timings[6]+timings[12] to timings[15]-1
-      long[dl_ptr+4*i]:=$0
-  repeat i from timings[6] to timings[6]+timings[12]-1
-    bufstart:=buf_ptr+4*(cpl*((i-timings[6])>>vzoom))+(mode&3)
-    long[dl_ptr+4*i]:=(bufstart<<12)+2+(mode &48)>>2
-
-
-pub maketestdl (mode) |i, fontline2,charline,bufstart,zoom1,vzoom,lpc,hzoom
-
-
-
-
-if (mode &256==0)
-  dl_ptr:=buf_ptr-4*576-100
-else
-  dl_ptr:=buf_ptr-4*496-100
-
-vzoom:=((mode>>2) & 3)
-
-if (mode>=512)' and (mode & (%10_00_00_0000))==(%10_00_00_0000) ' graphics -> all modes TODO :mode 560+192=752 = 10_11_11_0000 impossib,e because out of memory
-
-  if timings[6]>0 'borders
-    repeat i from 0 to timings[6]-1 '0 to -1
-      long[dl_ptr+4*i]:=$0
-    repeat i from timings[6] to timings[15]+20
-      long[dl_ptr+4*i]:=$0
-    i:=timings[6]
-      long[dl_ptr+4*i]:=%0001_1110_0000_0000_0011_0010_0000_0111  
-      long[dl_ptr+4*i+4]:=(buf_ptr<<12)+2+(mode &48)>>2
-      
-'--------- Start the driver with graphics mode 'mode' at pins 'base'
-
-pub start(mode,base,mb):result
-
-' initialize pointers and variables
-
-border_ptr:=@bordercolor
-font_ptr:=@st_font
-hdmibase:=base
-mailbox_ptr:=mb
-p1:=@putpixel1
-p2:=@putpixel2
-p4:=@putpixel4
-p8:=@putpixel8
-
-
-' the mode has to be set here to enable computing the buffer length
-
-setmode(mode)
-
-vblank_ptr:=@vblank
-cursor_ptr:=@cursor_x
-
-fontnum_ptr:=@fontnum
-
-fontnum:=0  ' PC type font ' TODO: font# in buffer byte #1
-bytemove(@colors,@vgacolors,16)
-
-' initialize a cursor
-
-cursor_x:=0
-cursor_y:=0
-cursor_sh:=14
-
-
-' start the cog
-
-cog:=coginit(16,@hdmi, @buf_ptr)
-waitms(20)
-
-
-
-' clear the screen and set the colors to green on black
-
-cls(c_green,c_black)
-setbordercolor(0,0,128)
-setwritecolors(c_green,c_black)
-
-return cog
-pub getfontaddr(num)
-
-if num==1
-  return @vga_font
-if num==2
-  return @st_font
-if num==3
-  return @a8_font  
 
 '**********************************************************************************
 '
@@ -1147,7 +1102,7 @@ if num==3
 '
 '**********************************************************************************
 dat
-vga_font      ' long 0 ' file "vgafont.def"
+vga_font       'file "vgafont.def"
 st_font        file "st4font.def"
 a8_font        file "atari8.fnt"
 twocolors      long  $00000000,$FFFFFF00
@@ -1795,11 +1750,10 @@ hscroll1        long    24
 hscroll2        long    16
 hibits          long    %1100_0000_0000_0000_0000
 affffffff       long    $ffffffff
-affffff00       long $FFFFFF00
-                fit     406             
+affffff00       long    $FFFFFF00
+                fit     496             
                 
-               '' 10longs left now    '
-
+'' 11longs left now    '
 
 
 {{

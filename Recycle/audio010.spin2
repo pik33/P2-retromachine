@@ -5,7 +5,7 @@
 '-------------------------------------------------------------------
 con
 
- _clkfreq = 319220550 ' This is 90x Amiga PAL   =3546895, change to NTSC freq if needed
+ '_clkfreq = 319220550 ' This is 90x Amiga PAL   =3546895, change to NTSC freq if needed
 '_clkfreq = 322159050 ' This is 90x Amiga NTSC = 3579545
 
 ' audio pins TODO: make a variable for start() instead of const
@@ -38,6 +38,7 @@ var
 '8 - cmd           - 0 here will reset and keep the phase accumulator at 0. Use before the new sample or to restart the current one if it loops
 
 var
+long mailboxaddr
 long channel1[9]
 long channel2[9]
 long channel3[9]
@@ -53,7 +54,9 @@ long channel8[9]
 '---------- Init the variables, start the cog. ----------------
 '--------------------------------------------------------------
 
-pub start() :cog
+pub start(mbox) :cog
+
+mailboxaddr:=mbox ' save mailbox address
 
 
 channel1[0]:=@null
@@ -138,7 +141,7 @@ channel6[8]:=1
 channel7[8]:=1
 channel8[8]:=1
 
-cog:=coginit(16,@audio,@channel1)
+cog:=coginit(16,@audio,@mailboxaddr)
 return cog
 
 '--------------------------------------------------------------
@@ -149,13 +152,16 @@ dat
 
 audio       org     0
 
+            rdlong  mailbox, ptra++ ' get start address of all mailboxes
+            cogid   pa              ' copute cogid
+            mul     pa, #12         ' and mailbox spacing
+            add     mailbox, pa     ' add offset to find this COG's mailbox
+
             wrpin   dac,#left       ' Noise dither DACs at clk/90
             wxpin   #90,#left
 
             wrpin   dac,#right
             wxpin   #90,#right
-            
-            mov ptrb,#0
 
             dirh    #left addpins 1
 
@@ -175,33 +181,19 @@ loop        setq    #8              ' Read channel regs from the hub
             rdlong  sstart3,ptra++
             setq    #8
             rdlong  sstart4,ptra++
-            setq    #8
-            rdlong  sstart5,ptra++
-            setq    #8
-            rdlong  sstart6,ptra++
-            setq    #8
-            rdlong  sstart7,ptra++
-            setq    #8
-            rdlong  sstart8,ptra++
 
-            sub     ptra,#9*4*8    
+
+            sub     ptra,#9*4*4    
             
             cmp     time1,a1FFFFFFF wc   ' Main counter overflow workaround
      if_nc  cmp     time2,a1FFFFFFF wc   ' before the time is written to the buffer, it is ANDed with $1FFFFFFF  
      if_nc  cmp     time3,a1FFFFFFF wc   ' Also, the interrupt procedure ands the counter  
      if_nc  cmp     time4,a1FFFFFFF wc   ' So, if the counter is >=$20000000, the compare sequence still works  
-     if_nc  cmp     time5,a1FFFFFFF wc   ' and when all counters are >=$20000000, all of them are SUBed at the same time 
-     if_nc  cmp     time6,a1FFFFFFF wc   ' including time0 main counter  
-     if_nc  cmp     time7,a1FFFFFFF wc     
-     if_nc  cmp     time8,a1FFFFFFF wc   ' was 7FFFFFFF - reduced to make debugging easier 
+   ' was 7FFFFFFF - reduced to make debugging easier 
      if_nc  sub     time1,a20000000
      if_nc  sub     time2,a20000000
      if_nc  sub     time3,a20000000
      if_nc  sub     time4,a20000000
-     if_nc  sub     time5,a20000000
-     if_nc  sub     time6,a20000000
-     if_nc  sub     time7,a20000000
-     if_nc  sub     time8,a20000000
      if_nc  sub     time0,a20000000
 
        
@@ -214,19 +206,12 @@ loop        setq    #8              ' Read channel regs from the hub
     if_e    mov     p3,#0
             cmp     acmd4,#0 wz
     if_e    mov     p4,#0
-            cmp     acmd5,#0 wz
-    if_e    mov     p5,#0
-            cmp     acmd6,#0 wz
-    if_e    mov     p6,#0
-            cmp     acmd7,#0 wz
-    if_e    mov     p7,#0
-            cmp     acmd8,#0 wz
-    if_e    mov     p8,#0
+
           
             mov     qq,tail         ' Check if the buffer is full	
             sub     qq,#2
             and     qq,#511
-            cmp     qq,ptrb wcz
+            cmp     qq,front wcz
     if_e    jmp     #loop           ' If the buffer is full, do nothing               
       
             mov     cn,#p201           ' Find the channel to compute
@@ -237,14 +222,7 @@ loop        setq    #8              ' Read channel regs from the hub
     if_c    mov     cn,#p203     
             fle     ct,time4 wcz
     if_c    mov     cn,#p204
-            fle     ct,time5 wcz
-    if_c    mov     cn,#p205 
-            fle     ct,time6 wcz
-    if_c    mov     cn,#p206
-            fle     ct,time7 wcz
-    if_c    mov     cn,#p207
-            fle     ct,time8 wcz
-    if_c    mov     cn,#p208 
+
  
             jmp     cn
    
@@ -253,6 +231,7 @@ loop        setq    #8              ' Read channel regs from the hub
 '----------------------------------------------------------------------------------
 	
 ' ------------  Channel 1
+ 
  
 p201        mov     dt0,time1      ' compute the delta to add to the global time
             sub     dt0,time0
@@ -265,10 +244,7 @@ p201        mov     dt0,time1      ' compute the delta to add to the global time
             mov     qq,p1          ' compute the pointer to the next sample
             add     qq,sstart1
             
-            cmp     type1,#0 wz    ' check the sample type
-    if_nz   rdbyte  spl,qq         ' not zero=8 bit
-    if_nz   shl     spl,#8
-    if_z    rdword  spl,qq         ' zero=16 bit. TODO: more types? signed/unsigned, etc... 
+            callpa  type1, #readsample
 
             scas    spl,vol1       ' apply the volume
             mov     spl,0-0
@@ -281,7 +257,8 @@ p201        mov     dt0,time1      ' compute the delta to add to the global time
             mov     rs1,0-0
             
             jmp     #p101              
-	    	
+        
+
 ' ------------  Channel 2
  
 p202        mov     dt0,time2
@@ -295,10 +272,7 @@ p202        mov     dt0,time2
             mov     qq,p2
             add     qq,sstart2
 
-            cmp     type2,#0 wz
-    if_nz   rdbyte  spl,qq
-    if_nz   shl     spl,#8
-    if_z    rdword  spl,qq
+            callpa  type2, #readsample
 
             scas    spl,vol2
             mov     spl,0-0
@@ -325,10 +299,7 @@ p203        mov     dt0,time3
             mov     qq,p3
             add     qq,sstart3
             
-            cmp     type3,#0 wz
-    if_nz   rdbyte  spl,qq
-    if_nz   shl     spl,#8
-    if_z    rdword  spl,qq
+            callpa  type3, #readsample
 
             scas    spl,vol3
             mov     spl,0-0
@@ -357,10 +328,7 @@ p204        mov     dt0,time4
             mov     qq,p4
             add     qq,sstart4
             
-            cmp     type4,#0 wz
-    if_nz   rdbyte  spl,qq
-    if_nz   shl     spl,#8
-    if_z    rdword  spl,qq
+            callpa  type4, #readsample
 
             scas    spl,vol4
             mov     spl,0-0
@@ -375,136 +343,24 @@ p204        mov     dt0,time4
 
             jmp     #p101
             
-' ------------  Channel 5
- 
-p205        mov     dt0,time5
-            sub     dt0,time0
-            add     time5,freq5  	
-
-	        
-            add     p5,askip5
-            cmp     p5,lend5 wcz
-    if_ge   sub     p5,lend5	        
-    if_ge   add     p5,lstart5       
-            mov     qq,p5
-            add     qq,sstart5
-            
-            cmp     type5,#0 wz
-    if_nz   rdbyte  spl,qq
-    if_nz   shl     spl,#8
-    if_z    rdword  spl,qq
-
-            scas    spl,vol5
-            mov     spl,0-0
-    	
-            scas    spl,apan5
-            mov     ls5,0-0
-            
-            mov     qq,##16384
-            sub     qq,apan5
-            scas    spl,qq
-            mov     rs5,0-0
-
-            jmp     #p101
-  
-' ------------  Channel 6
- 
-p206        mov     dt0,time6
-            sub     dt0,time0
-            add     time6,freq6  	
-
-	        
-            add     p6,askip6
-            cmp     p6,lend6 wcz
-    if_ge   sub     p6,lend6	        
-    if_ge   add     p6,lstart6       
-            mov     qq,p6
-            add     qq,sstart6
-            
-            cmp     type6,#0 wz
-    if_nz   rdbyte  spl,qq
-    if_nz   shl     spl,#8
-    if_z    rdword  spl,qq
-
-            scas    spl,vol6
-            mov     spl,0-0
-    	
-            scas    spl,apan6
-            mov     ls6,0-0
-            
-            mov     qq,##16384
-            sub     qq,apan6
-            scas    spl,qq
-            mov     rs6,0-0
-
-            jmp     #p101
-            
-' ------------  Channel 7
- 
-p207        mov     dt0,time7
-            sub     dt0,time0
-            add     time7,freq7  	
-
-	        
-            add     p7,askip7
-            cmp     p7,lend7 wcz
-    if_ge   sub     p7,lend7	        
-    if_ge   add     p7,lstart7       
-            mov     qq,p7
-            add     qq,sstart7
-            
-            cmp     type7,#0 wz
-    if_nz   rdbyte  spl,qq
-    if_nz   shl     spl,#8
-    if_z    rdword  spl,qq
-
-            scas    spl,vol7
-            mov     spl,0-0
-    	
-            scas    spl,apan7
-            mov     ls7,0-0
-            
-            mov     qq,##16384
-            sub     qq,apan7
-            scas    spl,qq
-            mov     rs7,0-0
-
-            jmp     #p101     
-                   
-' ------------  Channel 8
- 
-p208        mov     dt0,time8
-            sub     dt0,time0
-            add     time8,freq8  	
-
-	        
-            add     p8,askip8
-            cmp     p8,lend8 wcz
-    if_ge   sub     p8,lend8	        
-    if_ge   add     p8,lstart8       
-            mov     qq,p8
-            add     qq,sstart8
-            
-            cmp     type8,#0 wz
-    if_nz   rdbyte  spl,qq
-    if_nz   shl     spl,#8
-    if_z    rdword  spl,qq
-
-            scas    spl,vol8
-            mov     spl,0-0
-    	
-            scas    spl,apan8
-            mov     ls8,0-0
-            
-            mov     qq,##16384
-            sub     qq,apan8
-            scas    spl,qq
-            mov     rs8,0-0
-
-            jmp     #p101            
-            
+          
 '------------------------ Channels end here --------------------       
 
+' read a new sample from external RAM via the mailbox
+readsample
+           ' cmp     pa, #0 wz       ' test for 8 or 16 bit data
+       setnib  qq, #%1000, #7  ' read byte from external memory
+ '   if_z    setnib  qq, #%1001, #7  ' read word from external memory
+            rep     #2, #1          ' disable interrupts for write burst consistency
+            setq    #2              ' write 3 longs
+            wrlong  qq, mailbox     ' write command request to external mem driver mailbox
+poll        setq    #1              ' read 2 longs
+            rdlong  qq, mailbox     ' poll mailbox for result
+            tjs     qq, #poll       ' retry until valid (doesn't handle errors!)
+ _ret_  shl     spl, #8         ' align data if 8 bit sample
+         '   ret     'wcz             ' return to caller
+
+'---------------------------------------------------------------       
 ' Now add all channels and put the sample to the buffer    
 
 
@@ -518,45 +374,29 @@ p101        cmp     oldt0,time0 wz   ' There must not be 2 entries with the same
             add     rs,rs2
             add     rs,rs3
             add     rs,rs4
-            add     rs,rs5
-            add     rs,rs6
-            add     rs,rs7
-            add     rs,rs8
+
             
             add     ls,ls1
             add     ls,ls2
             add     ls,ls3
             add     ls,ls4
-            add     ls,ls5
-            add     ls,ls6
-            add     ls,ls7
-            add     ls,ls8
+
  		
             bitnot  ls,#15            ' convert to unsigned. TODO: compute and apply the gain for samples to not exceed 16 bit range
             bitnot  rs,#15		
 		
             setword rs,ls,#1         ' Pack L and R to one long    		
             wrlut   rs,front         ' and write it to LUT
-            mov     spl,front        ' avoid incrementing front 1 by 1 
-            add     spl,#1           
-
+            add     front,#1         ' Write the sample time
             mov     qq,time0
             and     qq,a1fffffff
-            wrlut   qq,spl
+            wrlut   qq,front
+            wrlong  qq,#$80
 
-            rep     #2, #1 
-            add     front,#2         ' move the front pointer
+            add     front,#1         ' move the front pointer
             and     front,#511       ' and loop at #512
             mov     oldt0,time0      ' update global time
-            add     time0,dt0     
-            
-               
-            wrlong  qq,#$80          'debug
-'               wrlong time1,#$84
-''               wrlong time2,#$88
-'               wrlong time3,#$8c
-'               wrlong time4,#$90
-               
+            add     time0,dt0        
             jmp     #loop            'loop
 
 '-------------------------------------------------------------------------
@@ -578,14 +418,14 @@ isr1        wypin   lsample,#left        '2     The sample has to be outputted e
 		
           	getword rsample,lsnext,#1    '12
           	getword lsample,lsnext,#0    '14
-            cmp     ptrb,front wcz       '16    If the buffer is empty, do nothing 
+            cmp     tail,front wcz       '16    If the buffer is empty, do nothing 
             if_e    reti1                '18/20
 
-            rdlut   lsnext,ptrb          '21    else read the sample and its time from LUT
-            add     ptrb, #1             '23
-            rdlut   irqtime,ptrb         '26    Read the time for this sample
-            add     ptrb,#1              '28    Go to the next entry
-            and     ptrb,#511            '30
+            rdlut   lsnext,tail          '21    else read the sample and its time from LUT
+            add     tail, #1             '23
+            rdlut   irqtime,tail         '26    Read the time for this sample
+            add     tail,#1              '28    Go to the next entry
+            and     tail,#511            '30
             reti1                        '34 
             
          '' 3 nops left    
@@ -618,6 +458,8 @@ p8          long 0
 
 qq          long 0
 spl         long 0
+zero        long 0
+mailbox     long 0
 
 ' circular buffer in LUT
 
@@ -771,6 +613,7 @@ ls8         long 0
 dac         long %10111_00000000_01_00010_0     'random dither, as 90 cycles period needed
 'dac        long %10111_00000000_01_00011_0     'pwm, left here for the future use, if any   
 
+    fit 502
 '-----------------------------------------------------------------------------------------
 '------ PASM driver ends here ------------------------------------------------------------
 '----------------------------------------------------------------------------------------- 

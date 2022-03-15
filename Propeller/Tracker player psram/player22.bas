@@ -44,7 +44,7 @@ dim currentdir$ as string
 dim channelvol(4), channelpan(4) as integer
 dim mainvolume, mainpan as integer
 dim samplerate,wavepos,currentbuf as ulong
-declare wavebuf alias $23000 as ubyte($40000)
+declare wavebuf alias $23000 as ubyte($48000)
 declare filebuf alias $721B8 as ubyte(127)
 'declare wavebuf2 alias $48000 as ubyte($28000)
 dim modplaying,waveplaying,dmpplaying, needbuf,playnext as ubyte
@@ -102,7 +102,7 @@ do
     currentbuf=lpeek(base) shr 12								' get a current playing 4k buffer# from the driver
     if needbuf<>currentbuf then									' if there is a buffer to load
       get #8,wavepos,wavebuf((needbuf) shl 12),$1000,qqq 					' then load it
-      needbuf=(needbuf+1) mod $40  								' we can have any count of 4k buffers, now 2 used
+      needbuf=(needbuf+1) mod $48  								' we can have any count of 4k buffers, now 2 used
       wavepos+=$1000      									' file position
       endif
     if qqq<>$1000 then 										' end of file
@@ -276,6 +276,7 @@ do
       getinfo(ma,samples)									' and information
       hubset(hubset336)										' set the main clock to Paula (PAL) * 100       
       samplerate=100 : lpoke base+28,$8000_005F: waitms(2): lpoke base+28,0   	   	        ' set the sample rate to standard Paula
+      lpoke base+28+32,0 									' switch channel #1 to PSRAM after wav playing
       cog=cpu (mainloop, @mainstack) 								' start the playing
       modtime=framenum										' get the current frame # for displaying module time
       v.setwritecolors($ea,$e1)									' yellow
@@ -295,18 +296,19 @@ do
     needbuf=1: currentbuf=0 :wavepos=$1001 : waveplaying=1   					' init buffering variables
       										                ' now init the driver. Todo: exact synchronization of stereo channels !!!!!
     lpoke base+12,0               								' loop start   
-    lpoke base+16,$3FFFC                                       					' loop end, we will use $50000 bytes as $50 4k buffers
-    dpoke base+20,16384                                                                         ' set volume 
+    lpoke base+16,$48000                                      					' loop end, we will use $50000 bytes as $50 4k buffers
+    dpoke base+20,16384                                                                       ' set volume 
     dpoke base+22,16384                                                              		' set pan
     dpoke base+24,30 					                			' set period
     dpoke base+26, 4    									' set skip, 1 stereo sample=4 bytes
 
-    lpoke base+32+12,0                 								' loop start   
-    lpoke base+32+16,$3FFFC                                        				' loop end
+    lpoke base+32+12,2                 								' loop start   
+    lpoke base+32+16,$48000                                       				' loop end
     dpoke base+32+20,16384                                                                      ' volume
     dpoke base+32+22,0     	                                                                ' pan
     dpoke base+32+24, 30                                                                        ' period
     dpoke base+32+26, 4    									' skip
+    lpoke base+32+28,$4000_0000
     
     lpoke base+8, $23000 or $c0000000  								' sample ptr, 16 bit, restart from 0 
     lpoke base+32+8, $23002 or $c0000000							' sample ptr+2 (=another channel), it is now 44 clocks delayed and the phase is random. Todo: synchronizing command in the driver
@@ -335,6 +337,7 @@ do
     position 2,15: v.write(filename3$)	
 					        ' display the 'now playing' filename 
     siddelay=336956522/50 : sidfreq=50 :sidtime=0
+    for i=0 to 17: sid.regs(i)=0: next i
     scog=sid.start()
     scog2=cpu(sidloop,@mainstack)
     waitms(100)

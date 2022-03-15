@@ -128,44 +128,44 @@ loop1       mov     cn,#0               ' Find the channel to compute
 '----------------------------------------------------------------------------------
 
 
-p401        mov     channeladd,cn             ' compute the pointer to channel parameters block
+p401        mov     channeladd,cn              ' compute the pointer to channel parameters block
             shl     channeladd,#5
             add     ptra,channeladd
 
-            setq    #7                        ' read parameters
+            setq    #7                         ' read parameters
             rdlong  pointer0,ptra
-            testb   command0,#31 wz	      ' bit #31 command - set the DAC sample rate
-    if_nz   jmp     #p404                     ' if not set, proceed
-            getword qq,command0,#0            ' get the new rate
-            wxpin   qq,#left addpins 1        ' and program the pins
-            getbyte qq,qq,#0 		      ' check if the rate is n*256
+            testb   command0,#31 wz	       ' bit #31 command - set the DAC sample rate
+    if_nz   jmp     #p404                      ' if not set, proceed
+            getword qq,command0,#0             ' get the new rate
+            wxpin   qq,#left addpins 1         ' and program the pins
+            getbyte qq,qq,#0 		       ' check if the rate is n*256
             cmp     qq,#0 wz                         
-    if_z    wrpin   dac2,#left addpins 1      ' if yes, set PWM DAC mode
-    if_nz   wrpin   dac,#left addpins 1       ' else set noise DAC mode
+    if_z    wrpin   dac2,#left addpins 1       ' if yes, set PWM DAC mode
+    if_nz   wrpin   dac,#left addpins 1        ' else set noise DAC mode
             
-p404        testb command0,#30 wz             ' bit #30: select PSRAM/HUB
-    if_nz   mov mailbox,mailbox2              ' if not set, use PSRAM
-    if_z    mov mailbox,#0                    ' if set, use HUB : TODO: this can be done at a channel level!
+p404        testb  command0,#30 wz             ' bit #30: select PSRAM/HUB
+    if_nz   mov    mailbox,mailbox2            ' if not set, use PSRAM
+    if_z    mov    mailbox,#0                  ' if set, use HUB : TODO: this can be done at a channel level!
 
-            getword oldls,sample0,#0          ' extract old sample value
+            getword oldls,sample0,#0           ' extract old sample value
             getword oldrs,sample0,#1
-     	    getword apan0,volpan0,#1          ' extract vol,pan,skip and freq from longs 
+     	    getword apan0,volpan0,#1           ' extract vol,pan,skip and freq from longs 
     	    getword avol0,volpan0,#0
             getword askip0,freqskip0,#1    	    
             getword afreq0,freqskip0,#0
 
-            alts    cn, #time1                ' compute the time difference between this and previous sample
+            alts    cn, #time1                 ' compute the time difference between this and previous sample
             mov     dt0,0-0    
             sub     dt0,time0
             
-            altd    cn, #time1                ' add channel period to channel time
+            altd    cn, #time1                 ' add channel period to channel time
             add     0-0,afreq0  	
 
-            add     pointer0,askip0           ' compute the pointer to the next sample       
+            add     pointer0,askip0            ' compute the pointer to the next sample       
             cmp     pointer0,lend0 wcz
-    if_ge   sub     pointer0,lend0	      ' and loop if needed     
+    if_ge   sub     pointer0,lend0	       ' and loop if needed     
     if_ge   add     pointer0,lstart0       
-            mov     qq,pointer0               ' compute place in the memory from where the sample will be loaded
+            mov     qq,pointer0                ' compute place in the memory from where the sample will be loaded
             add     qq,sstart0
 
             cmps mailbox,#$1FF wcz            ' the mailbox has to point somewhere not at the start of HUB RAM

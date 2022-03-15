@@ -143,7 +143,7 @@ p401        mov     channeladd,cn             ' compute the pointer to channel p
     if_z    wrpin   dac2,#left addpins 1      ' if yes, set PWM DAC mode
     if_nz   wrpin   dac,#left addpins 1       ' else set noise DAC mode
             
-p404        testb command0,#30 wz             ' bit #30: select PSRAM/HUB
+p404        bitl command0,#30 wcz             ' bit #30: select PSRAM/HUB
     if_nz   mov mailbox,mailbox2              ' if not set, use PSRAM
     if_z    mov mailbox,#0                    ' if set, use HUB : TODO: this can be done at a channel level!
 

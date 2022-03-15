@@ -52,6 +52,7 @@ long palette_ptr       '256-color palette pointer; bit 31 set: do not read
 long dl_ptr            'display list pointer
 long fontnum_ptr       'offset to font pointer : TODO - remove this, use byte #1 in the buffer
 long hdmibase          'HDMI pin#
+long mailbox_ptr
 
 '----------
 
@@ -114,7 +115,7 @@ long p1,p2,p4,p8
 pub dummy()|i,x,y,ntsc,bbb,ccc,zzx,zzy,amode,x1,x2,y1,y2,r
 '' this is not a main program.
 
-start(512+64+48,hdmi_base)
+start(512+64+48,hdmi_base,0)
 'start(512+256+64+32,hdmi_base)
 
 cls(15,1)
@@ -1097,13 +1098,14 @@ if (mode>=512)' and (mode & (%10_00_00_0000))==(%10_00_00_0000) ' graphics -> al
       
 '--------- Start the driver with graphics mode 'mode' at pins 'base'
 
-pub start(mode,base):result
+pub start(mode,base,mb):result
 
 ' initialize pointers and variables
 
 border_ptr:=@bordercolor
 font_ptr:=@st_font
 hdmibase:=base
+mailbox_ptr:=mb
 p1:=@putpixel1
 p2:=@putpixel2
 p4:=@putpixel4
@@ -1179,7 +1181,8 @@ timings000      long   16,   80,    20,    1024,    112,     8,     48,      16,
 'timings064      long   48,   80,    52 ,    960,     32,     8,      22,       24,      36,    24,     64,  112,   496,     354693878,   %1_111111__11_1000_1011__1111_1011,   540
 'timings064      long   48,   80,    52 ,    960,     32,     8,      22,       24,      36,    24,     64,  112,   496,     354693878,   %1_110000__11_0110_1100__1111_1011,   540
 'timings064      long   48,   80,    52 ,    960,     32,     8,      22,       24,      36,    24,     64,  112,   496,     354693878,   %1_000001__00_0010_0010__1111_1011,   540
-timings064      long   24,   80,   16 ,    960,     32,     8,      22,       24,      36,    24,     64,  112,   496,     336956522,   %1_101101__11_0000_0110__1111_1011,   540
+timings064      long   24,   80,   16 ,    960,     32,     8,      22,       24,      36,    24,     64,  112,   496,     336956522,   %1_101101__11_0000_0110__1111_1011,   540 '960x540 @ 336 MHz
+'timings064      long   8,   48,  8 ,    1024,    64,     8,      22,      16,      16,    16,     64,  112,   496,     336956522,   %1_101101__11_0000_0110__1111_1011,   576   '1024x576 @ 336 MHz
 
 'timings064      long   18,   48,    16,     944,     24,     8,     24,      24,      32,    24,     64,  112,   496,     320000000,   %1_0000_00__00_0000_1111__1111_1011,   544
 timings128      long   16,   64,    16,     816,      8,     8,     8,       32,      64,    32,    128,  100,   480,     283750000,   %1_111111__11_1000_1011__1111_1011,   496
@@ -1200,23 +1203,26 @@ vgacolors       byte   0, 117, 199, 151, 39, 71, 246, 10, 5, 121, 203, 155, 43, 
 
 DAT             org
 
-hdmi            setq    #9
+hdmi            setq    #10
                 rdlong  framebuf,  ptra                    'read pointers
-                wrlong  #aend,#0                           'write driver length to hub#0: DEBUG/demo
+
                 setcmod #$100                              'enable HDMI mode
                 mov     ii,#448                            '7 << 6          
                 add     ii,hbase
                 drvl    ii                                 '#7<<6 + hdmi_base      ' enable HDMI pins
 '               wrpin   #0, ii  '#7<<6 + hdmi_base         'for Adafruit breakout board - full logic as in Pico, the board has 220 Ohm resistors on it
                 wrpin   ##%10110_1111_0111_10_00000_0, ii  '#7<<6 + hdmi_base      ' a '123 ohm BITDAC for Parallax breakout board
-  
                 setxfrq ##$0CCCCCCC+1                      'set streamer freq to 1/10th clk
 
+                rdlong mailbox,ptra[10]
+                cogid   pa              ' copute cogid
+                mul     pa, #12         ' and mailbox spacing
+                add     mailbox, pa     ' add offset to find this COG's mailbox
 
 ''--------  frame rendering main loop  ---------------------------------------------------
 
 p101
-                setq    #10
+                setq    #9
                 rdlong  framebuf,  ptra
                 setq    #15
                 rdlong  m_bs,modeptr                     ' read timings
@@ -1286,8 +1292,14 @@ p307            mov     framebuf2,dl wcz                 'move this to framebuf2
 '' - set live change        %aaaa_aaaa_aaaa_aaaa_nnnn_cccc_cccc_1111    a: 16 bit addr. 00 added to 18 aligned, 2 upper bits=11; nnnn: new font line if charmode cccc cpl to change
 '' - set hscroll            %0000_0000_0000_0000_0000_ssss_0101_0011
 '' - set hi bit for live    %0000_0000_0000_bb00_0000_0000_0110_0011    
+'' - switch to PSRAM	    %aaaa_aaaa_aaaa_aaaa_aaaa_bbbb_0111_0011   m=1 read from psram, m=1 read from hub
 
-'' todo: set horizontal scroll (if needed)
+'' - PSRAM switch
+''   - save addr to buf
+''   - add #1 to nibble #2, shl 6 as transfer amount
+''   - if a=0 then save 0 to buf, switch PSRAM off
+''   - if buf not 0 then get addr from buf, get addr from DL, shl 7, init transfer from PSRAM to buf, 64 shl bbb, display line from buf
+
 
                 add dlptr2,#4                          ' move the pointer to the next DL entry    
                 shl framebuf2,#2                       ' restore the DL entry after rczr, now 2 lower bits are 00
@@ -1317,7 +1329,18 @@ p392	         getword lc_address,framebuf2,#1             ' we have only 16 bits
 ' set parameter
 
 p391             getnib dlc,framebuf2,#1                    ' get subcommand from nibble #1
-                 cmp dlc,#%0011 wz                          ' 0011: set font size
+
+		 cmp dlc,#%0111 wz
+ 	if_nz    jmp #p393
+ 	         mov buf1,framebuf2
+ 	         shr buf1,#12
+ 	         getnib buf2,framebuf2,#2
+ 	         add buf2,#1
+ 	         shl buf2,#6
+ 	         jmp #p301
+ 	
+
+p393             cmp dlc,#%0011 wz                          ' 0011: set font size
 	if_z     getnib fontsize,framebuf2,#2		 
         if_z     jmp #p301
         
@@ -1345,10 +1368,9 @@ p391             getnib dlc,framebuf2,#1                    ' get subcommand fro
                  cmp dlc,#%0110 wz
         if_z     mov hibits,framebuf2         
         if_z     and hibits,##%1111_1111_1111_1111_1111_1111_0000_0000           
-               
-                 jmp #p301    ' not implemented yet
-        
-' repeat
+            
+                 jmp #p301    ' unknown or not implemented yet
+
 
 p390             rdlong rdl,dlptr2                         ' read the next DL entry to repeat
                  getword rcnt,framebuf2,#1                 ' read the repeat count
@@ -1363,10 +1385,23 @@ p390             rdlong rdl,dlptr2                         ' read the next DL en
                  
 ' ----- here starts the normal DL entry interpreter
                  
-p303             shr     framebuf2,#12                     ' read a line start in the framebuffer from copy of DL entry
+p303             cmp buf1,#0 wz
+        if_z     jmp #p305         'use a hub
+                 shr framebuf2,#12
+                 shl framebuf2,#7
+                 mov cmd,framebuf2
+                 setnib  cmd, #%1011, #7  ' read byte from external memory
+                 setq #2
+                 wrlong cmd,mailbox
+                 mov framebuf2,buf1
+                 jmp #p308
+         
+
+
+p305             shr     framebuf2,#12                     ' read a line start in the framebuffer from copy of DL entry
                  shl     framebuf2,#2
 
-                 getnib  t1,dl,#0                          ' 00 - border, 01 text, 10 graphic
+p308             getnib  t1,dl,#0                          ' 00 - border, 01 text, 10 graphic
                  cmp     t1,#0 wz
     if_z         jmp     #borderline
 
@@ -1442,15 +1477,15 @@ p102            getword t1,m_border,#0
           if_z  jmp     #p420                           ' x4
                 cmp     zoom,#1 wz                      ' x2
           if_z  jmp     #p410                           '
-                cmp     zoom,#0 wz                      ' x1 
-          if_z  jmp     #p400                           '
-                jmp     #p430                           ' empty line
-
+ '               cmp     zoom,#0 wz                      ' x1 
+   '       if_z  jmp     #p400                           '
+  '              jmp     #p430                           ' empty line
+ jmp #p400
                    '
  ''---------------------------------------------------------------------------------------------------------
  p400                   cmp cpl2,lc_char wz             ' check if switch needed '5
             
-                        if_nz skipf #%111               ' if not, skip. Make skip instead of if_nz or jmp saves a nop
+                 if_nz  skipf #%111               ' if not, skip. Make skip instead of if_nz or jmp saves a nop
                         sub t2,fontline                 ' switch the fontline
                         add t2,lc_fontline     
                         mov framebuf2,lc_address        ' update the address
@@ -1607,7 +1642,7 @@ p102            getword t1,m_border,#0
  p421                   jmp    #p103
 
 '--------------------------------------------------------------------------------------------------------------
-
+{{
  p430                   rdlong  char,framebuf2          ' read a long char                          '1
                         getbyte backcolor,char,#2       ' byte #2 - background color                '2
                         getbyte charcolor,char,#3       ' byte #3 - foreground color                '3
@@ -1623,7 +1658,7 @@ p102            getword t1,m_border,#0
 
                         djnz   cpl2,#p430
  p431                   jmp    #p103
-
+}}
 ''------------------------------------------------------------------------------------------------------------
 
 
@@ -1870,6 +1905,17 @@ dlptr           long 0
 
 fontnumptr      long     1
 hbase           long     1
+mailbox long 0
+
+cmd long 0
+buf1 long 0
+buf2 long 0
+
+
+
+
+
+
 borderptr2      long     1
 dlptr2 long 1
 dl              long 1
@@ -1906,7 +1952,7 @@ hscroll1 long 24
 hscroll2 long 16
 hibits long %0100_0000_0000_0000_0000
 aend             long 0
-                fit     496                     '
+                fit     496                   '
 
 
 
