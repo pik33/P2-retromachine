@@ -9,9 +9,9 @@ startvideo
 
 'test2
 'waitms(5000)
-v.setmode(1024+192): v.cls(154,147)
-for i=1 to 30:print i: next i: print "aaa";
-do:loop
+v.setmode(1024+ 192): v.cls(154,147)
+for i=1 to 30:print i: next i: v.write("aaa") : v.putchar(97)
+ 
 'makedl
 /'
 let aa=addr(random(0))
@@ -36,7 +36,8 @@ do
         print "Fb start: ";v.s_buf_ptr
         print "Lines: "; v.s_lines
         print "Cpl: "; v.s_cpl
-        print "Buffer length: ";4*v.s_buflen;
+        print "Buffer length: ";4*v.s_buflen
+        print "123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890"
         if mode mod 64 = 0 then waitms(5000)
         waitms(2000)
 
