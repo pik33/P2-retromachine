@@ -86,7 +86,6 @@
  
 ''-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-
 CON
 
 
@@ -172,7 +171,7 @@ long vblank            'vblank signalling
 byte n_string[12]      'string buffer for inttostr and hextostr
 long timings[16]       'graphic mode timings
 long cpl               'char/pixels per line
-long cpl1
+
 long lines             'screen text lines count
 long fontnum           'offset to font
 long streamer[6]       'streamer constants
@@ -186,7 +185,6 @@ long s_buf_ptr
 long s_font_ptr
 long s_lines
 long s_cpl
-long s_cpl1
 long s_buflen
 
 long xzoom, yzoom, azoom
@@ -195,12 +193,6 @@ long putpixel         ' putpixel function variables
 long p1,p2,p4,p8      ' 
 
 long displaylist[10]            ' now 8 longs is sufficient for a DL for simple modes
-
-
-obj
-
-ram  :  "psram4.spin2"
-
 
 
 '*************************************************************************
@@ -333,7 +325,7 @@ yzoom:=1<<((mode>>2) & 3)
 azoom:=xzoom*yzoom
 
 cpl:=timings[11]
-if ((mode&1023)<512)
+if (mode<512)
   lines:=(timings[12]>>4)+/yzoom
 '  if ((timings[12]>>4)+//yzoom) <>0
 '    lines +=1
@@ -342,13 +334,7 @@ if ((mode&1023)<512)
   else
     cpl:=cpl/xzoom+1
 
-  if cpl // 32 == 0 
-    cpl1:=cpl                                                         ' PSRAM address granularity is 128 or 32 if use repeat. To simplify things, use 128
-  if cpl // 32 <> 0 
-    cpl1:=32*((cpl/32)+1)                                             ' 4 bytes per char, so cpl has to be n*32
-    debug(udec(cpl1))
-    
-    
+
 else
   lines:=timings[12]/yzoom
   if cpl//xzoom==0
@@ -356,18 +342,11 @@ else
   else
     cpl:=cpl/xzoom+1
 
-
-
-
-if mode<1024 
-  buflen:=(cpl*lines)
-else
-  buflen:=cpl1*lines
-    
+buflen:=(cpl*lines)
 if mode<1024 
   buf_ptr:=$80000-4*buflen
 else
-  buf_ptr:=$800000-4*buflen ' will be wrapped, todo: get a himem 
+  buf_ptr:=$200000-4*buflen ' will be wrapped, todo: get a himem 
 mode_ptr:=@timings
 graphmode:=mode
 makedl(mode)
@@ -375,7 +354,6 @@ s_buf_ptr:=buf_ptr
 s_font_ptr:=font_ptr
 s_lines:=lines
 s_cpl:=cpl
-s_cpl1:=cpl1
 s_buflen:=buflen
 
 
@@ -445,63 +423,45 @@ vzoom:=((mode>>2) & 3)
 repeat i from 0 to 7
    displaylist[i]:=0 
 if mode<512 '' text modes in HUB
+ {{  
+  if vzoom==0
+   
+    if timings[6]>0 'borders
+       displaylist[0]:= timings[6]<<20+%0111                               ' repeat
+       displaylist[1]:=0
+       displaylist[2]:=timings[12]<<20+%1111_0000_0000_0000_0111+4*cpl<<4
+       displaylist[3]:=(buf_ptr+(mode & 3))<<12+%1111_0000_0001            ' for text mode repeat initial fontline has to be set at %1111 
+       displaylist[4]:= timings[6]<<20+%0111                               ' repeat
+       displaylist[5]:=0   
+    else
+       displaylist[0]:=timings[12]<<20+%1111_0000_0000_0000_0111+4*cpl<<4
+       displaylist[1]:=(buf_ptr+(mode & 3))<<12+%1111_0000_0001    
 
+     
+  else
+}}
   vzoom:=1<<vzoom
   border:=(timings[15]-16*lines*vzoom)/2
 
   if border>0 'borders
-     displaylist[0]:=%0000_0000_0000_0000_0000_0000_1000_0011              		 ' set vzoom to 1
-     displaylist[1]:=border<<20+%0111                                      		 ' repeat border lines
-     displaylist[2]:=0                                                    		 ' border line
-     displaylist[3]:=%0000_0000_0000_0000_0000_0000_1000_0011 + ((vzoom-1)<<8)           ' set vzoom according to the mode
-     displaylist[4]:=timings[12]<<20+%1111_0000_0000_0000_0111+4*cpl<<4                  ' repeat text lines
-     displaylist[5]:=(buf_ptr+(mode & 3))<<12+%1111_0000_0001                            ' for text mode repeat initial fontline has to be set at %1111 
-     displaylist[6]:=%0000_0000_0000_0000_0000_0000_1000_0011                            ' set vzoom to 1
-     displaylist[7]:=border<<20+%0111                                                    ' repeat
-     displaylist[8]:=0                                                                   ' border line
+     displaylist[0]:=%0000_0000_0000_0000_0000_0000_1000_0011 
+     displaylist[1]:=border<<20+%0111                               ' repeat
+     displaylist[2]:=0
+     displaylist[3]:=%0000_0000_0000_0000_0000_0000_1000_0011 + ((vzoom-1)<<8)
+     displaylist[4]:=timings[12]<<20+%1111_0000_0000_0000_0111+4*cpl<<4
+     displaylist[5]:=(buf_ptr+(mode & 3))<<12+%1111_0000_0001            ' for text mode repeat initial fontline has to be set at %1111 
+     displaylist[6]:=%0000_0000_0000_0000_0000_0000_1000_0011  
+     displaylist[7]:=border<<20+%0111                               ' repeat
+     displaylist[8]:=0   
   else
-     displaylist[0]:=%0000_0000_0000_0000_0000_0000_1000_0011 + ((vzoom-1)<<8)           ' set vzoom
-     displaylist[1]:=timings[12]<<20+%1111_0000_0000_0000_0111+4*cpl<<4                  ' set repeat
-     displaylist[2]:=(buf_ptr+(mode & 3))<<12+%1111_0000_0001                            ' text line
+     displaylist[0]:=%0000_0000_0000_0000_0000_0000_1000_0011 + ((vzoom-1)<<8)
+     displaylist[1]:=timings[12]<<20+%1111_0000_0000_0000_0111+4*cpl<<4
+     displaylist[2]:=(buf_ptr+(mode & 3))<<12+%1111_0000_0001    
      
   dl_ptr:=@displaylist[0]    
 
 
-if mode>=1024 && mode<(1024+512) '' text modes in PSRAM
-
-  vzoom:=1<<vzoom
-  border:=(timings[15]-16*lines*vzoom)/2                                          
-
-  
-  if border>0 'borders
-     displaylist[0]:=%0111_0000_0000_0000_0000_0111_0111_0011   			' use the last KB for this. Todo: switch 16 kB lower if debug 
-     displaylist[1]:=%0000_0000_0000_0000_0000_0000_1000_0011                           ' the border
-     displaylist[2]:=border<<20+%0111                                
-     displaylist[3]:=0
-     displaylist[4]:=%0000_0000_0000_0000_0000_0000_1000_0011 + ((vzoom-1)<<8)          ' vzoom
-     displaylist[5]:=timings[12]<<20+%1111_0000_0000_0000_0111+ (cpl1>>3) <<4             
-     displaylist[6]:=((buf_ptr>>5)+(mode & 3))<<12+%1111_0000_0001          
-     displaylist[6]:=((0)+(mode & 3))<<12+%1111_0000_0001          
-     displaylist[7]:=%0000_0000_0000_0000_0000_0000_1000_0011  
-     displaylist[8]:=border<<20+%0111                                  
-     displaylist[9]:=0   
-  else
-
- '   displaylist[0]:= %0111_0000_0000_0000_0000_0111_0111_0011        ' switch to PSRAM
- '   displaylist[1]:= %0010_0100_0000_1111_0000_0001_0000_0111        ' repeat 576 lines, after every line add 32 (will be SHLed by 5) to the address
- '   displaylist[2]:= %0000_0000_0000_0000_0000_0000_0000_0001        ' display a text line starting from 0, 
-
-     displaylist[0]:=%0111_0000_0000_0000_0000_0111_0111_0011   
-     displaylist[1]:=%0000_0000_0000_0000_0000_0000_1000_0011 + ((vzoom-1)<<8)
-     displaylist[2]:=timings[12]<<20+%1111_0000_0000_0000_0111+(cpl1>>3) <<4  
-     displaylist[3]:=((buf_ptr>>5)+(mode & 3))<<12+%1111_0000_0001    
-   
-     
-  dl_ptr:=@displaylist[0]    
-
-
-
-if ((mode && 1023)>=512)' and (mode & (%10_00_00_0000))==(%10_00_00_0000) ' graphics -> all modes TODO :mode 560+192=752 = 10_11_11_0000 impossib,e because out of memory
+if (mode>=512)' and (mode & (%10_00_00_0000))==(%10_00_00_0000) ' graphics -> all modes TODO :mode 560+192=752 = 10_11_11_0000 impossib,e because out of memory
 
   if timings[6]>0 'borders
     repeat i from 0 to timings[6]-1 '0 to -1
@@ -948,16 +908,12 @@ long[palette_ptr+4*c]:=cc
 
 ''---------- Clear the screen, set its foreground/background color
 
-pub cls(fc,bc)   :c,i
+pub cls(fc,bc)   :c
 
-if (graphmode<512)                            ' HUB text
+if (graphmode<512)
   c:=fc<<24+bc<<16+$20
   longfill(s_buf_ptr,c,s_buflen)
-if (graphmode>=1024) && (graphmode<1536)     ' PSRAM text
-  c:=fc<<24+bc<<16+$20
-  ram.fill(s_buf_ptr, c, buflen, 0, 4) 
-
-if (graphmode>=512) && (graphmode<1024)
+else
   if (graphmode & 48) ==48
     c:=bc
   elseif (graphmode & 48) ==32
@@ -1007,7 +963,7 @@ repeat iii from 0 to strsize(text)-1
 
 ''---------- Output a char at the cursor position, move the cursor
 
-pub putchar(achar) | c,x,y,l
+pub putchar(achar) | c,x,y
 
 if achar==10
   crlf()
@@ -1017,13 +973,8 @@ if (achar<>9) && (achar<>10)
   x:=cursor_x
   y:=cursor_y
   c:=write_color<<24+write_background<<16
-  l:=c+achar
-  if (graphmode<1024)
-     long[s_buf_ptr+4*(s_cpl*y+x)]:=c
-  else 
-     ram.fill(s_buf_ptr+4*(s_cpl1*y+x),l,1,0,4 )     
-'  long[s_buf_ptr+4*(s_cpl*y+x)]:=long[s_buf_ptr+4*(s_cpl*y+x)] &$FFFF | c
-'  long[s_buf_ptr+4*(s_cpl*y+x)]:=(long[s_buf_ptr+4*(s_cpl*y+x)] & $FFFFFF00)  |(achar & $000000FF)
+  long[s_buf_ptr+4*(s_cpl*y+x)]:=long[s_buf_ptr+4*(s_cpl*y+x)] &$FFFF | c
+  long[s_buf_ptr+4*(s_cpl*y+x)]:=(long[s_buf_ptr+4*(s_cpl*y+x)] & $FFFFFF00)  |(achar & $000000FF)
   cursor_x+=1
   
 if cursor_x==s_cpl
@@ -1035,19 +986,13 @@ if cursor_x==s_cpl
     
 ''---------- Output a char at the cursor position, move the cursor, don't react for tab or lf
 
-pub putchar2(achar) | c,x,y,l
+pub putchar2(achar) | c,x,y
 
 x:=cursor_x
 y:=cursor_y
 c:=write_color<<24+write_background<<16
-l:=c+achar
-if (graphmode<1024)
-  long[s_buf_ptr+4*(s_cpl*y+x)]:=c
-else 
-  ram.fill(s_buf_ptr+4*(s_cpl1*y+x),l,1,0,4 )     
-
-'long[s_buf_ptr+4*(s_cpl*y+x)]:=long[s_buf_ptr+4*(s_cpl*y+x)] &$FFFF | c
-'long[s_buf_ptr+4*(s_cpl*y+x)]:=(long[s_buf_ptr+4*(s_cpl*y+x)] & $FFFFFF00)  |(achar & $000000FF)
+long[s_buf_ptr+4*(s_cpl*y+x)]:=long[s_buf_ptr+4*(s_cpl*y+x)] &$FFFF | c
+long[s_buf_ptr+4*(s_cpl*y+x)]:=(long[s_buf_ptr+4*(s_cpl*y+x)] & $FFFFFF00)  |(achar & $000000FF)
 cursor_x+=1
 if cursor_x==s_cpl
   cursor_x:=0
@@ -1060,11 +1005,7 @@ if cursor_x==s_cpl
 
 pub write(text) | iii,c,ncx,ncy
 
-repeat iii from 0 to strsize(text)-1
-  putchar2(byte[text+iii])
-  
-
-{{c:=write_color<<24+write_background<<16
+c:=write_color<<24+write_background<<16
 'debug(uhex_long(write_color))
 ncy:=cursor_y
 ncx:=cursor_x+strsize(text)
@@ -1084,7 +1025,7 @@ outtextxy(cursor_x,cursor_y,text)
 
 cursor_x:=ncx
 cursor_y:=ncy
-}}
+
 '--------- Output a string at the cursor position x,y, move the cursor to the next line
 
 pub writeln(text)
@@ -1100,18 +1041,9 @@ if (cursor_y>s_lines-1)
 
 pub scrollup() | i
 
-if (graphmode<1024)
-  longmove(s_buf_ptr,buf_ptr+4*s_cpl,s_buflen-s_cpl)
-  repeat i from s_buflen-s_cpl to s_buflen-1
-     long[s_buf_ptr+4*i]:=(long[s_buf_ptr+4*i] & $FFFF0000) | 32
-else     
-   repeat i from 0 to s_lines-2
-     ram.read1($80000-1024, s_buf_ptr+(i+1)*4*s_cpl1, 4*s_cpl)
-     ram.write($80000-1024, s_buf_ptr+i*4*s_cpl1, 4*s_cpl)
-     
-   
-'   ram.gfxCopyImage(s_buf_ptr, s_cpl1, s_buf_ptr+4*s_cpl1, s_cpl1, 4*s_cpl, s_lines, $80000-1024, 0)
-   ram.fill(s_buf_ptr+4*(s_cpl1*(lines-1)),(write_color<<24+write_background<<16+32),s_cpl,0,4 )      
+longmove(s_buf_ptr,buf_ptr+4*s_cpl,s_buflen-s_cpl)
+repeat i from s_buflen-s_cpl to s_buflen-1
+  long[s_buf_ptr+4*i]:=(long[s_buf_ptr+4*i] & $FFFF0000) | 32
 
 ''----------- Scroll the screen one line down
 
@@ -1426,25 +1358,34 @@ p393            cmp     dlc,#%0011 wz                      ' 0011: set the font 
     if_z        shr     framebuf,#12     
     if_z        shr     framebuf2,#12                      ' get a pointer form the command
     if_z        mov     fontbuf,framebuf2		   ' and save it  	
-                           ' then go to the next entry
+'    if_z        jmp     #p301			           ' and go to the next DL entry
+        
+'                cmp     dlc,#%0100 wz                      ' 0100: set the font pointer                      %aaaa_aaaa_aaaa_aaaa_aaaa_0000_0100_0011
+'    if_z        shr     framebuf2,#12                      ' get a pointer form the command
+'    if_z        mov     fontbuf,framebuf2		   ' and save it  	
+'    if_z        jmp     #p301                              ' then go to the next entry
         
                 cmp     dlc,#%0101 wz                      ' 0101: set horizontal fine scroll
     if_z        getbyte hscroll2,framebuf2,#1              ' we need 2 vars, hscroll1=24 and hscroll2=16 - no scroll, 
     if_z	mov     hscroll1,hscroll2                  ' 0..15 scroll left
     if_z	add     hscroll1,#8                        ' hscroll1:=hscroll2+8, to not do this in the line display loop
+'    if_z        jmp     #p301                              ' go next
         	 
                 cmp     dlc,#%0010 wz		           ' 0010: set the border color from the palette    %0000_0000_0000_0000_pppp_pppp_0010_0011
     if_z        getbyte t1,framebuf2,#1         	   ' get a palette entry #
     if_z        rdlut   border,t1                          ' read a color
+'    if_z        jmp     #p301       	                   ' go next
 
                 cmp     dlc,#%0001 wz                      ' 0011: set the border color to rgb              %rrrr_rrrr_gggg_gggg_bbbb_bbbb_0001_0011 
     if_z        mov     border,framebuf2                   ' get the color
     if_z        and     border,affffff00       	           ' and clear the lowest byte
+'    if_z        jmp     #p301                              ' then goto next
         
                 cmp     dlc,#%0110 wz                      ' set hi bits for live change                    %0000_0000_0000_bb00_0000_0000_0110_0011 
     if_z        mov     hibits,framebuf2                   ' get the value
     if_z        and     hibits,affffff00                   ' clear the lowest byte
-
+'    if_z        jmp     #p301        
+                
                 cmp     dlc,#%1000 wz			   ' 1000 : set simple vertical zoom
     if_z        getbyte rcnt3,framebuf2,#1               
     if_z        mov     rcnt4,#0
@@ -1909,7 +1850,7 @@ affffff00       long    $FFFFFF00
                
 rcnt3 long 0
 rcnt4 long 0               
-                fit     492    
+                fit     496       
                 
                       
                 
