@@ -9,13 +9,9 @@ startvideo
 
 'test2
 'waitms(5000)
-v.setmode (1024+128)
-
-'waitms(5000)
-cls(154,147)
-for i=1 to 100: print i,"dupakwas,koperwas": waitms(100): next i
-waitms(5000)
-
+v.setmode(1024+192): v.cls(154,147)
+for i=1 to 30:print i: next i: print "aaa";
+do:loop
 'makedl
 /'
 let aa=addr(random(0))
@@ -25,11 +21,11 @@ for j=0 to 35
   psram.write(addr(random(0)),j*256,256) 
 next j
 '/
-/' 
+
 
 do
 '' text mode testing
-  for mainmode=16 to 16+7
+  for mainmode=0 to 0+7
     for vzoom=0 to 3
       for hzoom= 0 to 2
         let mode=64*mainmode+4*vzoom+hzoom
