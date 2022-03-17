@@ -336,8 +336,6 @@ if (xzoom==8) && (((mode>>4)&3)<>3)
 yzoom:=1<<((mode>>2) & 3)
 azoom:=xzoom*yzoom
 
-
-
 cpl:=timings[11]
 if (mode && 1023) <512
   lines:=(timings[12]>>4)+/yzoom
