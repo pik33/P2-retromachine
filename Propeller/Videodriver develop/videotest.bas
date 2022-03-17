@@ -6,6 +6,10 @@ dim random(511) as ubyte
 startmachine
 startpsram
 startvideo
+v.setmode(1024)
+v.cls(154,147)
+waitms(5000)
+
 
 do
 '' text mode testing
