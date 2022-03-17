@@ -7,6 +7,27 @@ startmachine
 startpsram
 startvideo
 
+
+v.setmode(1025)
+v.cls(154,147)
+v.putcharxy(9,9,65)
+v.outtextxyct(10,10,"Kij ci w oko!",42,46)
+
+'for i=1 to 13:v.write("1234567890"):next i
+waitms(5000)
+for i=1 to 10: v.scrolldown : waitms(500) : next i
+waitms(5000)
+'makedl
+/'
+let aa=addr(random(0))
+for j=0 to 35
+  let qq=$88800000 + (j+65) 
+  longfill(aa,qq,128)
+  psram.write(addr(random(0)),j*256,256) 
+next j
+'/
+ 
+
 do
 '' text mode testing
   for mainmode=0 to 0+7
@@ -15,14 +36,15 @@ do
         let mode=64*mainmode+4*vzoom+hzoom
         v.setmode(mode)
         v.cls(154,147)
-       for i=1 to 12:v.write("1234567890"):next i :v.writeln("1234567890")
-        print "Fb start: ";v.s_buf_ptr
-        print "Lines: ";v.s_lines
-        print "Cpl: "; v.s_cpl
-        print "Buffer length: "; 4*v.s_buflen
-        print "Mode: "; mode;
-        if mode mod 64 = 0 then waitms(3000)
-        waitms(600)
+        print "Mode: "; mode
+  '    v.write("Mode: "): v.write(v.inttostr(mode))
+        print "Fb start:",v.s_buf_ptr
+        print "Lines:"," ", v.s_lines
+        print "Cpl:", v.s_cpl
+        print "Buffer length:",4*v.s_buflen
+        for i=1 to 13:v.write("1234567890"):next i
+        if mode mod 64 = 0 then waitms(5000)
+        waitms(2000)
 
       next hzoom
     next vzoom
@@ -36,14 +58,15 @@ do
         let mode=64*mainmode+4*vzoom+hzoom
         v.setmode(mode)
         v.cls(154,147)
-       for i=1 to 12:v.write("1234567890"):next i :v.writeln("1234567890")
+        print "Mode: "; mode
+  '    v.write("Mode: "): v.write(v.inttostr(mode))
         print "Fb start: ";v.s_buf_ptr
         print "Lines: "; v.s_lines
         print "Cpl: "; v.s_cpl
         print "Buffer length: ";4*v.s_buflen
-        print "Mode: "; mode;
-        if mode mod 64 = 0 then waitms(3000)
-        waitms(600)
+        for i=1 to 13:v.write("1234567890"):next i
+        if mode mod 64 = 0 then waitms(5000)
+        waitms(2000)
 
       next hzoom
     next vzoom

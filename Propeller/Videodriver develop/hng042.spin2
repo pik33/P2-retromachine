@@ -93,7 +93,7 @@ CON
 
 hdmi_base       = 0           				 	'must be a multiple of 8
 _clkfreq        = 336956522    					'this is the retromachine standard main clock, PAL color frequency * 95
-debugger        = 1                                             'set this to non-zero value if you want to use BRK debugger
+debugger        = 0                                             'set this to non-zero value if you want to use BRK debugger
 
 ' Builtin mode setting constant. Add these to define a mode number to set, mode# = %p_tn_bb_cc_vv_hh
 
@@ -378,7 +378,7 @@ s_lines:=lines
 s_cpl:=cpl
 s_buflen:=buflen
 s_cpl1:=cpl1
-waitms(20)
+
 
 '*************************************************************************
 '                                                                        *
@@ -389,7 +389,7 @@ waitms(20)
 'TODO1: use a PSRAM
 'TODO2: use repeat where possible 
 
-pub omakedl (mode) |i, fontline2,charline,bufstart,zoom1,vzoom,lpc,hzoom,border
+pub oldmakedl (mode) |i, fontline2,charline,bufstart,zoom1,vzoom,lpc,hzoom,border
 
 ''--%aaaa_aaaa_aaaa_aaaa_aazz_nnnn_llll_ll_01 - txt
   '' aaaa_aaaa_aaaa_aaaa_aazz_rrrr_rrrr_cc_10 - graph
@@ -429,7 +429,7 @@ if (mode>=512)' and (mode & (%10_00_00_0000))==(%10_00_00_0000) ' graphics -> al
 
 
 
-pub makedl (mode) |i, fontline2,charline,bufstart,zoom1,vzoom,lpc,hzoom,border,psbuf,psl
+pub makedl (mode) |i, fontline2,charline,bufstart,zoom1,vzoom,lpc,hzoom,border,psbuf
 
 ''--%aaaa_aaaa_aaaa_aaaa_aazz_nnnn_llll_ll_01 - txt
   '' aaaa_aaaa_aaaa_aaaa_aazz_rrrr_rrrr_cc_10 - graph
@@ -438,7 +438,6 @@ pub makedl (mode) |i, fontline2,charline,bufstart,zoom1,vzoom,lpc,hzoom,border,p
 'bordered mode needs 2 lines for up,  
 
 psbuf:=$80000-s_debug-1024
-
 
 if (mode &256==0)
   dl_ptr:=buf_ptr-4*576
@@ -480,10 +479,10 @@ if mode>=1024 && mode<(1024+512) '' text modes in PSRAM
 
   vzoom:=1<<vzoom
   border:=(timings[15]-16*lines*vzoom)/2                                          
-  psl:=((cpl1/16)-1)
-  debug(udec(psl))
+
+  
   if border>0 'borders
-     displaylist[0]:=(psbuf<<12)+(psl<<8)+%0111_0011   			                ' use the last KB for this. Todo: switch 16 kB lower if debug 
+     displaylist[0]:=(psbuf<<12)+%0111_0111_0011   			                ' use the last KB for this. Todo: switch 16 kB lower if debug 
      displaylist[1]:=%0000_0000_0000_0000_0000_0000_1000_0011                           ' the border
      displaylist[2]:=(border)<<20+%0111                                
      displaylist[3]:=0
@@ -501,7 +500,11 @@ if mode>=1024 && mode<(1024+512) '' text modes in PSRAM
 
   else
 
-     displaylist[0]:=(psbuf<<12)+(psl<<8)+%0111_0011   			                ' use the last KB for this. Todo: switch 16 kB lower if debug 
+ '   displaylist[0]:= %0111_0000_0000_0000_0000_0111_0111_0011        ' switch to PSRAM
+ '   displaylist[1]:= %0010_0100_0000_1111_0000_0001_0000_0111        ' repeat 576 lines, after every line add 32 (will be SHLed by 5) to the address
+ '   displaylist[2]:= %0000_0000_0000_0000_0000_0000_0000_0001        ' display a text line starting from 0, 
+
+     displaylist[0]:=(psbuf<<12)+%0111_0111_0011   			                ' use the last KB for this. Todo: switch 16 kB lower if debug 
      displaylist[1]:=%0000_0000_0000_0000_0000_0000_1000_0011 + ((vzoom-1)<<8)
      displaylist[2]:=timings[12]<<20+%1111_0000_0000_0000_0111+(cpl1>>3) <<4  
      displaylist[3]:=((buf_ptr>>5)+(mode & 3))<<12+%1111_0000_0001    
@@ -510,30 +513,8 @@ if mode>=1024 && mode<(1024+512) '' text modes in PSRAM
   dl_ptr:=@displaylist[0]    
 
 
+
 if (mode>=512) && (mode<1024)' and (mode & (%10_00_00_0000))==(%10_00_00_0000) ' graphics -> all modes TODO :mode 560+192=752 = 10_11_11_0000 impossib,e because out of memory
-
-{{
-
-  vzoom:=1<<vzoom
-  border:=timings[6]
-
-  if border>0 'borders
-     displaylist[0]:=%0000_0000_0000_0000_0000_0000_0111_0011      ' psram off
-     displaylist[1]:=%0000_0000_0000_0000_0000_0000_1000_0011       ' additional vzoom=1
-     displaylist[2]:=border<<20+%0111                               ' repeat
-     displaylist[3]:=0
-     displaylist[4]:=(vzoom*lines)<<20+(vzoom-1)<<16+%0000_0000_0000_0111+4*cpl<<4
-     displaylist[5]:=(buf_ptr+(mode & 3))<<12+((mode &48)>>2)+%10          '
-     displaylist[6]:=border<<20+%01110                                                   
-     displaylist[7]:=0
-
-  else
-     displaylist[0]:=%0000_0000_0000_0000_0000_0000_0111_0011 
-     displaylist[1]:=%0000_0000_0000_0000_0000_0000_1000_0011 
-     displaylist[2]:=(vzoom*lines)<<20+(vzoom-1)<<16+%0000_0000_0000_0111+4*cpl<<4
-     displaylist[3]:=(buf_ptr+(mode & 3))<<12+((mode &48)>>2)+%10     
-  }}   
-if (mode>=512)' and (mode & (%10_00_00_0000))==(%10_00_00_0000) ' graphics -> all modes TODO :mode 560+192=752 = 10_11_11_0000 impossib,e because out of memory
 
   if timings[6]>0 'borders
     repeat i from 0 to timings[6]-1 '0 to -1
@@ -543,8 +524,6 @@ if (mode>=512)' and (mode & (%10_00_00_0000))==(%10_00_00_0000) ' graphics -> al
   repeat i from timings[6] to timings[6]+timings[12]-1
     bufstart:=buf_ptr+4*(cpl*((i-timings[6])>>vzoom))+(mode&3)
     long[dl_ptr+4*i]:=(bufstart<<12)+2+(mode &48)>>2
-
-
 
 '*************************************************************************
 '                                                                        *
