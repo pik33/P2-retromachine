@@ -86,6 +86,7 @@
  
 ''-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
+
 CON
 
 
@@ -171,7 +172,7 @@ long vblank            'vblank signalling
 byte n_string[12]      'string buffer for inttostr and hextostr
 long timings[16]       'graphic mode timings
 long cpl               'char/pixels per line
-
+long cpl1
 long lines             'screen text lines count
 long fontnum           'offset to font
 long streamer[6]       'streamer constants
@@ -185,6 +186,7 @@ long s_buf_ptr
 long s_font_ptr
 long s_lines
 long s_cpl
+long s_cpl1
 long s_buflen
 
 long xzoom, yzoom, azoom
@@ -192,7 +194,13 @@ long xzoom, yzoom, azoom
 long putpixel         ' putpixel function variables 
 long p1,p2,p4,p8      ' 
 
-long displaylist[10]            ' now 8 longs is sufficient for a DL for simple modes
+long displaylist[128]            ' now 8 longs is sufficient for a DL for simple modes
+
+
+obj
+
+ram  :  "psram4.spin2"
+
 
 
 '*************************************************************************
@@ -325,7 +333,7 @@ yzoom:=1<<((mode>>2) & 3)
 azoom:=xzoom*yzoom
 
 cpl:=timings[11]
-if (mode<512)
+if ((mode&1023)<512)
   lines:=(timings[12]>>4)+/yzoom
 '  if ((timings[12]>>4)+//yzoom) <>0
 '    lines +=1
@@ -334,7 +342,13 @@ if (mode<512)
   else
     cpl:=cpl/xzoom+1
 
-
+  if cpl // 32 == 0 
+    cpl1:=cpl                                                         ' PSRAM address granularity is 128 or 32 if use repeat. To simplify things, use 128
+  if cpl // 32 <> 0 
+    cpl1:=32*((cpl/32)+1)                                             ' 4 bytes per char, so cpl has to be n*32
+    debug(udec(cpl1))
+    
+    
 else
   lines:=timings[12]/yzoom
   if cpl//xzoom==0
@@ -342,21 +356,29 @@ else
   else
     cpl:=cpl/xzoom+1
 
-buflen:=(cpl*lines)
+
+
+
+if mode<1024 
+  buflen:=(cpl*lines)
+else
+  buflen:=cpl1*lines
+    
 if mode<1024 
   buf_ptr:=$80000-4*buflen
 else
-  buf_ptr:=$200000-4*buflen ' will be wrapped, todo: get a himem 
+  buf_ptr:=$800000-4*buflen ' will be wrapped, todo: get a himem 
 mode_ptr:=@timings
 graphmode:=mode
-makedl(mode)
+
 s_buf_ptr:=buf_ptr
 s_font_ptr:=font_ptr
 s_lines:=lines
 s_cpl:=cpl
+s_cpl1:=cpl1
 s_buflen:=buflen
 
-
+makedl(mode)
 
 '*************************************************************************
 '                                                                        *
@@ -412,7 +434,8 @@ pub makedl (mode) |i, fontline2,charline,bufstart,zoom1,vzoom,lpc,hzoom,border
 ''--%aaaa_aaaa_aaaa_aaaa_aazz_nnnn_llll_ll_01 - txt
   '' aaaa_aaaa_aaaa_aaaa_aazz_rrrr_rrrr_cc_10 - graph
   '' aaaa_aaaa_aaaa-aaaa_aarr_rrrr_rrrr_rr_11 - extended, next long to read
-
+repeat i from 0 to 127
+  dl[i]:=0
 'bordered mode needs 2 lines for up,  
 if (mode &256==0)
   dl_ptr:=buf_ptr-4*576
@@ -423,45 +446,65 @@ vzoom:=((mode>>2) & 3)
 repeat i from 0 to 7
    displaylist[i]:=0 
 if mode<512 '' text modes in HUB
- {{  
-  if vzoom==0
-   
-    if timings[6]>0 'borders
-       displaylist[0]:= timings[6]<<20+%0111                               ' repeat
-       displaylist[1]:=0
-       displaylist[2]:=timings[12]<<20+%1111_0000_0000_0000_0111+4*cpl<<4
-       displaylist[3]:=(buf_ptr+(mode & 3))<<12+%1111_0000_0001            ' for text mode repeat initial fontline has to be set at %1111 
-       displaylist[4]:= timings[6]<<20+%0111                               ' repeat
-       displaylist[5]:=0   
-    else
-       displaylist[0]:=timings[12]<<20+%1111_0000_0000_0000_0111+4*cpl<<4
-       displaylist[1]:=(buf_ptr+(mode & 3))<<12+%1111_0000_0001    
 
-     
-  else
-}}
   vzoom:=1<<vzoom
   border:=(timings[15]-16*lines*vzoom)/2
 
   if border>0 'borders
-     displaylist[0]:=%0000_0000_0000_0000_0000_0000_1000_0011 
-     displaylist[1]:=border<<20+%0111                               ' repeat
-     displaylist[2]:=0
-     displaylist[3]:=%0000_0000_0000_0000_0000_0000_1000_0011 + ((vzoom-1)<<8)
-     displaylist[4]:=(16*lines)<<20+%1111_0000_0000_0000_0111+4*cpl<<4
-     displaylist[5]:=(buf_ptr+(mode & 3))<<12+%1111_0000_0001            ' for text mode repeat initial fontline has to be set at %1111 
-     displaylist[6]:=%0000_0000_0000_0000_0000_0000_1000_0011  
-     displaylist[7]:=border<<20+%0111                               ' repeat
-     displaylist[8]:=0   
+     displaylist[0]:=%0000_0000_0000_0000_0000_0000_1000_0011              		 ' set vzoom to 1
+     displaylist[1]:=border<<20+%0111                                      		 ' repeat border lines
+     displaylist[2]:=0                                                    		 ' border line
+     displaylist[3]:=%0000_0000_0000_0000_0000_0000_1000_0011 + ((vzoom-1)<<8)           ' set vzoom according to the mode
+     displaylist[4]:=timings[12]<<20+%1111_0000_0000_0000_0111+4*cpl<<4                  ' repeat text lines
+     displaylist[5]:=(buf_ptr+(mode & 3))<<12+%1111_0000_0001                            ' for text mode repeat initial fontline has to be set at %1111 
+     displaylist[6]:=%0000_0000_0000_0000_0000_0000_1000_0011                            ' set vzoom to 1
+     displaylist[7]:=border<<20+%0111                                                    ' repeat
+     displaylist[8]:=0                                                                   ' border line
   else
-     displaylist[0]:=%0000_0000_0000_0000_0000_0000_1000_0011 + ((vzoom-1)<<8)
-     displaylist[1]:=timings[12]<<20+%1111_0000_0000_0000_0111+4*cpl<<4
-     displaylist[2]:=(buf_ptr+(mode & 3))<<12+%1111_0000_0001    
+     displaylist[0]:=%0000_0000_0000_0000_0000_0000_1000_0011 + ((vzoom-1)<<8)           ' set vzoom
+     displaylist[1]:=timings[12]<<20+%1111_0000_0000_0000_0111+4*cpl<<4                  ' set repeat
+     displaylist[2]:=(buf_ptr+(mode & 3))<<12+%1111_0000_0001                            ' text line
      
   dl_ptr:=@displaylist[0]    
 
 
-if (mode>=512)' and (mode & (%10_00_00_0000))==(%10_00_00_0000) ' graphics -> all modes TODO :mode 560+192=752 = 10_11_11_0000 impossib,e because out of memory
+if mode>=1024 && mode<(1024+512) '' text modes in PSRAM
+
+  vzoom:=1<<vzoom
+  border:=(timings[15]-16*lines*vzoom)/2                                          
+
+  
+  if border>0 'borders
+     displaylist[0]:=%0111_0000_0000_0000_0000_0111_0111_0011   			' use the last KB for this. Todo: switch 16 kB lower if debug 
+     displaylist[1]:=%0000_0000_0000_0000_0000_0000_1000_0011                           ' the border
+     displaylist[2]:=(border)<<20+%0111                                
+     displaylist[3]:=0
+     displaylist[4]:=%0000_0000_0000_0000_0000_0000_1000_0011 + ((vzoom-1)<<8)          ' vzoom
+     displaylist[5]:=(16*lines)<<20+%1111_0000_0000_0000_0111+ (cpl1>>3) <<4             
+     displaylist[6]:=((buf_ptr>>5)+(mode & 3))<<12+%1111_0000_0001          
+     displaylist[7]:=%0000_0000_0000_0000_0000_0000_1000_0011  
+     displaylist[8]:= 0'12<<20+%0111                                 
+     displaylist[9]:=0
+     displaylist[10]:=0   
+     displaylist[11]:=0   
+     displaylist[12]:=0   
+  else
+
+ '   displaylist[0]:= %0111_0000_0000_0000_0000_0111_0111_0011        ' switch to PSRAM
+ '   displaylist[1]:= %0010_0100_0000_1111_0000_0001_0000_0111        ' repeat 576 lines, after every line add 32 (will be SHLed by 5) to the address
+ '   displaylist[2]:= %0000_0000_0000_0000_0000_0000_0000_0001        ' display a text line starting from 0, 
+
+     displaylist[0]:=%0111_0000_0000_0000_0000_0111_0111_0011   
+     displaylist[1]:=%0000_0000_0000_0000_0000_0000_1000_0011 + ((vzoom-1)<<8)
+     displaylist[2]:=timings[12]<<20+%1111_0000_0000_0000_0111+(cpl1>>3) <<4  
+     displaylist[3]:=((buf_ptr>>5)+(mode & 3))<<12+%1111_0000_0001    
+   
+     
+  dl_ptr:=@displaylist[0]    
+
+
+
+if ((mode && 1023)>=512)' and (mode & (%10_00_00_0000))==(%10_00_00_0000) ' graphics -> all modes TODO :mode 560+192=752 = 10_11_11_0000 impossib,e because out of memory
 
   if timings[6]>0 'borders
     repeat i from 0 to timings[6]-1 '0 to -1
@@ -908,12 +951,16 @@ long[palette_ptr+4*c]:=cc
 
 ''---------- Clear the screen, set its foreground/background color
 
-pub cls(fc,bc)   :c
+pub cls(fc,bc)   :c,i
 
-if (graphmode<512)
+if (graphmode<512)                            ' HUB text
   c:=fc<<24+bc<<16+$20
   longfill(s_buf_ptr,c,s_buflen)
-else
+if (graphmode>=1024) && (graphmode<1536)     ' PSRAM text
+  c:=fc<<24+bc<<16+$20
+  ram.fill(s_buf_ptr, c, buflen, 0, 4) 
+
+if (graphmode>=512) && (graphmode<1024)
   if (graphmode & 48) ==48
     c:=bc
   elseif (graphmode & 48) ==32
@@ -963,7 +1010,7 @@ repeat iii from 0 to strsize(text)-1
 
 ''---------- Output a char at the cursor position, move the cursor
 
-pub putchar(achar) | c,x,y
+pub putchar(achar) | c,x,y,l
 
 if achar==10
   crlf()
@@ -973,8 +1020,14 @@ if (achar<>9) && (achar<>10)
   x:=cursor_x
   y:=cursor_y
   c:=write_color<<24+write_background<<16
-  long[s_buf_ptr+4*(s_cpl*y+x)]:=long[s_buf_ptr+4*(s_cpl*y+x)] &$FFFF | c
-  long[s_buf_ptr+4*(s_cpl*y+x)]:=(long[s_buf_ptr+4*(s_cpl*y+x)] & $FFFFFF00)  |(achar & $000000FF)
+  l:=c+achar
+  if (graphmode<1024)
+    long[s_buf_ptr+4*(s_cpl*y+x)]:=l
+ '    long[s_buf_ptr+4*(s_cpl*y+x)]:=long[s_buf_ptr+4*(s_cpl*y+x)] &$FFFF | c
+  '   long[s_buf_ptr+4*(s_cpl*y+x)]:=(long[s_buf_ptr+4*(s_cpl*y+x)] & $FFFFFF00)  |(achar & $000000FF)
+  else 
+     ram.fill(s_buf_ptr+4*(s_cpl1*y+x),l,1,0,4 )     
+
   cursor_x+=1
   
 if cursor_x==s_cpl
@@ -986,13 +1039,21 @@ if cursor_x==s_cpl
     
 ''---------- Output a char at the cursor position, move the cursor, don't react for tab or lf
 
-pub putchar2(achar) | c,x,y
+pub putchar2(achar) | c,x,y,l
 
 x:=cursor_x
 y:=cursor_y
 c:=write_color<<24+write_background<<16
-long[s_buf_ptr+4*(s_cpl*y+x)]:=long[s_buf_ptr+4*(s_cpl*y+x)] &$FFFF | c
-long[s_buf_ptr+4*(s_cpl*y+x)]:=(long[s_buf_ptr+4*(s_cpl*y+x)] & $FFFFFF00)  |(achar & $000000FF)
+l:=c+achar
+if (graphmode<1024)
+ 
+   long[s_buf_ptr+4*(s_cpl*y+x)]:= l
+'  long[s_buf_ptr+4*(s_cpl*y+x)]:=long[s_buf_ptr+4*(s_cpl*y+x)] &$FFFF | c
+'  long[s_buf_ptr+4*(s_cpl*y+x)]:=(long[s_buf_ptr+4*(s_cpl*y+x)] & $FFFFFF00)  |(achar & $000000FF)
+else 
+  ram.fill(s_buf_ptr+4*(s_cpl1*y+x),l,1,0,4 )     
+
+
 cursor_x+=1
 if cursor_x==s_cpl
   cursor_x:=0
@@ -1005,7 +1066,12 @@ if cursor_x==s_cpl
 
 pub write(text) | iii,c,ncx,ncy
 
-c:=write_color<<24+write_background<<16
+
+repeat iii from 0 to strsize(text)-1
+  putchar2(byte[text+iii])
+  
+
+{{c:=write_color<<24+write_background<<16
 'debug(uhex_long(write_color))
 ncy:=cursor_y
 ncx:=cursor_x+strsize(text)
@@ -1025,7 +1091,7 @@ outtextxy(cursor_x,cursor_y,text)
 
 cursor_x:=ncx
 cursor_y:=ncy
-
+}}
 '--------- Output a string at the cursor position x,y, move the cursor to the next line
 
 pub writeln(text)
@@ -1041,9 +1107,18 @@ if (cursor_y>s_lines-1)
 
 pub scrollup() | i
 
-longmove(s_buf_ptr,buf_ptr+4*s_cpl,s_buflen-s_cpl)
-repeat i from s_buflen-s_cpl to s_buflen-1
-  long[s_buf_ptr+4*i]:=(long[s_buf_ptr+4*i] & $FFFF0000) | 32
+if (graphmode<1024)
+  longmove(s_buf_ptr,buf_ptr+4*s_cpl,s_buflen-s_cpl)
+  repeat i from s_buflen-s_cpl to s_buflen-1
+     long[s_buf_ptr+4*i]:=(long[s_buf_ptr+4*i] & $FFFF0000) | 32
+else     
+   repeat i from 0 to s_lines-2
+     ram.read1($80000-1024, s_buf_ptr+(i+1)*4*s_cpl1, 4*s_cpl)
+     ram.write($80000-1024, s_buf_ptr+i*4*s_cpl1, 4*s_cpl)
+     
+   
+'   ram.gfxCopyImage(s_buf_ptr, s_cpl1, s_buf_ptr+4*s_cpl1, s_cpl1, 4*s_cpl, s_lines, $80000-1024, 0)
+   ram.fill(s_buf_ptr+4*(s_cpl1*(lines-1)),(write_color<<24+write_background<<16+32),s_cpl,0,4 )      
 
 ''----------- Scroll the screen one line down
 
@@ -1390,6 +1465,7 @@ p393            cmp     dlc,#%0011 wz                      ' 0011: set the font 
     if_z        getbyte rcnt3,framebuf2,#1               
     if_z        mov     rcnt4,#0
                 jmp #p301                                  ' the end of known subcommands 
+                               ' the end of known subcommands 
 
 '' -------- repeat -  %nnnn_nnnn_nnnn_qqqq_mmmm_mmmm_mmmm_0111 
 
@@ -1850,7 +1926,7 @@ affffff00       long    $FFFFFF00
                
 rcnt3 long 0
 rcnt4 long 0               
-                fit     496       
+                fit     492    
                 
                       
                 

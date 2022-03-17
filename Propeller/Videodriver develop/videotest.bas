@@ -9,13 +9,9 @@ startvideo
 
 'test2
 'waitms(5000)
-v.setmode (1024+128)
-
-'waitms(5000)
-cls(154,147)
-for i=1 to 100: print i,"dupakwas,koperwas": waitms(100): next i
-waitms(5000)
-
+v.setmode(1024+ 192): v.cls(154,147)
+for i=1 to 30:print i: next i: v.write("aaa") : v.putchar(97)
+ 
 'makedl
 /'
 let aa=addr(random(0))
@@ -25,11 +21,11 @@ for j=0 to 35
   psram.write(addr(random(0)),j*256,256) 
 next j
 '/
-/' 
+
 
 do
 '' text mode testing
-  for mainmode=16 to 16+7
+  for mainmode=0 to 0+7
     for vzoom=0 to 3
       for hzoom= 0 to 2
         let mode=64*mainmode+4*vzoom+hzoom
@@ -40,7 +36,8 @@ do
         print "Fb start: ";v.s_buf_ptr
         print "Lines: "; v.s_lines
         print "Cpl: "; v.s_cpl
-        print "Buffer length: ";4*v.s_buflen;
+        print "Buffer length: ";4*v.s_buflen
+        print "123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890"
         if mode mod 64 = 0 then waitms(5000)
         waitms(2000)
 
