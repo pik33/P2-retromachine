@@ -136,8 +136,7 @@ c_lightmagenta  =   75
 c_yellow        =  234
 c_white         =   15
 
-''---------- A constant to add to timing values for the streamer    if_nz       jmp     #p301                             ' if not, display the next line
-
+''---------- A constant to add to timing values for the streamer
 
 timingsxxt      =  $70810000   ' streamer imm->pins
 
@@ -449,7 +448,7 @@ if mode<512 '' text modes in HUB
      displaylist[1]:=border<<20+%0111                               ' repeat
      displaylist[2]:=0
      displaylist[3]:=%0000_0000_0000_0000_0000_0000_1000_0011 + ((vzoom-1)<<8)
-     displaylist[4]:=timings[12]<<20+%1111_0000_0000_0000_0111+4*cpl<<4
+     displaylist[4]:=(16*lines)<<20+%1111_0000_0000_0000_0111+4*cpl<<4
      displaylist[5]:=(buf_ptr+(mode & 3))<<12+%1111_0000_0001            ' for text mode repeat initial fontline has to be set at %1111 
      displaylist[6]:=%0000_0000_0000_0000_0000_0000_1000_0011  
      displaylist[7]:=border<<20+%0111                               ' repeat

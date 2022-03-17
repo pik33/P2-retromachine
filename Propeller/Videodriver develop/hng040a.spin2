@@ -6,6 +6,8 @@
 ' (c) 2012-2021 Piotr Kardasz pik33@o2.pl
 ' MIT license
 '********************************************************************************************
+'' WARNING! If you want to use this with a BRK debugger, set con debugger to anything different than 0
+'' It will prevent the driver from using the last 16 kB of HUB RAM
 
 ' Available standard graphic modes:
 
@@ -86,12 +88,12 @@
  
 ''-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-
 CON
 
 
 hdmi_base       = 0           				 	'must be a multiple of 8
 _clkfreq        = 336956522    					'this is the retromachine standard main clock, PAL color frequency * 95
+debugger        = 0                                             'set this to non-zero value if you want to use BRK debugger
 
 ' Builtin mode setting constant. Add these to define a mode number to set, mode# = %p_tn_bb_cc_vv_hh
 
@@ -186,8 +188,8 @@ long s_buf_ptr
 long s_font_ptr
 long s_lines
 long s_cpl
-long s_cpl1
 long s_buflen
+long s_cpl1
 
 long xzoom, yzoom, azoom
 
@@ -196,11 +198,8 @@ long p1,p2,p4,p8      '
 
 long displaylist[10]            ' now 8 longs is sufficient for a DL for simple modes
 
-
 obj
-
-ram  :  "psram4.spin2"
-
+ram: "psram4.spin2"
 
 
 '*************************************************************************
@@ -333,7 +332,7 @@ yzoom:=1<<((mode>>2) & 3)
 azoom:=xzoom*yzoom
 
 cpl:=timings[11]
-if ((mode&1023)<512)
+if (mode && 1023) <512
   lines:=(timings[12]>>4)+/yzoom
 '  if ((timings[12]>>4)+//yzoom) <>0
 '    lines +=1
@@ -341,14 +340,12 @@ if ((mode&1023)<512)
     cpl:=cpl/xzoom
   else
     cpl:=cpl/xzoom+1
-
   if cpl // 32 == 0 
     cpl1:=cpl                                                         ' PSRAM address granularity is 128 or 32 if use repeat. To simplify things, use 128
   if cpl // 32 <> 0 
     cpl1:=32*((cpl/32)+1)                                             ' 4 bytes per char, so cpl has to be n*32
-    debug(udec(cpl1))
-    
-    
+
+
 else
   lines:=timings[12]/yzoom
   if cpl//xzoom==0
@@ -356,14 +353,18 @@ else
   else
     cpl:=cpl/xzoom+1
 
-
-
-
 if mode<1024 
   buflen:=(cpl*lines)
+  
 else
   buflen:=cpl1*lines
-    
+ 
+debug(udec(cpl))
+debug(udec(cpl1))
+debug(udec(lines))
+ 
+debug(udec(buflen)) 
+
 if mode<1024 
   buf_ptr:=$80000-4*buflen
 else
@@ -375,9 +376,8 @@ s_buf_ptr:=buf_ptr
 s_font_ptr:=font_ptr
 s_lines:=lines
 s_cpl:=cpl
-s_cpl1:=cpl1
 s_buflen:=buflen
-
+s_cpl1:=cpl1
 
 
 '*************************************************************************
@@ -450,22 +450,27 @@ if mode<512 '' text modes in HUB
   border:=(timings[15]-16*lines*vzoom)/2
 
   if border>0 'borders
-     displaylist[0]:=%0000_0000_0000_0000_0000_0000_1000_0011              		 ' set vzoom to 1
-     displaylist[1]:=border<<20+%0111                                      		 ' repeat border lines
-     displaylist[2]:=0                                                    		 ' border line
-     displaylist[3]:=%0000_0000_0000_0000_0000_0000_1000_0011 + ((vzoom-1)<<8)           ' set vzoom according to the mode
-     displaylist[4]:=timings[12]<<20+%1111_0000_0000_0000_0111+4*cpl<<4                  ' repeat text lines
-     displaylist[5]:=(buf_ptr+(mode & 3))<<12+%1111_0000_0001                            ' for text mode repeat initial fontline has to be set at %1111 
-     displaylist[6]:=%0000_0000_0000_0000_0000_0000_1000_0011                            ' set vzoom to 1
-     displaylist[7]:=border<<20+%0111                                                    ' repeat
-     displaylist[8]:=0                                                                   ' border line
+     displaylist[0]:=%0000_0000_0000_0000_0000_0000_0111_0011 
+     displaylist[1]:=%0000_0000_0000_0000_0000_0000_1000_0011 
+     displaylist[2]:=border<<20+%0111                               ' repeat
+     displaylist[3]:=0
+     displaylist[4]:=%0000_0000_0000_0000_0000_0000_1000_0011 + ((vzoom-1)<<8)
+     displaylist[5]:=16*lines<<20+%1111_0000_0000_0000_0111+4*cpl<<4
+     displaylist[6]:=(buf_ptr+(mode & 3))<<12+%1111_0000_0001            ' for text mode repeat initial fontline has to be set at %1111 
+     displaylist[7]:=0                                                    ' cannot use more than 1 command after the borderless text mode line - TODO if possible
+     displaylist[8]:=%0000_0000_0000_0000_0000_0000_1000_0011 
+     if border>1 
+       displaylist[8]:=border<<20+%0111                               ' repeat
+     else
+       displaylist[8]:=0  
+     displaylist[9]:=0   
   else
-     displaylist[0]:=%0000_0000_0000_0000_0000_0000_1000_0011 + ((vzoom-1)<<8)           ' set vzoom
-     displaylist[1]:=timings[12]<<20+%1111_0000_0000_0000_0111+4*cpl<<4                  ' set repeat
-     displaylist[2]:=(buf_ptr+(mode & 3))<<12+%1111_0000_0001                            ' text line
+     displaylist[0]:=%0000_0000_0000_0000_0000_0000_0111_0011 
+     displaylist[1]:=%0000_0000_0000_0000_0000_0000_1000_0011 + ((vzoom-1)<<8)
+     displaylist[2]:=timings[12]<<20+%1111_0000_0000_0000_0111+4*cpl<<4
+     displaylist[3]:=(buf_ptr+(mode & 3))<<12+%1111_0000_0001    
      
   dl_ptr:=@displaylist[0]    
-
 
 if mode>=1024 && mode<(1024+512) '' text modes in PSRAM
 
@@ -476,15 +481,20 @@ if mode>=1024 && mode<(1024+512) '' text modes in PSRAM
   if border>0 'borders
      displaylist[0]:=%0111_0000_0000_0000_0000_0111_0111_0011   			' use the last KB for this. Todo: switch 16 kB lower if debug 
      displaylist[1]:=%0000_0000_0000_0000_0000_0000_1000_0011                           ' the border
-     displaylist[2]:=border<<20+%0111                                
+     displaylist[2]:=(border)<<20+%0111                                
      displaylist[3]:=0
      displaylist[4]:=%0000_0000_0000_0000_0000_0000_1000_0011 + ((vzoom-1)<<8)          ' vzoom
-     displaylist[5]:=timings[12]<<20+%1111_0000_0000_0000_0111+ (cpl1>>3) <<4             
-     displaylist[6]:=((buf_ptr>>5)+(mode & 3))<<12+%1111_0000_0001          
-     displaylist[6]:=((0)+(mode & 3))<<12+%1111_0000_0001          
-     displaylist[7]:=%0000_0000_0000_0000_0000_0000_1000_0011  
-     displaylist[8]:=border<<20+%0111                                  
-     displaylist[9]:=0   
+     displaylist[5]:=(16*lines)<<20+%1111_0000_0000_0000_0111+ (cpl1>>3) <<4             
+     displaylist[6]:=((buf_ptr>>5)+(mode & 3))<<12+%1111_0000_0001  
+     displaylist[7]:=0               
+     displaylist[8]:=%0000_0000_0000_0000_0000_0000_1000_0011  
+     if border>1 
+       displaylist[9]:=border<<20+%0111                               ' repeat
+     else
+       displaylist[9]:=0                                
+     displaylist[10]:=0
+     displaylist[11]:=0   
+
   else
 
  '   displaylist[0]:= %0111_0000_0000_0000_0000_0111_0111_0011        ' switch to PSRAM
@@ -501,7 +511,7 @@ if mode>=1024 && mode<(1024+512) '' text modes in PSRAM
 
 
 
-if ((mode && 1023)>=512)' and (mode & (%10_00_00_0000))==(%10_00_00_0000) ' graphics -> all modes TODO :mode 560+192=752 = 10_11_11_0000 impossib,e because out of memory
+if (mode>=512) && (mode<1024)' and (mode & (%10_00_00_0000))==(%10_00_00_0000) ' graphics -> all modes TODO :mode 560+192=752 = 10_11_11_0000 impossib,e because out of memory
 
   if timings[6]>0 'borders
     repeat i from 0 to timings[6]-1 '0 to -1
@@ -1007,6 +1017,30 @@ repeat iii from 0 to strsize(text)-1
 
 ''---------- Output a char at the cursor position, move the cursor
 
+pub putcharo(achar) | c,x,y
+
+if achar==10
+  crlf()
+if achar==9
+  x:=(cursor_x+8) and %11111000
+if (achar<>9) && (achar<>10) 
+  x:=cursor_x
+  y:=cursor_y
+  c:=write_color<<24+write_background<<16
+  long[s_buf_ptr+4*(s_cpl*y+x)]:=long[s_buf_ptr+4*(s_cpl*y+x)] &$FFFF | c
+  long[s_buf_ptr+4*(s_cpl*y+x)]:=(long[s_buf_ptr+4*(s_cpl*y+x)] & $FFFFFF00)  |(achar & $000000FF)
+  cursor_x+=1
+  
+if cursor_x==s_cpl
+  cursor_x:=0
+  cursor_y+=1
+  if cursor_y>s_lines-1
+    scrollup()
+    cursor_y:=s_lines-1
+    
+''---------- Output a char at the cursor position, move the cursor, don't react for tab or lf
+
+
 pub putchar(achar) | c,x,y,l
 
 if achar==10
@@ -1019,11 +1053,12 @@ if (achar<>9) && (achar<>10)
   c:=write_color<<24+write_background<<16
   l:=c+achar
   if (graphmode<1024)
-     long[s_buf_ptr+4*(s_cpl*y+x)]:=c
+    long[s_buf_ptr+4*(s_cpl*y+x)]:=l
+ '    long[s_buf_ptr+4*(s_cpl*y+x)]:=long[s_buf_ptr+4*(s_cpl*y+x)] &$FFFF | c
+  '   long[s_buf_ptr+4*(s_cpl*y+x)]:=(long[s_buf_ptr+4*(s_cpl*y+x)] & $FFFFFF00)  |(achar & $000000FF)
   else 
      ram.fill(s_buf_ptr+4*(s_cpl1*y+x),l,1,0,4 )     
-'  long[s_buf_ptr+4*(s_cpl*y+x)]:=long[s_buf_ptr+4*(s_cpl*y+x)] &$FFFF | c
-'  long[s_buf_ptr+4*(s_cpl*y+x)]:=(long[s_buf_ptr+4*(s_cpl*y+x)] & $FFFFFF00)  |(achar & $000000FF)
+     
   cursor_x+=1
   
 if cursor_x==s_cpl
@@ -1042,12 +1077,31 @@ y:=cursor_y
 c:=write_color<<24+write_background<<16
 l:=c+achar
 if (graphmode<1024)
-  long[s_buf_ptr+4*(s_cpl*y+x)]:=c
+ 
+   long[s_buf_ptr+4*(s_cpl*y+x)]:= l
+'  long[s_buf_ptr+4*(s_cpl*y+x)]:=long[s_buf_ptr+4*(s_cpl*y+x)] &$FFFF | c
+'  long[s_buf_ptr+4*(s_cpl*y+x)]:=(long[s_buf_ptr+4*(s_cpl*y+x)] & $FFFFFF00)  |(achar & $000000FF)
 else 
   ram.fill(s_buf_ptr+4*(s_cpl1*y+x),l,1,0,4 )     
 
-'long[s_buf_ptr+4*(s_cpl*y+x)]:=long[s_buf_ptr+4*(s_cpl*y+x)] &$FFFF | c
-'long[s_buf_ptr+4*(s_cpl*y+x)]:=(long[s_buf_ptr+4*(s_cpl*y+x)] & $FFFFFF00)  |(achar & $000000FF)
+
+cursor_x+=1
+if cursor_x==s_cpl
+  cursor_x:=0
+  cursor_y+=1
+  if cursor_y>s_lines-1
+    scrollup()
+    cursor_y:=s_lines-1    
+
+
+
+pub putchar2o(achar) | c,x,y
+
+x:=cursor_x
+y:=cursor_y
+c:=write_color<<24+write_background<<16
+long[s_buf_ptr+4*(s_cpl*y+x)]:=long[s_buf_ptr+4*(s_cpl*y+x)] &$FFFF | c
+long[s_buf_ptr+4*(s_cpl*y+x)]:=(long[s_buf_ptr+4*(s_cpl*y+x)] & $FFFFFF00)  |(achar & $000000FF)
 cursor_x+=1
 if cursor_x==s_cpl
   cursor_x:=0
@@ -1062,9 +1116,8 @@ pub write(text) | iii,c,ncx,ncy
 
 repeat iii from 0 to strsize(text)-1
   putchar2(byte[text+iii])
-  
-
-{{c:=write_color<<24+write_background<<16
+{{
+c:=write_color<<24+write_background<<16
 'debug(uhex_long(write_color))
 ncy:=cursor_y
 ncx:=cursor_x+strsize(text)
@@ -1085,6 +1138,7 @@ outtextxy(cursor_x,cursor_y,text)
 cursor_x:=ncx
 cursor_y:=ncy
 }}
+
 '--------- Output a string at the cursor position x,y, move the cursor to the next line
 
 pub writeln(text)
@@ -1111,8 +1165,16 @@ else
      
    
 '   ram.gfxCopyImage(s_buf_ptr, s_cpl1, s_buf_ptr+4*s_cpl1, s_cpl1, 4*s_cpl, s_lines, $80000-1024, 0)
-   ram.fill(s_buf_ptr+4*(s_cpl1*(lines-1)),(write_color<<24+write_background<<16+32),s_cpl,0,4 )      
+   ram.fill(s_buf_ptr+4*(s_cpl1*(lines-1)),(write_color<<24+write_background<<16+32),s_cpl,0,4 )   
+   
+{{
 
+
+longmove(s_buf_ptr,buf_ptr+4*s_cpl,s_buflen-s_cpl)
+repeat i from s_buflen-s_cpl to s_buflen-1
+  long[s_buf_ptr+4*i]:=(long[s_buf_ptr+4*i] & $FFFF0000) | 32
+
+}}
 ''----------- Scroll the screen one line down
 
 pub scrolldown() | i
@@ -1364,7 +1426,7 @@ p301            cmp     rcnt,#0 wz			   ' check the DL repeat counter
     
                 incmod  rcnt4,rcnt3 wcz
     if_nc       sub     dlptr2,#4 
-    if_nc       jmp #p307
+    if_nc       jmp     #p307
         
                 sub     rcnt,#1 wz                         ' decrement the repeat counter
     if_nz       sub     dlptr2,#4                          ' repeat. DL pointer was incremented while interpreting, now decrement it as it is repeated
@@ -1426,25 +1488,29 @@ p393            cmp     dlc,#%0011 wz                      ' 0011: set the font 
     if_z        shr     framebuf,#12     
     if_z        shr     framebuf2,#12                      ' get a pointer form the command
     if_z        mov     fontbuf,framebuf2		   ' and save it  	
-                           ' then go to the next entry
-        
+'    if_z        jmp     #p301			           ' and go to the next DL entry
+      
                 cmp     dlc,#%0101 wz                      ' 0101: set horizontal fine scroll
     if_z        getbyte hscroll2,framebuf2,#1              ' we need 2 vars, hscroll1=24 and hscroll2=16 - no scroll, 
     if_z	mov     hscroll1,hscroll2                  ' 0..15 scroll left
     if_z	add     hscroll1,#8                        ' hscroll1:=hscroll2+8, to not do this in the line display loop
+'    if_z        jmp     #p301                              ' go next
         	 
                 cmp     dlc,#%0010 wz		           ' 0010: set the border color from the palette    %0000_0000_0000_0000_pppp_pppp_0010_0011
     if_z        getbyte t1,framebuf2,#1         	   ' get a palette entry #
     if_z        rdlut   border,t1                          ' read a color
+'    if_z        jmp     #p301       	                   ' go next
 
                 cmp     dlc,#%0001 wz                      ' 0011: set the border color to rgb              %rrrr_rrrr_gggg_gggg_bbbb_bbbb_0001_0011 
     if_z        mov     border,framebuf2                   ' get the color
     if_z        and     border,affffff00       	           ' and clear the lowest byte
+'    if_z        jmp     #p301                              ' then goto next
         
                 cmp     dlc,#%0110 wz                      ' set hi bits for live change                    %0000_0000_0000_bb00_0000_0000_0110_0011 
     if_z        mov     hibits,framebuf2                   ' get the value
     if_z        and     hibits,affffff00                   ' clear the lowest byte
-
+'    if_z        jmp     #p301        
+                
                 cmp     dlc,#%1000 wz			   ' 1000 : set simple vertical zoom
     if_z        getbyte rcnt3,framebuf2,#1               
     if_z        mov     rcnt4,#0
@@ -1487,33 +1553,8 @@ p308            testb   dl,#0  wc                          ' 00 was processed at
     
 '' -------- A display list interpreter end ------------------------------------------------------------------------------    
 
-' --------- The line display procedure returns here ---------------------------------------------------------------------
 
-p302            add     linenum,#1                        ' increment the current line number 
-                add     dlptr2,#4                         ' point to the next DL entry
-                cmp     linenum,i_totalvis  wz            ' check if all lines displayed
-    if_nz       jmp     #p301                             ' if not, display the next line
 
-' --------- All visible lines displayed now, start vblank ---------------------------------------------------------------        
-
-p112            wrlong  #1,vblankptr                       ' tell the system that the vblank started
-                callpa  i_downporch ,#blank                ' bottom blanks
-                mov     hsync0,sync_222                    ' vsync on
-                mov     hsync1,sync_223
-                callpa  i_vsync,#blank                     ' vertical sync blanks
-                jmp     #p101                              ' return to the main loop
-
-'' --------------- END of frame rendering loop ---------------------------------------------------------------------------
-
-'' --------------- Blank and vsync procedures called via callpa have to be in the middle of the code ---------------------
-
-blank           call    #hsync                             ' blank lines
-                xcont   m_vi,hsync0
-        _ret_   djnz    pa,#blank
-
-hsync           xcont   m_bs,hsync0                        ' horizontal sync
-                xzero   m_sn,hsync1
-        _ret_   xcont   m_bv,hsync0
 
 '' --------------- Line displaying procedures - border, text, graphics ---------------------------------------------------
 
@@ -1670,6 +1711,18 @@ p422            rdlong  char,framebuf2                    ' No hscroll here, can
 
 '' -------------------------------------- END of text line ---------------------------------
 
+
+'' --------------- Blank and vsync procedures called via callpa have to be in the middle of the code ---------------------
+
+blank           call    #hsync                             ' blank lines
+                xcont   m_vi,hsync0
+        _ret_   djnz    pa,#blank
+
+hsync           xcont   m_bs,hsync0                        ' horizontal sync
+                xzero   m_sn,hsync1
+        _ret_   xcont   m_bv,hsync0
+
+
 '' -------------- Graphics line ------------------------------------------------------------
 
 graphline       call    #hsync                           ' now call hsync to gain some time between xconts
@@ -1716,53 +1769,53 @@ p235            rdlong  char,framebuf2                   ' get 8 pixels
 
 '' --- 1 bit color modes
 
-p240           cmp     zoom, #%00 wz                     ' 2 colors, zoom x1
-    if_z       jmp     #p251                             ' go to the universal loop at p251
-               cmp     zoom, #%01 wz                     ' 2 colors, zoom x2
-    if_z       mov     skippattern,#%10011               ' x2
-    if_nz      mov     skippattern,#%01000               ' x4 - no x8 at 1bpp, too complex
-p241           rdword  char,framebuf2
-               movbyts char,#%01000100
-               mergew  char
-               skipf   skippattern
-               movbyts char,#%01000100                  ' 1 0
-               mergew  char                             ' 1 0
-               xcont   m_lut2,char                      ' 0 0
-               add     framebuf2,#2                     ' 0 1
-               add     framebuf2,#1                     ' 1 0
-               djnz    cpl2,#p241
-               jmp    #p203
+p240            cmp     zoom, #%00 wz                    ' 2 colors, zoom x1
+    if_z        jmp     #p251                            ' go to the universal loop at p251
+                cmp     zoom, #%01 wz                    ' 2 colors, zoom x2
+    if_z        mov     skippattern,#%10011              ' x2
+    if_nz       mov     skippattern,#%01000              ' x4 - no x8 at 1bpp, too complex
+p241            rdword  char,framebuf2
+                movbyts char,#%01000100
+                mergew  char
+                skipf   skippattern
+                movbyts char,#%01000100                  ' 1 0
+                mergew  char                             ' 1 0
+                xcont   m_lut2,char                      ' 0 0
+                add     framebuf2,#2                     ' 0 1
+                add     framebuf2,#1                     ' 1 0
+                djnz    cpl2,#p241
+                jmp    #p203
 
 '' --- 2 bit color modes
 
-p250          cmp     zoom, #%00 wz                    ' 4 colors, zoom x1
-    if_z      jmp     #p251
-              cmp     zoom, #%01 wz                    ' 4 colors, zoom x2
-    if_z      jmp     #p252
-p254          rdbyte  char,framebuf2       	       ' zoom x4 here
-              mov     t5,#4
-p255          shl     char,#2                          ' to be proper commented as I forgot what I did here :)
-              getnib  t1,char,#2
-              and     t1,#3
-              mul     t1,#$55
-              rolbyte t2,t1,#0
-              djnz    t5,#p255
-              xcont   m_lut2,t2
-              add     framebuf2,#1
-              djnz    cpl2,#p254
-              jmp     #p203
-p252          rdword  char,framebuf2		       ' zoom x2 - too different to use a skipf?
-              mov     t5,#8
-p253          shl     char,#2
-              getnib  t1,char,#4
-              and     t1,#3
-              mul     t1,#5
-              rolnib  t2,t1,#0
-              djnz    t5,#p253
-              xcont   m_lut2,t2
-              add     framebuf2,#2
-              djnz    cpl2,#p252
-              jmp     #p203
+p250           cmp     zoom, #%00 wz                    ' 4 colors, zoom x1
+    if_z       jmp     #p251
+               cmp     zoom, #%01 wz                    ' 4 colors, zoom x2
+    if_z       jmp     #p252
+p254           rdbyte  char,framebuf2       	       ' zoom x4 here
+               mov     t5,#4
+p255           shl     char,#2                          ' to be proper commented as I forgot what I did here :)
+               getnib  t1,char,#2
+               and     t1,#3
+               mul     t1,#$55
+               rolbyte t2,t1,#0
+               djnz    t5,#p255
+               xcont   m_lut2,t2
+               add     framebuf2,#1
+               djnz    cpl2,#p254
+               jmp     #p203
+p252           rdword  char,framebuf2		       ' zoom x2 - too different to use a skipf?
+               mov     t5,#8
+p253           shl     char,#2
+               getnib  t1,char,#4
+               and     t1,#3
+               mul     t1,#5
+               rolnib  t2,t1,#0
+               djnz    t5,#p253
+               xcont   m_lut2,t2
+               add     framebuf2,#2
+               djnz    cpl2,#p252
+               jmp     #p203
 
 '' ------ 4 bit color modes
 
@@ -1801,7 +1854,25 @@ p251          rep  #3,cpl2
  ''-----------------------------------------------------------------------------------------
 p203          cmp      mb2, #0 wz
               if_nz    xcont   m_border,border            'display a right border if exists
-              jmp #p302
+
+' --------- The line display procedure returns here ---------------------------------------------------------------------
+
+p302            add     linenum,#1                        ' increment the current line number 
+                add     dlptr2,#4                         ' point to the next DL entry
+                cmp     linenum,i_totalvis  wz            ' check if all lines displayed
+    if_nz       jmp     #p301                             ' if not, display the next line
+
+' --------- All visible lines displayed now, start vblank ---------------------------------------------------------------        
+
+p112            wrlong  #1,vblankptr                       ' tell the system that the vblank started
+                callpa  i_downporch ,#blank                ' bottom blanks
+                mov     hsync0,sync_222                    ' vsync on
+                mov     hsync1,sync_223
+                callpa  i_vsync,#blank                     ' vertical sync blanks
+                jmp     #p101                              ' return to the main loop
+
+'' --------------- END of frame rendering loop ---------------------------------------------------------------------------
+
 
 '' -------------------------------------- END of graph  line ---------------------------------
 
@@ -1909,7 +1980,7 @@ affffff00       long    $FFFFFF00
                
 rcnt3 long 0
 rcnt4 long 0               
-                fit     492    
+                fit     496       
                 
                       
                 

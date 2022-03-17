@@ -361,8 +361,10 @@ else
 
 if mode<1024 
   buflen:=(cpl*lines)
+  debug(udec(buflen))
 else
   buflen:=cpl1*lines
+  debug(udec(buflen))  
     
 if mode<1024 
   buf_ptr:=$80000-4*buflen
