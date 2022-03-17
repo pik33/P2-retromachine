@@ -8,11 +8,15 @@ startpsram
 startvideo
 
 
-
+v.setmode(1025)
+v.cls(154,147)
+v.putcharxy(9,9,65)
+v.outtextxyct(10,10,"Kij ci w oko!",42,46)
 
 'for i=1 to 13:v.write("1234567890"):next i
-'waitms(5000)
-
+waitms(5000)
+for i=1 to 10: v.scrolldown : waitms(500) : next i
+waitms(5000)
 'makedl
 /'
 let aa=addr(random(0))
@@ -34,10 +38,10 @@ do
         v.cls(154,147)
         print "Mode: "; mode
   '    v.write("Mode: "): v.write(v.inttostr(mode))
-        print "Fb start: ";v.s_buf_ptr
-        print "Lines: "; v.s_lines
-        print "Cpl: "; v.s_cpl
-        print "Buffer length: ";4*v.s_buflen
+        print "Fb start:",v.s_buf_ptr
+        print "Lines:"," ", v.s_lines
+        print "Cpl:", v.s_cpl
+        print "Buffer length:",4*v.s_buflen
         for i=1 to 13:v.write("1234567890"):next i
         if mode mod 64 = 0 then waitms(5000)
         waitms(2000)

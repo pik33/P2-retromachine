@@ -11,7 +11,7 @@
 const _clkfreq = 336956522
 
 'option implicit
-dim v as class using "hng040a.spin2"
+dim v as class using "hng042.spin2"
 dim rm as class using "retrocog.spin2"
 dim psram as class using "psram4.spin2"
 #include "dir.bi"
