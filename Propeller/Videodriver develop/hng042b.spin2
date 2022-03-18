@@ -1532,7 +1532,7 @@ p308            testb   dl,#0  wc                          ' 00 was processed at
 
 '' --------------- Display a blank line with a border color --------------------------------------------------------------
 
-borderline     ' call    #hsync                             ' do a horizontal sync
+borderline                              
                 xcont   m_vi,border                        ' display a blank line
                 jmp     #p302                              ' go to line ending code at p302  
 
@@ -1547,7 +1547,7 @@ textline        mov     cursorpos2,cursorx                 ' we need another var
                 and     linestart,#63                      ' there are 6 bits for this in a DL command 
                 cmp     linestart,cursory wz               ' if the cursor is not here
     if_nz       mov     cursorpos2,#129                    ' move it out of the screen
-               ' call    #hsync                             ' now call hsync to gain some time between xconts
+                                        
 p102            getword mb2,m_border,#0                    ' check if there is a left border
                 cmp     mb2, #0 wz                 
     if_nz       xcont   m_border,border                    ' display a left border if exists
@@ -1697,7 +1697,7 @@ hsync           xcont   m_bs,hsync0                        ' horizontal sync
 
 '' -------------- Graphics line ------------------------------------------------------------
 
-graphline    '   call    #hsync                           ' now call hsync to gain some time between xconts
+graphline                                
 p202            getword mb2,m_border,#0
                 cmp     mb2, #0 wz
     if_nz       xcont   m_border,border                  ' display a left border if exists
@@ -1953,7 +1953,7 @@ affffff00       long    $FFFFFF00
                
 rcnt3 long 0
 rcnt4 long 0               
-                fit     496       
+                fit     400      
                 
                       
                 
