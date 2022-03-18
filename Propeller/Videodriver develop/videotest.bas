@@ -7,13 +7,6 @@ startmachine
 startpsram
 startvideo
 
-v.setmode(1024+512+128+48+1)
-cls(154,147)
-          v.outtextxycg(0,80,"12345678901234567890123456789012345678901234567890",154,147)
-
-waitms(5000)
-waitms(5000)
-waitms(5000)
 
 do
 'goto 100
