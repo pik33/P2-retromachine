@@ -48,7 +48,7 @@
 '   - 2 - before visible
 '   - 3 - visible
 '   - 4 - left/right border size
-'   - 5 - unused, was pixels per char 
+'   - 5 - always 8, was pixels per char, todo: remove this
 '   - 6 - up/down border
 '   - 7 - up porch
 '   - 8 - vsync
@@ -72,7 +72,7 @@
 '' - display a graphic line %aaaa_aaaa_aaaa_aaaa_aazz_rrrr_rrrr_cc_10 - fields as in text, cc - color depth, r - reserved, unused
 '' Special commands:
 '' - repeat                 %nnnn_nnnn_nnnn_qqqq_mmmm_mmmm_mmmm_0111    repeat the next dl line n times, after q lines add offset m to the address
-'' - reload palette         %mmmm_mmmm_nnnn_nnnn_qqqq_qqqq_qqqq_1011    reload n palette entries from m color from palette_ptr+q --- not yet implemented, TODO
+'' - reload palette         %aaaa_aaaa_aaaa_aaaa_aaaa_rrrr_0100_0011    reload the palette from address
 '' - set border color       %rrrr_rrrr_gggg_gggg_bbbb_bbbb_0001_0011    set border color to rgb
 '' - set border color       %0000_0000_0000_0000_pppp_pppp_0010_0011    set border color to palette entry #p
 '' - set font ptr and size  %aaaa_aaaa_aaaa_aaaa_aaaa_ssss_0011_0011    ssss - bit for font size, 3=8, 4=16, a - addres for the font definition table
@@ -1444,11 +1444,18 @@ p391            getnib  dlc,framebuf2,#1                   ' get the subcommand 
  	if_z        add     buf2,#1                            ' now 1..16
  	if_z        shl     buf2,#6                            ' -> 64..1024 bytes
 ' 	        jmp     #p301                              ' end of processing
- 	         
+ 	cmp dlc,#%0100 wz
+ 	if_z getnib t1,framebuf2,#2
+ 	if_z shl t1,#4
+ 	if_z shr framebuf2,#12
+ 
+ 	if_z setq2 #15
+        if_z altd t1
+ 	if_z rdlong  $000, framebuf2         
 '
 p393            cmp     dlc,#%0011 wz                      ' 0011: set the font ptr and size -                       %0000_0000_0000_0000_0000_ssss_0011_0011
     if_z        getnib  fontsize,framebuf2,#2		   ' extract the size
-    if_z        shr     framebuf,#12     
+ '   if_z        shr     framebuf,#12     
     if_z        shr     framebuf2,#12                      ' get a pointer form the command
     if_z        mov     fontbuf,framebuf2		   ' and save it  	
       
@@ -1547,8 +1554,8 @@ p102            getword mb2,m_border,#0                    ' check if there is a
                 add     cursorpos,#1                       ' we will substract #1 below so compensate this here
                 mov     t2,fontbuf                         ' font definition pointer
                 add     t2,fontline                        ' add a current font line
-                mov     m_lut2, m_lut1                     ' pixel per character
-                add     m_lut2, lutt1                      ' enable pin output, LUT start at 256
+
+                mov    m_lut2, lutt1                      ' enable pin output, LUT start at 256
                 mov     cpl2,i_cpl                         ' temporary char per line to decrement later
                 cmp     zoom,#2 wz                         ' select the proper loop according to horizontal zoom
     if_z        jmp     #p420                              ' x4
@@ -1666,7 +1673,6 @@ p422            rdlong  char,framebuf2                    ' No hscroll here, can
                 getbyte t5,t3,#1		          ' pixels 6,7
                 xcont   m_lut2, t5                      
                 bitnot  m_lut2,#16                        ' switch LUTs for the next char
-                bitnot  m_lut1,#16                                                         
                 xor     lutaddr,#32             '                 
                 djnz   cpl2,#p422
                 jmp    #p203
@@ -1690,29 +1696,29 @@ p202           ' mov     m_cpl1, m_cpl
                 getword mb2,m_border,#0
                 cmp     mb2, #0 wz
     if_nz       xcont   m_border,border                  ' display a left border if exists
- '               mov     m_lut2,m_lut1                    ' m_lut1 loaded from hub timing block, pixel per long
+ 
                 mov     cpl2,i_cpl                       ' i_cpl in graphic modes is longs per line
                 getnib  zoom, dl,#3
                 and     zoom, #3                         ' get a horizontal zoom for the line
                 mov     colordepth,dl                    ' get a color depth        '
                 and     colordepth,#12
                 cmp     colordepth,#%0000 wz             ' 1 bpp modes
-    if_z	mov     m_lut2,#32
-    if_z        add     m_lut2,lutg1
+
+    if_z        mov     m_lut2,lutg1
     if_z        shr     cpl2,#2
     if_z        jmp     #p240
                 cmp     colordepth,#%0100 wz             ' 2 bpp modes
-                mov     m_lut2,#16
-    if_z        add     m_lut2,lutg2
+
+    if_z        mov     m_lut2,lutg2
     if_z        shr     cpl2,#1
     if_z        jmp     #p250
                 cmp     colordepth,#%1000 wz             ' 4 bpp modes
-                mov     m_lut2,#8
-    if_z        add     m_lut2,lutg4
+
+    if_z        mov    m_lut2,lutg4
     if_z        jmp     #p260
-                mov m_lut2,#4
+
                 shl cpl2,#1
-                add     m_lut2,lutg8                     ' 8 bpp modes
+                mov     m_lut2,lutg8                     ' 8 bpp modes
 
 '' --- 8 bit color modes
 
@@ -1889,11 +1895,11 @@ cursorpos       long    0
 cursorpos2      long    0
 fontstart       long    0
 border2         long    0
-lutt1           long    $00880000              'enable pin output, LUT start at 256
-lutg1           long    $00800000
-lutg2           long    $10800000
-lutg4           long    $20800000
-lutg8           long    $30800000
+lutt1           long    $00880008              'enable pin output, LUT start at 256
+lutg1           long    $00800020
+lutg2           long    $10800010
+lutg4           long    $20800008
+lutg8           long    $30800004
 framebuf        long    0
 fontbuf         long    0
 borderptr       long    0
@@ -1949,11 +1955,11 @@ affffff00       long    $FFFFFF00
                
 rcnt3 long 0
 rcnt4 long 0               
-              '  fit       
+              'fit     222  
                 
                       
                 
-'' 6 longs left now    '
+'' 5 longs left now    '
 
 
 {{
