@@ -72,7 +72,7 @@
 '' - display a graphic line %aaaa_aaaa_aaaa_aaaa_aazz_rrrr_rrrr_cc_10 - fields as in text, cc - color depth, r - reserved, unused
 '' Special commands:
 '' - repeat                 %nnnn_nnnn_nnnn_qqqq_mmmm_mmmm_mmmm_0111    repeat the next dl line n times, after q lines add offset m to the address
-'' - reload palette         %aaaa_aaaa_aaaa_aaaa_aaaa_rrrr_0100_0011    reload the palette from address
+'' - reload palette         %aaaa_aaaa_aaaa_aaaa_aaaa_bbbb_0100_0011    reload the 16 palette entries at bbbb0000 from address a
 '' - set border color       %rrrr_rrrr_gggg_gggg_bbbb_bbbb_0001_0011    set border color to rgb
 '' - set border color       %0000_0000_0000_0000_pppp_pppp_0010_0011    set border color to palette entry #p
 '' - set font ptr and size  %aaaa_aaaa_aaaa_aaaa_aaaa_ssss_0011_0011    ssss - bit for font size, 3=8, 4=16, a - addres for the font definition table
@@ -180,6 +180,7 @@ long streamer[6]       'streamer constants
 byte colors[16]        'vga colors
 long graphmode
 long font_family
+long customtimings[16]
 
 '---------- Temporary variables for accessing different parts of the complex screen
 
@@ -273,103 +274,99 @@ if s_debug<>0
 return cog
 
 
-'*************************************************************************
-'                                                                        *
-'  Mode setting                                                          *
-'                                                                        *
-'*************************************************************************
-
+'************************************************************************************************************** 
+'                                                                                                             *
+'  Simple standard mode setting                                                             rev. 20220319     *
+'                                                                                                             *
+'**************************************************************************************************************
 
 pub setmode(mode) | i', 'xzoom, yzoom, azoom
 
-if mode==(512+192+48)
-  return 'no RAM
-if mode==(512+128+48)
-  return 'no RAM
+'' Mode number bits:
+' 15   (32768) - use a custom timings set, overrides bits 8,7,6
+' 10    (1024) - psram enable (1), disable   (0)
+' 9      (512) - graphic mode (1), text mode (0)
+' 8      (256) - 60 Hz(1) 50 Hz(0)
+' 7,6 (128,64) - borders: 00 wide 01 narrow, 10 borderless, 11 borderless highest resolution
+' 5,4  (32,16) - color depth in graphic modes, unused in text modes, 00 1bpp 01 2bpp 10 4bpp 11 8bpp
+' 3,2    (8,4)  - vertical zoom, 00-1x, 01-2x, 10-4x, 11-8x
+' 1,0    (2,1)  - horizontal zoom, 00-1x, 01-2x, 10-4x, 11-8x, 8x works only for 8bpp modes
 
+if mode==(512+192+48)                                       ' this mode needs 576 kB of hub ram, impossible  			
+  return 
+if mode==(512+128+48)					    ' this mode needs 506.25 kB of HUB RAM, possible only in theory, leaving 5.75 kB for the code
+  return 'no RAM
 
 if cog>0 
-   waitvbl(1)
+   waitvbl(1)						    ' if the driver is active, wait for vblank to set the new mode and DL	
 
-case_fast (mode>>6) & 7 ' timings are the same for graphic and text
+case_fast (mode>>6) & 7                                     ' timings are the same for graphic and text
 
-    0:  longmove(@timings,@timings000,16)   '800x480 @ 960x540 with wide borders 50 Hz  
-    1:  longmove(@timings,@timings064,16)   '896x496 @ 960x540 with narrow borders 50 Hz
-    2:  longmove(@timings,@timings128,16)   '960x540 borderless, fullHD/2 50 Hz 
-    3:  longmove(@timings,@timings192,16)   '1024x576 borderless 50 Hz
-    4:  longmove(@timings,@timings256,16)   '640x400 @ 896x496 with wide borders 60 Hz
-    5:  longmove(@timings,@timings320,16)   '880x480 @ 896x496 with narrow borders 60 Hz
-    6:  longmove(@timings,@timings384,16)   '800x480 borderless 60 Hz 
-    7:  longmove(@timings,@timings448,16)   '896x496 borderless 60 Hz
+    0:  longmove(@timings,@timings000,16)                   ' 800x480 @ 960x540 with wide borders 50 Hz  
+    1:  longmove(@timings,@timings064,16)                   ' 896x496 @ 960x540 with narrow borders 50 Hz
+    2:  longmove(@timings,@timings128,16)                   ' 960x540 borderless, fullHD/2 50 Hz 
+    3:  longmove(@timings,@timings192,16)                   ' 1024x576 borderless 50 Hz
+    4:  longmove(@timings,@timings256,16)                   ' 640x400 @ 896x496 with wide borders 60 Hz
+    5:  longmove(@timings,@timings320,16)                   ' 880x480 @ 896x496 with narrow borders 60 Hz
+    6:  longmove(@timings,@timings384,16)                   ' 800x480 borderless 60 Hz 
+    7:  longmove(@timings,@timings448,16)                   ' 896x496 borderless 60 Hz
 
-' TODO here: write a settimings function enalbling user defined modes
+if mode>32768
+  longmove(@timings,@customtimings,16)                      ' mode $8000 is a special custom defined mode. TODO: write a settimings function 
+  mode:=mode & $7FFF                                        ' clear the bit             
 
-if (mode<512) || ((mode>=1024) && (mode<1536))
-  palette_ptr:=@ataripalette                    'text mode, 8-bit palette          
-  cpl:=timings[11]
+if (mode<512) || ((mode>=1024) && (mode<1536))		    ' text mode
+  palette_ptr:=@ataripalette                                ' use 8-bit palette          
+  cpl:=timings[11]					    ' timings[11] defines character per line for high-level functions
 
-if (mode & (%10_00_11_0000))==(%10_00_11_0000) ' 8bit graphics, 4 pixels per long instead of 8, cpp x2
-'  timings[5]:=4
-   cpl:=timings[11]<<1
-  if mode<1024
-    putpixel:=p8
-  else
-    putpixel:=p8p  
-  palette_ptr:=@ataripalette
+if (mode & (%10_00_11_0000))==(%10_00_11_0000) '            ' 8bpp graphics, 4 pixels per long instead of 8
+   cpl:=timings[11]<<1                                      ' now cpl is longs per line
+  if mode<1024                                              ' if bit 10 not set
+    putpixel:=p8                                            ' use 8-bit hub based putpixel
+  else                        
+    putpixel:=p8p                                           ' else use 8-bit PSRAM based putpixel
+  palette_ptr:=@ataripalette				    ' use 256-colors palettr
 
-if (mode & (%10_00_11_0000))==(%10_00_01_0000) ' 2bit graphics, 16 pixels per long instead of 8, cpp /2
-'  timings[5]:=16
+if (mode & (%10_00_11_0000))==(%10_00_01_0000)              ' 2bpp graphics, 16 pixels per long instead of 8, cpp /2
   cpl:=timings[11]>>1
   if mode<1024
-    putpixel:=p2
+    putpixel:=p2					    ' set a proper putpixel
   else
     putpixel:=p2p
-  palette_ptr:=@fourcolors
-
-if (mode & (%10_00_11_0000))==(%10_00_00_0000) ' 1bit graphics, 32 pixels per long instead of 8, cpp /4
-'  timings[5]:=32
+  palette_ptr:=@fourcolors				    ' and a 4-colors palette (black, gray, red, white)
+   
+if (mode & (%10_00_11_0000))==(%10_00_00_0000)              ' 1bit graphics, 32 pixels per long instead of 8, cpp /4
   cpl:=timings[11]>>2
   if mode<1024
     putpixel:=p1
   else
     putpixel:=p1p  
-  palette_ptr:=@twocolors
+  palette_ptr:=@twocolors                                   ' black and white
 
-if (mode & (%10_00_11_0000))==(%10_00_10_0000) ' 4bit graphics,' 4-bit graphics: do nothing with timings :)
+if (mode & (%10_00_11_0000))==(%10_00_10_0000)              ' 4bit graphics
   cpl:=timings[11]
   if mode<1024
     putpixel:=p4
-    
   else
     putpixel:=p4p
-      
-  palette_ptr:=@vga16
+  palette_ptr:=@vga16					    ' VGA type 16 colors
   
-' -----  TODO!!!!!! These timings has to be set via DL in the driver cog and not here. This disables bpp switching via DL !!!!!
-
 repeat i from 0 to 4
-  timings[i]:=timings[i]+hdmibase<<17+ timingsxxt
-timings[5]:=timings[5]+hdmibase<<17
-clkfreq:=timings[13]
+  timings[i]:=timings[i]+hdmibase<<17+ timingsxxt           ' add a streamer config (imm->pins) to horizontal timings 
+clkfreq:=timings[13]					    ' set the clock frequency for the mode
 hubset(timings[14])
-waitms(1)
-
-xzoom:=1<<(mode & 3)
-
-if (xzoom==8) && (((mode>>4)&3)<>3)
+waitms(1)                                                   ' wait for stabilization
+xzoom:=1<<(mode & 3)				            ' compute a horizontal zoom
+if (xzoom==8) && (((mode>>4)&3)<>3)			    ' zoom x8 is available only for 8bpp modes
   xzoom:=4
+yzoom:=1<<((mode>>2) & 3)				    ' compute a vertical zoom
 
-yzoom:=1<<((mode>>2) & 3)
-azoom:=xzoom*yzoom
-
-if (mode<512) || ((mode>=1024) && (mode<1536))'if (mode && 1023) <512
-  lines:=(timings[12]>>4)+/yzoom
-'  if ((timings[12]>>4)+//yzoom) <>0
-'    lines +=1
-  if cpl//xzoom==0
+if (mode<512) || ((mode>=1024) && (mode<1536))              ' if text mode
+  lines:=(timings[12]>>4)+/yzoom                            ' compute text lines count for 8x16 font
+'  if cpl//xzoom==0
     cpl:=cpl/xzoom
-  else
-    cpl:=cpl/xzoom+1
+'  else
+'    cpl:=cpl/xzoom+1
                                            ' 4 bytes per char, so cpl has to be n*32
 
 
@@ -412,14 +409,13 @@ s_cpl1:=cpl1
 waitms(20)
 
 
-'*************************************************************************
-'                                                                        *
-'  Make a display list                                                   *
-'                                                                        *
-'*************************************************************************
+'**************************************************************************************************************
+'                                                                                                             *
+'  Make a display list for simple standard modes                                             rev.20220319     *
+'                                                                                                             *
+'**************************************************************************************************************
 
-
-pub makedl (mode) |i, fontline2,charline,bufstart,zoom1,vzoom,lpc,hzoom,border,psbuf,lines2
+pub makedl (mode) |i,vzoom,border,psbuf,lines2
 
 psbuf:=$80000-s_debug-1024                                                     ' HUB line buffer on the top of HUB RAM (-16 kB if debug enabled)
 vzoom:=1<<((mode>>2) & 3)                                                      ' real vzoom from mode#
@@ -1385,8 +1381,9 @@ p101            setq    #9				   ' read variables
 p399          '  call #hsync   
                 xcont   m_bs,hsync0   
  
-p301            cmp     rcnt,#0 wz			   ' check the DL repeat counter 				
-    if_z        jmp     #p306                              ' no repeat, goto read and interpret the next DL entry
+p301            cmp     rcnt,#0 wz			   ' check the DL repeat counter 
+    if_z        rdlong dl,dlptr2				
+    if_z        jmp     #p307 '6                              ' no repeat, goto read and interpret the next DL entry
     
                 incmod  rcnt4,rcnt3 wcz
     if_nc       sub     dlptr2,#4 
@@ -1406,8 +1403,8 @@ p301            cmp     rcnt,#0 wz			   ' check the DL repeat counter
                 rczr    t1 wcz                             ' to allow the cursor display at  the proper line							
     if_nc_and_z add     dl,#4                              ' Now I didn't expect to use 8x8 font and max textline is 63 while 576 pixels gives 72 text lines Todo: reuse font line bit if 8x8                   
 p309            mov     rdl,dl                             ' save the result
-                jmp     #p307                              ' jump over reading new DL line 
-p306            rdlong  dl,dlptr2                          ' read the DL enry
+              '  jmp     #p307                              ' jump over reading new DL line 
+'p306            rdlong  dl,dlptr2                          ' read the DL enry
 p307            mov     framebuf2,dl wcz                   ' move this to framebuf2. If normal DL entry, the frame buffer start will be extracted from this
                 rczr    framebuf2 wcz                      ' check if 2 lower bits=11. If yes, this is special command
     if_nz_or_nc jmp     #p303                              ' if not, this is standard DL entry - start to interpret the line at p303 
@@ -1955,7 +1952,7 @@ affffff00       long    $FFFFFF00
                
 rcnt3 long 0
 rcnt4 long 0               
-             ' fit     222  
+               'fit     222  
                 
                       
                 

@@ -1,6 +1,6 @@
 #include "retromachine.bi"
 
-dim newdl(7) as ulong
+dim newdl(2048) as ulong
 dim random(511) as ubyte
 let c1=1: let c2=0
 startmachine
@@ -65,6 +65,8 @@ for i = 0 to 100
   y2=getrnd() mod 200
   v.box(x1,y1,x1+x2,y1+y2,ccc)  
 next i      
+
+
 
 next j 
 
