@@ -7,6 +7,64 @@ startmachine
 startpsram
 startvideo
 
+dim ccc,x1,x2,y1,y2,r as ulong
+
+v.setmode(1024+512+192+48)
+v.cls(0,0)
+waitms(5000)
+
+for j=1 to 10
+
+v.outtextxycg(0,0,"Testing PSRAM 8bpp 1024x576 HDMI mode",200,0)
+
+waitms(5000)
+
+
+
+for i = 0 to 5000
+  ccc=getrnd() and 255
+  x1=getrnd() mod 1024
+  x2=getrnd() mod 1024
+  y1=getrnd() mod 576
+  y2=getrnd() mod 576
+  v.line1(x1,y1,x2,y2,ccc)
+next i 
+
+for i = 0 to 500
+  x1=getrnd() mod 1024
+  y1=getrnd() mod 576
+  r=getrnd() mod 100
+  ccc=getrnd() and 255
+  v.fcircle(x1,y1,r,ccc)   
+next i  
+
+for i = 0 to 5000
+  ccc=getrnd() and 255
+  x1=getrnd() mod 1024
+  x2=getrnd() mod 1024
+  y1=getrnd() mod 576
+  y2=getrnd() mod 576
+  v.frame(x1,y1,x2,y2,ccc)
+next i  
+  
+for i = 0 to 1000
+  x1=getrnd() mod 1024
+  y1=getrnd() mod 576
+  r=getrnd() mod 100
+  ccc=getrnd() and 255
+  v.circle(x1,y1,r,ccc) 
+next i  
+  
+for i = 0 to 1000
+  ccc=getrnd() and 255
+  x1=getrnd() mod 1024
+  x2=getrnd() mod 100
+  y1=getrnd() mod 576
+  y2=getrnd() mod 200
+  v.box(x1,y1,x1+x2,y1+y2,ccc)  
+next i      
+
+next j 
 
 do
 'goto 100
@@ -56,7 +114,7 @@ do
     next depth
   next mainmode    
  
-100  for mainmode=16 to 16+7
+ for mainmode=16 to 16+7
     for vzoom=0 to 3
       for hzoom= 0 to 2
         let mode=64*mainmode+4*vzoom+hzoom
@@ -77,7 +135,7 @@ do
   next mainmode    
 
  
- for mainmode=24 to 24+7
+100  for mainmode=24 to 24+7
     for depth=0 to 3
       for vzoom=0 to 3
         for hzoom= 0 to 3
