@@ -579,11 +579,10 @@ else
   else
     bytefill(s_buf_ptr+(4*cpl*y+x1),c,1+x2-x1)  
  
-pub line(x1,y1,x2,y2,c) | d,dx,dy,ai,bi,xi,yi,x,y
+pub line(x1,y1,x2,y2,c)  								' this is a "draw" alias
 draw(x1,y1,x2,y2,c)
 
-pub draw(x1,y1,x2,y2,c) | d,dx,dy,ai,bi,xi,yi,x,y
-
+pub draw(x1,y1,x2,y2,c) | d,dx,dy,ai,bi,xi,yi,x,y					' I had to rename the function for BASIC	
 
 x:=x1
 y:=y1
@@ -630,10 +629,6 @@ else
       d+=bi
       y+=yi
     putpixel(x, y,c)
-
-
-
-
 
 '-- A filled circle -----------------------------------------------------
 
@@ -707,20 +702,12 @@ pub box(x1,y1,x2,y2,c) |yy
 
 repeat yy from y1 to y2
   fastline(x1,x2,yy,c)
- 
-  
-
-
-
-
-
     
-    
-'*************************************************************************
-'                                                                        *
-'  Characters on graphic screen                                          *
-'                                                                        *
-'*************************************************************************    
+'****************************************************************************************************************
+'                                                                       		 			*
+'  Characters on graphic screen                                          					*
+'                                                                       					*
+'****************************************************************************************************************    
 
 ' ------  Transparent character
 
@@ -1061,12 +1048,16 @@ if (achar<>9) && (achar<>10)
   y:=cursor_y
   c:=write_color<<24+write_background<<16
   l:=c+achar
-  if (graphmode<1024)
+  if (graphmode<512)
     long[s_buf_ptr+4*(s_cpl*y+x)]:=l
- '    long[s_buf_ptr+4*(s_cpl*y+x)]:=long[s_buf_ptr+4*(s_cpl*y+x)] &$FFFF | c
-  '   long[s_buf_ptr+4*(s_cpl*y+x)]:=(long[s_buf_ptr+4*(s_cpl*y+x)] & $FFFFFF00)  |(achar & $000000FF)
-  else 
+  if (graphmode>=1024) && (graphmode<1536) 
      ram.fill(s_buf_ptr+4*(s_cpl1*y+x),l,1,0,4 )     
+     
+  if (graphmode>=1024) && (graphmode<1536) 
+     ram.fill(s_buf_ptr+4*(s_cpl1*y+x),l,1,0,4 )     
+     
+  if ((graphmode>=512) && (graphmode<1024)) ||  ((graphmode>=1536) && (graphmode<2048)) 
+     putcharxycg(8*cursor_x,16*cursor_y,achar,write_color,write_background)  ' todo: make fast putchar for 8bpp   
      
   cursor_x+=1
   
@@ -1281,7 +1272,7 @@ if colors==256
 '
 '**********************************************************************************
 dat
-vga_font       file "vgafont.def"
+vga_font       'file "vgafont.def"
 st_font        file "st4font.def"
 a8_font        file "atari8.fnt"
 twocolors      long  $00000000,$FFFFFF00

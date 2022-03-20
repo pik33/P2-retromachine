@@ -1,6 +1,6 @@
 '********************************************************************************************
 ' Nostalgic displaylisted HDMI for P2 Retromachine
-' Version 0.40 alpha -20220315
+' Version 0.43 alpha -20220320
 ' 1 cog,text and graphics with or without border, 8x16 selectable and redefinable font
 ' The P2 Retromachine version with PSRAM enabled
 ' (c) 2012-2021 Piotr Kardasz pik33@o2.pl
@@ -579,11 +579,10 @@ else
   else
     bytefill(s_buf_ptr+(4*cpl*y+x1),c,1+x2-x1)  
  
-pub line(x1,y1,x2,y2,c) | d,dx,dy,ai,bi,xi,yi,x,y
+pub line(x1,y1,x2,y2,c)  								' this is a "draw" alias
 draw(x1,y1,x2,y2,c)
 
-pub draw(x1,y1,x2,y2,c) | d,dx,dy,ai,bi,xi,yi,x,y
-
+pub draw(x1,y1,x2,y2,c) | d,dx,dy,ai,bi,xi,yi,x,y					' I had to rename the function for BASIC	
 
 x:=x1
 y:=y1
@@ -630,10 +629,6 @@ else
       d+=bi
       y+=yi
     putpixel(x, y,c)
-
-
-
-
 
 '-- A filled circle -----------------------------------------------------
 
@@ -707,20 +702,12 @@ pub box(x1,y1,x2,y2,c) |yy
 
 repeat yy from y1 to y2
   fastline(x1,x2,yy,c)
- 
-  
-
-
-
-
-
     
-    
-'*************************************************************************
-'                                                                        *
-'  Characters on graphic screen                                          *
-'                                                                        *
-'*************************************************************************    
+'****************************************************************************************************************
+'                                                                       		 			*
+'  Characters on graphic screen                                          					*
+'                                                                       					*
+'****************************************************************************************************************    
 
 ' ------  Transparent character
 
@@ -793,7 +780,6 @@ pub outtextxycz(x,y,text,f,b,xz,yz) | iii,c
 
 repeat iii from 0 to strsize(text)-1
   putcharxycz(x+8*xz*iii,y,byte[text+iii],f,b,xz,yz)
-
 
 
 '**********************************************************************r***
@@ -1061,12 +1047,16 @@ if (achar<>9) && (achar<>10)
   y:=cursor_y
   c:=write_color<<24+write_background<<16
   l:=c+achar
-  if (graphmode<1024)
+  if (graphmode<512)
     long[s_buf_ptr+4*(s_cpl*y+x)]:=l
- '    long[s_buf_ptr+4*(s_cpl*y+x)]:=long[s_buf_ptr+4*(s_cpl*y+x)] &$FFFF | c
-  '   long[s_buf_ptr+4*(s_cpl*y+x)]:=(long[s_buf_ptr+4*(s_cpl*y+x)] & $FFFFFF00)  |(achar & $000000FF)
-  else 
+  if (graphmode>=1024) && (graphmode<1536) 
      ram.fill(s_buf_ptr+4*(s_cpl1*y+x),l,1,0,4 )     
+     
+  if (graphmode>=1024) && (graphmode<1536) 
+     ram.fill(s_buf_ptr+4*(s_cpl1*y+x),l,1,0,4 )     
+     
+  if ((graphmode>=512) && (graphmode<1024)) ||  ((graphmode>=1536) && (graphmode<2048)) 
+     putcharxycg(8*cursor_x,16*cursor_y,achar,write_color,write_background)  ' todo: make fast putchar for 8bpp   
      
   cursor_x+=1
   

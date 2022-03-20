@@ -9,30 +9,27 @@ startvideo
 
 dim ccc,x1,x2,y1,y2,r as ulong
 
+for j=1 to 2
 v.setmode(1024+512+192+48)
-v.cls(0,0)
+v.cls(200,0)
 waitms(5000)
 
-for j=1 to 2
 
-v.outtextxycg(0,0,"Testing PSRAM 8bpp 1024x576 HDMI mode",200,0)
 
+'v.outtextxycg(0,0,"Testing PSRAM 8bpp 1024x576 HDMI mode",200,0)
+print "Testing PSRAM 8bpp 1024x576 HDMI mode"
 waitms(5000)
  
-
-
-
-
 for i = 0 to 500
   ccc=getrnd() and 255
   x1=getrnd() mod 1024
   x2=getrnd() mod 1024
   y1=getrnd() mod 576
   y2=getrnd() mod 576
-  v.line1(x1,y1,x2,y2,ccc)
+  v.draw(x1,y1,x2,y2,ccc)
 next i 
 
-for i = 0 to 50
+for i = 0 to 5000
   x1=getrnd() mod 1024
   y1=getrnd() mod 576
   r=getrnd() mod 100
@@ -49,7 +46,7 @@ for i = 0 to 500
   v.frame(x1,y1,x2,y2,ccc)
 next i  
   
-for i = 0 to 100
+for i = 0 to 1000
   x1=getrnd() mod 1024
   y1=getrnd() mod 576
   r=getrnd() mod 100
@@ -57,7 +54,7 @@ for i = 0 to 100
   v.circle(x1,y1,r,ccc) 
 next i  
   
-for i = 0 to 100
+for i = 0 to 10000
   ccc=getrnd() and 255
   x1=getrnd() mod 1024
   x2=getrnd() mod 200
@@ -65,6 +62,61 @@ for i = 0 to 100
   y2=getrnd() mod 200
   v.box(x1,y1,x1+x2,y1+y2,ccc)  
 next i      
+
+
+
+v.setmode(0+512+64+48)
+v.cls(0,0)
+waitms(5000)
+
+
+print "Testing HUB 8bpp 896x496 HDMI mode"
+
+waitms(5000)
+ 
+for i = 0 to 5000
+  ccc=getrnd() and 255
+  x1=getrnd() mod 896
+  x2=getrnd() mod 896
+  y1=getrnd() mod 496
+  y2=getrnd() mod 496
+  v.draw(x1,y1,x2,y2,ccc)
+next i 
+
+for i = 0 to 50000
+  x1=getrnd() mod 896
+  y1=getrnd() mod 496
+  r=getrnd() mod 100
+  ccc=getrnd() and 255
+  v.fcircle(x1,y1,r,ccc)   
+next i  
+
+for i = 0 to 5000
+  ccc=getrnd() and 255
+  x1=getrnd() mod 896
+  x2=getrnd() mod 896
+  y1=getrnd() mod 496
+  y2=getrnd() mod 496
+  v.frame(x1,y1,x2,y2,ccc)
+next i  
+  
+for i = 0 to 10000
+  x1=getrnd() mod 896
+  y1=getrnd() mod 496
+  r=getrnd() mod 100
+  ccc=getrnd() and 255
+  v.circle(x1,y1,r,ccc) 
+next i  
+  
+for i = 0 to 100000
+  ccc=getrnd() and 255
+  x1=getrnd() mod 896
+  x2=getrnd() mod 200
+  y1=getrnd() mod 496
+  y2=getrnd() mod 200
+  v.box(x1,y1,x1+x2,y1+y2,ccc)  
+next i      
+
 
 
 
@@ -100,7 +152,6 @@ do
         v.setmode(mode)
         v.cls(154,147)
         print "Mode: "; mode
-  '    v.write("Mode: "): v.write(v.inttostr(mode))
         print "Fb start: ";v.s_buf_ptr
         print "Lines: ";v.s_lines
         print "Cpl: "; v.s_cpl
@@ -124,11 +175,11 @@ do
           if depth=1 then let c1=2 : let c2=0
           if depth=0 then let c1=1 : let c2=0
           v.cls(c1,c2)
-          v.outtextxycg(0,0,"Mode: ",c1,c2) : v.outtextxycg(56,0,v.inttostr(mode),c1,c2)
-          v.outtextxycg(0,16,"Fb : ",c1,c2) : v.outtextxycg(56,16,v.inttostr(v.s_buf_ptr),c1,c2)
-          v.outtextxycg(0,32,"Lines: ",c1,c2) : v.outtextxycg(64,32,v.inttostr(v.s_lines),c1,c2)
-          v.outtextxycg(0,48,"Cpl: ",c1,c2) : v.outtextxycg(56,48,v.inttostr(v.s_cpl),c1,c2)
-          v.outtextxycg(0,64,"Buffer length: ",c1,c2) : v.outtextxycg(128,64,v.inttostr( v.s_buflen),c1,c2)
+          print "Mode: "; mode
+          print "Fb start: ";v.s_buf_ptr
+          print "Lines: ";v.s_lines
+          print "Cpl: "; v.s_cpl
+          print "Buffer length: ";v.s_buflen
           v.outtextxycg(0,80,"1234567890123456789012345678901234567890",c1,c2)
           if mode mod 64 = 0 then waitms(5000)
           waitms(600)
@@ -159,7 +210,7 @@ do
   next mainmode    
 
  
-100  for mainmode=24 to 24+7
+    for mainmode=24 to 24+7
     for depth=0 to 3
       for vzoom=0 to 3
         for hzoom= 0 to 3
@@ -170,11 +221,12 @@ do
           if depth=1 then let c1=2 : let c2=0
           if depth=0 then let c1=1 : let c2=0
           v.cls(c1,c2)
-          v.outtextxycg(0,0,"Mode: ",c1,c2) : v.outtextxycg(56,0,v.inttostr(mode),c1,c2)
-          v.outtextxycg(0,16,"Fb : ",c1,c2) : v.outtextxycg(56,16,v.inttostr(v.s_buf_ptr),c1,c2)
-          v.outtextxycg(0,32,"Lines: ",c1,c2) : v.outtextxycg(64,32,v.inttostr(v.s_lines),c1,c2)
-          v.outtextxycg(0,48,"Cpl: ",c1,c2) : v.outtextxycg(56,48,v.inttostr(v.s_cpl),c1,c2)
-          v.outtextxycg(0,64,"Buffer length: ",c1,c2) : v.outtextxycg(128,64,v.inttostr( v.s_buflen),c1,c2)
+          print "Mode: "; mode
+          print "Fb start: ";v.s_buf_ptr
+          print "Lines: ";v.s_lines
+          print "Cpl: "; v.s_cpl
+          print "Buffer length: ";v.s_buflen
+
           v.outtextxycg(0,80,"1234567890123456789012345678901234567890",c1,c2)
           if mode mod 64 = 0 then waitms(5000)
           waitms(600)
