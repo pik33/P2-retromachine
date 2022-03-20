@@ -9,139 +9,125 @@ startvideo
 
 dim ccc,x1,x2,y1,y2,r as ulong
 
+
 for j=1 to 2
-v.setmode(1024+512+192+48)
-v.cls(200,0)
-waitms(5000)
-
-
-
-'v.outtextxycg(0,0,"Testing PSRAM 8bpp 1024x576 HDMI mode",200,0)
-print "Testing PSRAM 8bpp 1024x576 HDMI mode"
-waitms(5000)
+  v.setmode(1024+512+192+48)
+  v.cls(200,0)
+  'v.outtextxycg(0,0,"Testing PSRAM 8bpp 1024x576 HDMI mode",200,0)
+  print "Testing PSRAM 8bpp 1024x576 HDMI mode"
+  waitms(5000)
  
-for i = 0 to 500
-  ccc=getrnd() and 255
-  x1=getrnd() mod 1024
-  x2=getrnd() mod 1024
-  y1=getrnd() mod 576
-  y2=getrnd() mod 576
-  v.draw(x1,y1,x2,y2,ccc)
-next i 
+  for i = 0 to 500
+    ccc=getrnd() and 255
+    x1=getrnd() mod 1024
+    x2=getrnd() mod 1024
+    y1=getrnd() mod 576
+    y2=getrnd() mod 576
+    v.draw(x1,y1,x2,y2,ccc)
+  next i 
 
-for i = 0 to 5000
-  x1=getrnd() mod 1024
-  y1=getrnd() mod 576
-  r=getrnd() mod 100
-  ccc=getrnd() and 255
-  v.fcircle(x1,y1,r,ccc)   
-next i  
+  for i = 0 to 5000
+    x1=getrnd() mod 1024
+    y1=getrnd() mod 576
+    r=getrnd() mod 100
+    ccc=getrnd() and 255
+    v.fcircle(x1,y1,r,ccc)   
+  next i  
 
-for i = 0 to 500
-  ccc=getrnd() and 255
-  x1=getrnd() mod 1024
-  x2=getrnd() mod 1024
-  y1=getrnd() mod 576
-  y2=getrnd() mod 576
-  v.frame(x1,y1,x2,y2,ccc)
-next i  
+  for i = 0 to 500
+    ccc=getrnd() and 255
+    x1=getrnd() mod 1024
+    x2=getrnd() mod 1024
+    y1=getrnd() mod 576
+    y2=getrnd() mod 576
+    v.frame(x1,y1,x2,y2,ccc)
+  next i  
   
-for i = 0 to 1000
-  x1=getrnd() mod 1024
-  y1=getrnd() mod 576
-  r=getrnd() mod 100
-  ccc=getrnd() and 255
-  v.circle(x1,y1,r,ccc) 
-next i  
+  for i = 0 to 1000
+    x1=getrnd() mod 1024
+    y1=getrnd() mod 576
+    r=getrnd() mod 100
+    ccc=getrnd() and 255
+    v.circle(x1,y1,r,ccc) 
+  next i  
   
-for i = 0 to 10000
-  ccc=getrnd() and 255
-  x1=getrnd() mod 1024
-  x2=getrnd() mod 200
-  y1=getrnd() mod 576
-  y2=getrnd() mod 200
-  v.box(x1,y1,x1+x2,y1+y2,ccc)  
-next i      
+  for i = 0 to 10000
+    ccc=getrnd() and 255
+    x1=getrnd() mod 1024
+    x2=getrnd() mod 200
+    y1=getrnd() mod 576
+    y2=getrnd() mod 200
+    v.box(x1,y1,x1+x2,y1+y2,ccc)  
+  next i      
 
+  v.setmode(0+512+64+48)
+  v.cls(40,0)
+  print "Testing HUB 8bpp 896x496 HDMI mode "
 
-
-v.setmode(0+512+64+48)
-v.cls(0,0)
-waitms(5000)
-
-
-print "Testing HUB 8bpp 896x496 HDMI mode"
-
-waitms(5000)
+  waitms(5000)
  
-for i = 0 to 5000
-  ccc=getrnd() and 255
-  x1=getrnd() mod 896
-  x2=getrnd() mod 896
-  y1=getrnd() mod 496
-  y2=getrnd() mod 496
-  v.draw(x1,y1,x2,y2,ccc)
-next i 
+  for i = 0 to 5000
+    ccc=getrnd() and 255
+    x1=getrnd() mod 896
+    x2=getrnd() mod 896
+    y1=getrnd() mod 496
+    y2=getrnd() mod 496
+    v.draw(x1,y1,x2,y2,ccc)
+  next i 
 
-for i = 0 to 50000
-  x1=getrnd() mod 896
-  y1=getrnd() mod 496
-  r=getrnd() mod 100
-  ccc=getrnd() and 255
-  v.fcircle(x1,y1,r,ccc)   
-next i  
+  for i = 0 to 50000
+    x1=getrnd() mod 896
+    y1=getrnd() mod 496
+    r=getrnd() mod 100
+    ccc=getrnd() and 255
+    v.fcircle(x1,y1,r,ccc)   
+  next i  
 
-for i = 0 to 5000
-  ccc=getrnd() and 255
-  x1=getrnd() mod 896
-  x2=getrnd() mod 896
-  y1=getrnd() mod 496
-  y2=getrnd() mod 496
-  v.frame(x1,y1,x2,y2,ccc)
-next i  
+  for i = 0 to 5000
+    ccc=getrnd() and 255
+    x1=getrnd() mod 896
+    x2=getrnd() mod 896
+    y1=getrnd() mod 496
+    y2=getrnd() mod 496
+    v.frame(x1,y1,x2,y2,ccc)
+  next i  
   
-for i = 0 to 10000
-  x1=getrnd() mod 896
-  y1=getrnd() mod 496
-  r=getrnd() mod 100
-  ccc=getrnd() and 255
-  v.circle(x1,y1,r,ccc) 
-next i  
+  for i = 0 to 10000
+    x1=getrnd() mod 896
+    y1=getrnd() mod 496
+    r=getrnd() mod 100
+    ccc=getrnd() and 255
+    v.circle(x1,y1,r,ccc) 
+  next i  
   
-for i = 0 to 100000
-  ccc=getrnd() and 255
-  x1=getrnd() mod 896
-  x2=getrnd() mod 200
-  y1=getrnd() mod 496
-  y2=getrnd() mod 200
-  v.box(x1,y1,x1+x2,y1+y2,ccc)  
-next i      
-
-
-
+  for i = 0 to 100000
+    ccc=getrnd() and 255
+    x1=getrnd() mod 896
+    x2=getrnd() mod 200
+    y1=getrnd() mod 496
+    y2=getrnd() mod 200
+    v.box(x1,y1,x1+x2,y1+y2,ccc)  
+  next i      
 
 next j 
 
-     newdl(0)=%0000_0000_0000_0000_0000_0000_0111_0011    	       ' use the hub 
-     newdl(1)=%0000_0000_0000_0000_0000_0000_1000_0011                  ' switch off the adiitional vzoom
-'' - repeat                 %nnnn_nnnn_nnnn_qqqq_mmmm_mmmm_mmmm_0111    repeat the next dl line n times, after q lines add offset m to the address
-   '  %aaaa_aaaa_aaaa_aaaa_aazz_rrrr_rrrr_cc_10 - fields as in text, cc - color depth, r - reserved, unused
-     newdl(2)=(288 shl 20) +  3<<16+(1024 shl 4) +%0111              
-     newdl(3)= %0100_0000_0000_0000_0000_0000_0000_1110  
-     newdl(4)=%0011_0000_0000_0000_0000_0010_0100_0011
-     newdl(5)=(288 shl 20) +  3<<16+(1024 shl 4) +%0111              
-     newdl(6)= %0100_0000_0000_0000_0000_0000_0000_1110  
-'     newdl(2)=(288 shl 20) +  3<<16+(512 shl 4) +%0111              
-'     newdl(3)= %0101_0000_0000_0000_0000_0000_0000_1010  
-'     newdl(4)=288<<20+(0)<<16+%0111+ (4*128) <<4               ' display graphic lines
-'     newdl(5)=($50000+(0))<<12+ (32)>>2+%10  
+'' test palette load
+
+newdl(0)=%0000_0000_0000_0000_0000_0000_0111_0011    	       ' use the hub 
+newdl(1)=%0000_0000_0000_0000_0000_0000_1000_0011              ' switch off the adiitional vzoom
+newdl(2)=(288 shl 20) +  3<<16+(1024 shl 4) +%0111              
+newdl(3)= %0100_0000_0000_0000_0000_0000_0000_1110  
+newdl(4)=%0011_0000_0000_0000_0000_0010_0100_0011
+newdl(5)=(288 shl 20) +  3<<16+(1024 shl 4) +%0111              
+newdl(6)= %0100_0000_0000_0000_0000_0000_0000_1110  
+
 
 for i=$40000 to $6FFFF: poke i, i mod 255: next i
 for i=$30000 to $31000 step 4: lpoke i,(i+100 mod 256) shl 24+ (i+50 mod 256) shl 16 + (i mod 256) shl 8 : next i
 v.dl_ptr=addr(newdl(0))
 waitms(5000)
 
-
+v.setfontfamily(4)
 do
 'goto 100
 '' text mode testing

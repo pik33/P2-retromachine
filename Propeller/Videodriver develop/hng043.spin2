@@ -394,8 +394,9 @@ makedl(mode)							' make a DL for the mode
 s_buf_ptr:=buf_ptr						' secondary copies of main framebuffer parameters 
 s_font_ptr:=font_ptr
 s_lines:=lines
-s_cpl:=cpl
 s_buflen:=buflen
+
+s_cpl:=cpl
 s_cpl1:=cpl1
 waitms(20)							' wait 
 
@@ -793,6 +794,11 @@ repeat iii from 0 to strsize(text)-1
 pub setfontfamily(afontnum)
 
 font_family:=afontnum
+if afontnum==4
+  font_ptr:=@st_font
+if afontnum==0
+  font_ptr:=@vga_font
+  
 
 ''--------- Get a pointer to a font definition
 
@@ -1035,7 +1041,7 @@ repeat iii from 0 to strsize(text)-1
 
 ''---------- Output a char at the cursor position, move the cursor -- PSRAM
 
-pub putchar(achar) | c,x,y,l
+pub putchar(achar) | c,x,y,l,newcpl
 
 if achar==10
   crlf()
@@ -1060,7 +1066,15 @@ if (achar<>9) && (achar<>10)
      
   cursor_x+=1
   
-if cursor_x==s_cpl
+newcpl:=s_cpl  
+if (graphmode & 48) == 48
+  newcpl:=s_cpl/2
+if (graphmode & 48) == 16
+  newcpl:=s_cpl*2
+if (graphmode & 48) == 0
+  newcpl:=s_cpl*4
+    
+if cursor_x==newcpl
   cursor_x:=0
   cursor_y+=1
   if cursor_y>s_lines-1
