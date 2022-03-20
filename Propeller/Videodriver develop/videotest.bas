@@ -1,15 +1,14 @@
 #include "retromachine.bi"
 
-dim newdl(2048) as ulong
 dim random(511) as ubyte
 let c1=1: let c2=0
-startmachine
+'startmachine
 startpsram
 startvideo
 
 dim ccc,x1,x2,y1,y2,r as ulong
 
-
+goto 999
 for j=1 to 2
   v.setmode(1024+512+192+48)
   v.cls(200,0)
@@ -59,7 +58,8 @@ for j=1 to 2
     y2=getrnd() mod 200
     v.box(x1,y1,x1+x2,y1+y2,ccc)  
   next i      
-
+  
+/'  
   v.setmode(0+512+64+48)
   v.cls(40,0)
   print "Testing HUB 8bpp 896x496 HDMI mode "
@@ -108,25 +108,20 @@ for j=1 to 2
     y2=getrnd() mod 200
     v.box(x1,y1,x1+x2,y1+y2,ccc)  
   next i      
-
+'/
 next j 
 
-'' test palette load
+v.setmode(2047)
+print "kwas"
+waitms(4000)
+999 v.setmode(0)
+v.cls(200,0)
+for i=1 to 28:print("koperwas"):next i
 
-newdl(0)=%0000_0000_0000_0000_0000_0000_0111_0011    	       ' use the hub 
-newdl(1)=%0000_0000_0000_0000_0000_0000_1000_0011              ' switch off the adiitional vzoom
-newdl(2)=(288 shl 20) +  3<<16+(1024 shl 4) +%0111              
-newdl(3)= %0100_0000_0000_0000_0000_0000_0000_1110  
-newdl(4)=%0011_0000_0000_0000_0000_0010_0100_0011
-newdl(5)=(288 shl 20) +  3<<16+(1024 shl 4) +%0111              
-newdl(6)= %0100_0000_0000_0000_0000_0000_0000_1110  
-
-
-for i=$40000 to $6FFFF: poke i, i mod 255: next i
-for i=$30000 to $31000 step 4: lpoke i,(i+100 mod 256) shl 24+ (i+50 mod 256) shl 16 + (i mod 256) shl 8 : next i
-v.dl_ptr=addr(newdl(0))
+print("koperwas");
+'v.setcursorpos(2,29)
+do:loop
 waitms(5000)
-
 v.setfontfamily(4)
 do
 'goto 100

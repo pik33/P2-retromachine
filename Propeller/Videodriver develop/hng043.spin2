@@ -199,7 +199,7 @@ long putpixel         ' putpixel function variables
 long p1,p2,p4,p8,p1p,p2p,p4p,p8p      ' 
 byte pixelbuf
 
-long displaylist[10]            ' now 8 longs is sufficient for a DL for simple modes
+long displaylist[12]            ' now 8 longs is sufficient for a DL for simple modes
 
 obj
 ram: "psram4.spin2"
@@ -411,7 +411,7 @@ pub makedl(mode) |i,vzoom,border,psbuf,lines2
 
 psbuf:=$80000-s_debug-1024                                                     ' HUB line buffer on the top of HUB RAM (-16 kB if debug enabled)
 vzoom:=1<<((mode>>2) & 3)                                                      ' real vzoom from mode#
-repeat i from 0 to 9                                                           ' clear DL
+repeat i from 0 to 11                                                           ' clear DL
    displaylist[i]:=0 
 
 if mode<512                                                                    ' text modes in HUB
@@ -426,7 +426,8 @@ if mode<512                                                                    '
      displaylist[5]:=16*lines<<20+%1111_0000_0000_0000_0111+4*cpl<<4           ' repeat text lines
      displaylist[6]:=(buf_ptr+(mode & 3))<<12+%1111_0000_0001                  ' for text mode repeat initial fontline has to be set at %1111 
      displaylist[7]:=%0000_0000_0000_0000_0000_0000_1000_0011                  ' clear the vzoom
-     displaylist[8]:=border<<20+%0111                                          ' repeat, displaylist[9] is already 0
+     displaylist[8]:=(border)<<20+%0111                                          ' repeat, displaylist[9] is already 0
+    
   else									       ' no u/d borders
      displaylist[0]:=%0000_0000_0000_0000_0000_0000_0111_0011                  ' switch to HUB
      displaylist[1]:=%0000_0000_0000_0000_0000_0000_1000_0011 + ((vzoom-1)<<8) ' set the vzoom
