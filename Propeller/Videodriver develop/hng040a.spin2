@@ -17,7 +17,7 @@
 '   - 960x540 borderless, fullHD/2 
 '   - 1024x576 borderless
 
-'' - 1024x576: I-have-a-psram-and-I-want-the-mode-!!!. It is not PAL 624 lines based no more, there is no place for that at 336 MHz. It's 1104x610
+'' - 1024x576: I-have-a-psram-and-I-want-the-mode-!!!. It is not PAL 624 lines based no more, there is no place for that at 336 MHz. It's 1132x596
 
 '  NTSC based 60 Hz/524 total lines: 
 
@@ -1347,7 +1347,7 @@ ataripalette   file "ataripalettep2.def"
 timings000      long   24,    80,  16,      960,    80,      8,     30,       24,    36,    24,        0,  100, 480,       336956522,   %1_101101__11_0000_0110__1111_1011,   540 
 timings064      long   24,    80,  16,      960,    32,      8,     22,       24,    36,    24,       64,  112, 496,       336956522,   %1_101101__11_0000_0110__1111_1011,   540  '960x540 @ 336 MHz
 timings128      long   24,    80,  16,      960,     0,      8,      0,       24,    36,    24,      128,  120, 540,       336956522,   %1_101101__11_0000_0110__1111_1011,   540   
-timings192      long   24,    76,   8,     1024,     0,      8,      0,        4,    8,     8,       192,  128, 576,       336956522,   %1_101101__11_0000_0110__1111_1011,   576  
+timings192      long   20,    80,   8,     1024,     0,      8,      0,        4,    8,     8,       192,  128, 576,       336956522,   %1_101101__11_0000_0110__1111_1011,   576  
 timings256      long   56,    80,  50,      896,   128,      8,     48,        8,    12,     8,      256,   80, 400,       340000000,   %1_000011__00_0100_0011__1111_1011,   496
 timings320      long   56,    80,  50,      896,    48,      8,      8,        8,    12,     8,      320,  100, 480,       340000000,   %1_000011__00_0100_0011__1111_1011,   496  
 timings384      long   88,   112,  82,      800,     0,      8,      0,       12,    20,    12,      384,  100, 480,       340000000,   %1_000011__00_0100_0011__1111_1011,   480
@@ -1425,11 +1425,12 @@ p301            cmp     rcnt,#0 wz			   ' check the DL repeat counter
     if_z        jmp     #p306                              ' no repeat, goto read and interpret the next DL entry
     
                 incmod  rcnt4,rcnt3 wcz
-    if_nc       sub     dlptr2,#4 
+ '   if_nc       sub     dlptr2,#4 
+ if_c add dlptr2,#4
     if_nc       jmp     #p307
         
                 sub     rcnt,#1 wz                         ' decrement the repeat counter
-    if_nz       sub     dlptr2,#4                          ' repeat. DL pointer was incremented while interpreting, now decrement it as it is repeated
+'    if_nz       sub     dlptr2,#4                          ' repeat. DL pointer was incremented while interpreting, now decrement it as it is repeated
                 mov     dl,rdl                             ' restore repeating DL entry from temporary buffer
                 getnib  t1,dl,#2                           ' fontline, unused in graphmode
                 add     t1,#1                              ' when character mode line repeat, you have to add #1 to the fontline#
@@ -1858,7 +1859,7 @@ p203          cmp      mb2, #0 wz
 ' --------- The line display procedure returns here ---------------------------------------------------------------------
 
 p302            add     linenum,#1                        ' increment the current line number 
-                add     dlptr2,#4                         ' point to the next DL entry
+           '     add     dlptr2,#4                         ' point to the next DL entry
                 cmp     linenum,i_totalvis  wz            ' check if all lines displayed
     if_nz       jmp     #p301                             ' if not, display the next line
 

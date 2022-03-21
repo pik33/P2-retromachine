@@ -7,8 +7,11 @@ startpsram
 startvideo
 
 dim ccc,x1,x2,y1,y2,r as ulong
+v.setmode(1408)
+v.cls(42,36)
+print "kwas"
+waitms(5000)
 
-goto 999
 for j=1 to 2
   v.setmode(1024+512+192+48)
   v.cls(200,0)
@@ -59,7 +62,7 @@ for j=1 to 2
     v.box(x1,y1,x1+x2,y1+y2,ccc)  
   next i      
   
-/'  
+
   v.setmode(0+512+64+48)
   v.cls(40,0)
   print "Testing HUB 8bpp 896x496 HDMI mode "
@@ -108,19 +111,19 @@ for j=1 to 2
     y2=getrnd() mod 200
     v.box(x1,y1,x1+x2,y1+y2,ccc)  
   next i      
-'/
+
 next j 
 
 v.setmode(2047)
 print "kwas"
 waitms(4000)
-999 v.setmode(0)
+999 v.setmode(4)
 v.cls(200,0)
 for i=1 to 28:print("koperwas"):next i
 
 print("koperwas");
-'v.setcursorpos(2,29)
-do:loop
+v.setcursorpos(2,13)
+
 waitms(5000)
 v.setfontfamily(4)
 do

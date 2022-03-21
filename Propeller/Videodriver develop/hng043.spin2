@@ -200,7 +200,7 @@ long p1,p2,p4,p8,p1p,p2p,p4p,p8p      '
 byte pixelbuf
 
 long displaylist[12]            ' now 8 longs is sufficient for a DL for simple modes
-
+long emptydl[2]
 obj
 ram: "psram4.spin2"
 
@@ -249,6 +249,9 @@ p2p:=@putpixel2p
 p4p:=@putpixel4p
 p8p:=@putpixel8p 						'
 
+emptydl[0]:=%0100_0000_0000_0000_0000_0000_0000_0111
+emptydl[1]:=0
+
 '---------------------------- the mode has to be set here to enable computing the buffer length
 
 s_debug:=debugger						' check if debug mode defined (eats 16 kB upper RAM so don't use it)					' 
@@ -283,6 +286,8 @@ return cog							' return the driver's cog #
 
 pub setmode(mode) | i', 'xzoom, yzoom, azoom
 
+debug(udec(mode))
+
 '' Mode number bits:
 ' 15   (32768) - use a custom timings set, overrides bits 8,7,6
 ' 10    (1024) - psram enable (1), disable   (0)
@@ -297,6 +302,7 @@ if mode==(512+192+48)                                       	' this mode needs 5
   return 
 if mode==(512+128+48)					    	' this mode needs 506.25 kB of HUB RAM, possible only in theory, leaving 5.75 kB for the code
   return 'no RAM
+dl_ptr:=@emptydl[0]
 
 if cog>0 
    waitvbl(1)						    	' if the driver is active, wait for vblank to set the new mode and DL	
@@ -555,7 +561,7 @@ pub putpixel4p(x,y,c) |byte b
 
 if ((x>=0) & (x<16*s_cpl) & (y>=0) & (y<s_lines))
     ram.read1(@pixelbuf, s_buf_ptr+4*s_cpl1*y+(x>>1),1)
-    debug(uhex(pixelbuf))
+ '   debug(uhex(pixelbuf))
     pixelbuf:=pixelbuf & !(%1111<<((x//2)<<2))
     pixelbuf:=pixelbuf |(c<<((x//2)<<2))
     ram.write(@pixelbuf, s_buf_ptr+4*s_cpl1*y+(x>>1),1)
@@ -1397,14 +1403,22 @@ p101            setq    #9				   ' read variables
 
 p399          '  call #hsync   
                 xcont   m_bs,hsync0   
- 
-p301            cmp     rcnt,#0 wz			   ' check the DL repeat counter 
-    if_z        rdlong dl,dlptr2				
-    if_z        jmp     #p307 '6                              ' no repeat, goto read and interpret the next DL entry
-    
+                
+p301                cmp rcnt3,#0
+                if_z jmp #p381
+  
                 incmod  rcnt4,rcnt3 wcz
     if_nc       sub     dlptr2,#4 
     if_nc       jmp     #p307
+
+
+p381            cmp     rcnt,#0 wz			   ' check the DL repeat counter 
+    if_z        rdlong dl,dlptr2				
+    if_z        jmp     #p307 '6                              ' no repeat, goto read and interpret the next DL entry
+    
+'                incmod  rcnt4,rcnt3 wcz
+'    if_nc       sub     dlptr2,#4 
+'    if_nc       jmp     #p307
         
                 sub     rcnt,#1 wz                         ' decrement the repeat counter
     if_nz       sub     dlptr2,#4                          ' repeat. DL pointer was incremented while interpreting, now decrement it as it is repeated
@@ -1969,7 +1983,7 @@ affffff00       long    $FFFFFF00
                
 rcnt3 long 0
 rcnt4 long 0               
-               'fit     222  
+            '   fit     222  
                 
                       
                 
