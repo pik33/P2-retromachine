@@ -1928,6 +1928,7 @@ lutg1           long    $00800020
 lutg2           long    $10800010
 lutg4           long    $20800008
 lutg8           long    $30800004
+
 framebuf        long    0
 fontbuf         long    0
 borderptr       long    0
