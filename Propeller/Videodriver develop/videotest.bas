@@ -7,10 +7,14 @@ startpsram
 startvideo
 
 dim ccc,x1,x2,y1,y2,r as ulong
-v.setmode(1408)
-v.cls(42,36)
-print "kwas"
+v.setmode(512+48)
+v.cls(42,34)
+for i=1 to 100: print i, "kwas" : next i
 waitms(5000)
+v.scrollup
+for i=0 to 15: v.scrolldown:waitms(100): next i
+waitms(5000)
+v.cls(154,147)
 
 for j=1 to 2
   v.setmode(1024+512+192+48)
@@ -127,7 +131,7 @@ v.setcursorpos(2,13)
 waitms(5000)
 v.setfontfamily(4)
 do
-'goto 100
+goto 100
 '' text mode testing
   for mainmode=0 to 0+7
     for vzoom=0 to 3
@@ -140,7 +144,7 @@ do
         print "Lines: ";v.s_lines
         print "Cpl: "; v.s_cpl
         print "Buffer length: ";v.s_buflen
-        for i=1 to 13:v.write("1234567890"):next i
+        for i=1 to 13:print "1234567890"; :next i
         if mode mod 64 = 0 then waitms(5000)
         waitms(600)
 
@@ -164,7 +168,7 @@ do
           print "Lines: ";v.s_lines
           print "Cpl: "; v.s_cpl
           print "Buffer length: ";v.s_buflen
-          v.outtextxycg(0,80,"1234567890123456789012345678901234567890",c1,c2)
+          for i=1 to 13: print "1234567890"; :next i
           if mode mod 64 = 0 then waitms(5000)
           waitms(600)
  
@@ -185,7 +189,7 @@ do
         print "Lines: "; v.s_lines
         print "Cpl: "; v.s_cpl
         print "Buffer length: ";4*v.s_buflen
-        for i=1 to 13:v.write("1234567890"):next i
+          for i=1 to 13: print "1234567890"; :next i
         if mode mod 64 = 0 then waitms(5000)
         waitms(600)
 
@@ -194,7 +198,7 @@ do
   next mainmode    
 
  
-    for mainmode=24 to 24+7
+100    for mainmode=24 to 24+7
     for depth=0 to 3
       for vzoom=0 to 3
         for hzoom= 0 to 3
@@ -210,8 +214,7 @@ do
           print "Lines: ";v.s_lines
           print "Cpl: "; v.s_cpl
           print "Buffer length: ";v.s_buflen
-
-          v.outtextxycg(0,80,"1234567890123456789012345678901234567890",c1,c2)
+          for i=1 to 13: print "1234567890"; :next i
           if mode mod 64 = 0 then waitms(5000)
           waitms(600)
  
