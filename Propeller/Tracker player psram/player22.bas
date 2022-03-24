@@ -122,7 +122,7 @@ do
     qqq=250											' one wave chunk to load, 4kB=27 ms
     currentbuf=(bufptr-$28000)/250								' get a current playing 4k buffer# from the driver
     if needbuf<>currentbuf then									' if there is a buffer to load
-      get #8,dmppos,wavebuf(needbuf*250),250,qqq 					' then load it
+      get #8,dmppos,wavebuf(needbuf*250),250,qqq 					        ' then load it
       needbuf=(needbuf+1) mod $50  								' we can have any count of 4k buffers, now 2 used
       dmppos+=250   								         	' file position
       endif
@@ -818,8 +818,9 @@ v.s_buf_ptr=infobuf_ptr        					              ' set display variables to inf
 v.s_lines=40
 v.s_cpl=28
 v.s_buflen=40*28
-v.setwritecolors($9a,$93)
-for i=1 to 38: position 1,i : print space$(26): next i 
+v.s_ppl=28*8
+v.setwritecolors($9a,$93) 
+for i=1 to 38: position 1,i : print space$(26);: next i 
 v.setwritecolors($93,$9a)
 position 2,2 : print "                        " 
 position 2,2: print filename$ :v.setwritecolors($9a,$93)                      ' test: module file name will be here
@@ -839,7 +840,7 @@ v.s_buf_ptr=mainbuf_ptr
 v.s_lines=21
 v.s_cpl=84
 v.s_buflen=21*84'print
-
+v.s_ppl=84*8
 end sub
 
 
