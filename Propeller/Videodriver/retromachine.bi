@@ -1,10 +1,7 @@
 const _clkfreq = 336956522
 
-'option implicit
-dim v as class using "hng039psram.spin2"
-dim rm as class using "retrocog.spin2"
+dim v as class using "hng050.spin2"
 dim psram as class using "psram4.spin2"
-#include "dir.bi"
 
 dim videocog as integer
 dim mbox as ulong
@@ -22,19 +19,11 @@ function startvideo(mode=64, pin=0, mb=0) 'todo return a cog#
 dim videocog as ulong
 videocog=v.start(mode,pin,mbox)
 v.setbordercolor(0,0,0)
-'for thecog=0 to 7:psram.setQos(thecog, 254 << 16) :next thecog
+for thecog=0 to 7:psram.setQos(thecog, 112 << 16) :next thecog
 psram.setQoS(videocog, $7FFFf400) 
 open SendRecvDevice(@v.putchar, nil, nil) as #0
 return videocog
 end function
-
-function startmachine()' todo return a cog
-c=rm.start()
-return c
-end function
-
-#define startmachine rm.start
-#define plot v.plot1
 
 function peek(addr) as ubyte
 dim r as ubyte
@@ -79,6 +68,7 @@ end asm
 end sub
 
 function addr(byref v as const any) as ulong
+
 return(cast(ulong,@v))
 end function
 
@@ -87,5 +77,5 @@ v.setcursorpos(x,y)
 end sub
 
 sub waitvbl
-v.waitvbl(1)
+  v.waitvbl(1)
 end sub

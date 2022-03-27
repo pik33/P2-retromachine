@@ -1,31 +1,15 @@
-'const _clkfreq = 319_215_686  'PAL*90
-'const _clkfreq = 354693878 
-'349977600=31*256*44100=350000000=2/35=44102,8225806
-'356352000=29*256*48000=356363636=11/196=48001,5673491
-'336959184,1
-' 46 775 
-'336956522,   %1_101101__11_0000_0110__1111_1011
-
-' 60	1016	338666667 1_111011__11_1111_0111__1111_1011
-
 const _clkfreq = 336956522
 
-'option implicit
-dim v as class using "hng043.spin2"
-'dim rm as class using "retrocog.spin2"
+dim v as class using "hng050.spin2"
 dim psram as class using "psram4.spin2"
-'#include "dir.bi"
 
-dim audiocog,videocog as integer
-dim base as ulong
+dim videocog as integer
 dim mbox as ulong
 
 sub startpsram
 psram.startx(0, 0, 12, -1)
 mbox=psram.getMailbox(0)
 end sub
-
-
 
 sub cls(fg=154,bg=147)
 v.cls(fg,bg)
@@ -40,18 +24,6 @@ psram.setQoS(videocog, $7FFFf400)
 open SendRecvDevice(@v.putchar, nil, nil) as #0
 return videocog
 end function
-
-'function startmachine()' todo return a cog
-'c=rm.start()
-'return c
-'end function
-
-#define startmachine rm.start
-#define plot v.plot1
-
-'sub putpixel(x,y,c)
-'v030.putpixel8(x,y,c)
-'end sub
 
 function peek(addr) as ubyte
 dim r as ubyte

@@ -17,6 +17,7 @@ dim tracker as class using "trackerplayer.spin2"
 dim paula as class using "audio091-8-sc.spin2"
 dim sid as class using "sidcog3.spin2"
 dim psram as class using "psram4.spin2"
+dim spc as class using "spccog.spin2"
 #include "dir.bi"
 
 dim audiocog,videocog as integer
@@ -41,7 +42,7 @@ sub cls(fg=154,bg=147)
 v.cls(fg,bg)
 end sub
 
-function startvideo(mode=192, pin=0, mb=0) 'todo return a cog#
+function startvideo(mode=64, pin=0, mb=0) 'todo return a cog#
 dim videocog as ulong
 videocog=v.start(mode,pin,mbox)
 v.setbordercolor(0,0,0)
