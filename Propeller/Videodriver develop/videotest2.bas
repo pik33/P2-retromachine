@@ -1,5 +1,6 @@
 #include "retromachine.bi"
 
+dim s(64) as ulong
 
 let c1=1: let c2=0
 'startmachine
@@ -7,6 +8,7 @@ startpsram
 startvideo
 dim ccc,x1,x2,y1,y2,r as ulong
 v.cls(200,0)
+let cog=cpu(movesprite,@s)
 
 v.setfontfamily(0)
 do
@@ -70,3 +72,26 @@ do
   next i      
   
 loop
+
+sub movesprite
+var xdelta=1
+var ydelta=1
+
+do
+
+do:loop until v.vblank=1
+v.spr1x+=xdelta
+v.spr1y+=ydelta
+if v.spr1x>=1024-64 then xdelta=-1
+if v.spr1y>=576-64 then ydelta=-1
+if v.spr1y=0 then ydelta=1
+if v.spr1x=0 then xdelta=1
+do:loop until v.vblank=0
+loop
+end sub
+
+asm shared
+
+balls file "balls.def"
+
+end asm
