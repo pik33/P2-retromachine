@@ -40,7 +40,7 @@ var n,x,y,z,idx:cardinal;
 
 
 begin
-fh:=filecreate('balls.def') ;
+fh:=filecreate('balls7.def') ;
 for n:=0 to 15 do
   for y:=0 to 31 do
     for z:=0 to 1 do
@@ -52,7 +52,7 @@ for n:=0 to 15 do
       luma16:=round(luma*16);
 
        image1.canvas.pixels[x+32*n,y]:=luma16 shl 4+luma16 shl 12+luma16 shl 20 ;
-       if balls[idx]=0  then luma16+=32 else luma16:=0  ;
+       if balls[idx]<>0  then luma16+=224 else luma16:=0  ;
        filewrite(fh,luma16,1);        filewrite(fh,luma16,1);
 
       end;

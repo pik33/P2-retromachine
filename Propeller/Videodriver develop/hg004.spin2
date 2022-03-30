@@ -189,6 +189,66 @@ long spr1ptr
 word spr1x
 word spr1y
 
+long spr2ptr
+word spr2x
+word spr2y
+
+long spr3ptr
+word spr3x
+word spr3y
+
+long spr4ptr
+word spr4x
+word spr4y
+
+long spr5ptr
+word spr5x
+word spr5y
+
+long spr6ptr
+word spr6x
+word spr6y
+
+long spr7ptr
+word spr7x
+word spr7y
+
+long spr8ptr
+word spr8x
+word spr8y
+
+long spr9ptr
+word spr9x
+word spr9y
+
+long spr10ptr
+word spr10x
+word spr10y
+
+long spr11ptr
+word spr11x
+word spr11y
+
+long spr12ptr
+word spr12x
+word spr12y
+
+long spr13ptr
+word spr13x
+word spr13y
+
+long spr14ptr
+word spr14x
+word spr14y
+
+long spr15ptr
+word spr15x
+word spr15y
+
+long spr16ptr
+word spr16x
+word spr16y
+
 
 
 long displaylist[12]              ' now 8 longs is sufficient for a DL for simple modes
@@ -234,10 +294,24 @@ font_ptr:=@vga_font						' Initial 8x16 font definition
 hdmibase:=base							' HDMI base pin, 8*n
 mailbox_ptr:=mb							' PSRAM mailbox pointer
 sprite_ptr:=@spr1ptr
-spr1ptr:=@balls
 
-spr1x:=50
-spr1y:=50				'
+spr1y:=600				'
+spr2y:=600				'
+spr3y:=600				'
+spr4y:=600				'
+spr5y:=600				'
+spr6y:=600				'
+spr7y:=600				'
+spr8y:=600				'
+spr9y:=600				'
+spr10y:=600				'
+spr11y:=600				'
+spr12y:=600				'
+spr13y:=600				'
+spr14y:=600				'
+spr15y:=600				'
+spr16y:=600
+				'
 
 emptydl[0]:=%0100_0000_0000_0000_0000_0000_0000_0111
 emptydl[1]:=0
@@ -1025,7 +1099,7 @@ hdmi            setq    #9
 
 ''--------  frame rendering main loop  ---------------------------------------------------
 
-p101            setq #1
+p101            setq #15
 		rdlong sprite1pointer,spriteptr
 		mov spriteline,#0
 
@@ -1061,8 +1135,9 @@ p101            setq #1
 
 p301            xcont   m_bs,hsync0   
                 call    #dli
-                call    #sprite
+
                 xcont   lutg8,#0
+                                call    #sprite
                 xzero   m_sn,hsync1
                 xcont   m_bv,hsync0
                 
@@ -1152,10 +1227,18 @@ preload         mov     buf1c,dlinum
     _ret_       wrlong  cmd,mailbox			   '
  
 
-sprite         
-                mov t2,linenum
-                getword sprite_y,sprite1xy,#1
-                getword sprite_x,sprite1xy,#0
+sprite         mov spritenum,#7
+  '             getct t1
+p802                mov t2,linenum
+                   mov qqqq,spritenum
+                   shl qqqq, #1          
+                   
+                 
+                alts qqqq, #sprite1xy
+                getword sprite_y,0-0,#1
+                alts qqqq, #sprite1xy
+                getword sprite_x,0-0,#0
+                
 		sub t2,sprite_y wcz
       if_c      jmp #p801	
                 cmp t2,#63 wcz
@@ -1164,7 +1247,10 @@ sprite
                 shl t3,#10
                 add t3,buf1d
                 add t3,sprite_x
-                mov t4,sprite1pointer
+                
+                add t3,qqqq
+                alts qqqq,#sprite1pointer
+                mov t4,0-0
                 shl t2,#6
                 add t4,t2
                 mov t2,frames
@@ -1175,7 +1261,18 @@ sprite
                 rdlong 496,t4
                 setq2 #15
                 wmlong 496,t3
-p801            incmod spriteline,#3
+                
+p801                  djnf spritenum,#p802
+                
+                       
+                
+                
+                
+  '               getct t2
+   '              sub t2,t1
+      '          debug(udec(t2))
+          incmod spriteline,#3
+  
                 ret
                 
    {{   
@@ -1275,6 +1372,25 @@ dlc             long    0  'dl command
 affffffff       long    $ffffffff
 sprite1pointer long 0
 sprite1xy      long 0
+sprite2pointer long 0
+sprite2xy      long 0
+sprite3pointer long 0
+sprite3xy      long 0
+sprite4pointer long 0
+sprite4xy      long 0
+sprite5pointer long 0
+sprite5xy      long 0
+sprite6pointer long 0
+sprite6xy      long 0
+sprite7pointer long 0
+sprite7xy      long 0
+sprite8pointer long 0
+sprite8xy      long 0
+
+spritenum long 0
+
 spriteline long 0
 sprite_x long 900
 sprite_y long 0
+
+qqqq long 0
