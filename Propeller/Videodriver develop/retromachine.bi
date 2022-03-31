@@ -1,6 +1,6 @@
 const _clkfreq = 336956522
 
-dim v as class using "hg004.spin2"
+dim v as class using "hg007.spin2"
 dim psram as class using "psram4.spin2"
 
 dim videocog as integer
@@ -15,7 +15,7 @@ sub cls(fg=154,bg=147)
 v.cls(fg,bg)
 end sub
 
-function startvideo(mode=64, pin=0, mb=0) 'todo return a cog#
+function startvideo(mode=64, pin=16, mb=0) 'todo return a cog#
 dim videocog as ulong
 videocog=v.start(pin,mbox)
 v.setbordercolor(0,0,0)
