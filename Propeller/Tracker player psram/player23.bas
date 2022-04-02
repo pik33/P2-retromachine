@@ -51,7 +51,7 @@ dim modplaying,waveplaying,dmpplaying, needbuf,playnext as ubyte
 dim scog as integer
 dim dmppos as ulong
 dim newcnt,bufptr,siddelay,scog2,sidfreq,sidtime as integer
-
+dim sidpos as ulong
 
 ' ----------------------------Main program start ------------------------------------
 
@@ -93,7 +93,6 @@ do
   scope												' display scope
   bars												' display bars
   
-  if ansibuf(3)=asc("d") then ansibuf(3)=0: demo
 
 '' --------------------------------  Playing the .wav file in the main loop as no other cogs can acces the file system
  
@@ -115,29 +114,6 @@ do
   endif  
   
 '' ------------------------------- End of wave playing   
-
-'' --------------------------------  Playing the .dmp file in the main loop as no other cogs can acces the file system
- 
-  if dmpplaying=1 then
-    qqq=250											' one wave chunk to load, 4kB=27 ms
-    currentbuf=(bufptr-$28000)/250								' get a current playing 4k buffer# from the driver
-    if needbuf<>currentbuf then									' if there is a buffer to load
-      get #8,dmppos,wavebuf(needbuf*250),250,qqq 					        ' then load it
-      needbuf=(needbuf+1) mod $50  								' we can have any count of 4k buffers, now 2 used
-      dmppos+=250   								         	' file position
-      endif
-    if qqq<>250 then 										' end of file
-      do: currentbuf=(bufptr-$28000)/250 : loop until currentbuf=needbuf				' wait until all buffers played					
-      close #8 : dmpplaying=0									' close the file, stop playing
-'      for i=0 to 7 : lpoke base+32*i+20,0 : next i 						' mute the sound
-      for i=$28000 to $70FFC step 4: lpoke i,$00000000: next i                                  ' clear the ram
-'      filemove=1 : playnext=1										' experimental
-      cpustop(scog) : scog=-1
-      cpustop(scog2) :scog2=-1
-    endif
-  endif      
- 
-'' ------------------------------- End of dmp playing   
 
 '' ------------------------------- Display the playing time
   
@@ -326,12 +302,20 @@ do
    
     hubset(hubset336)										 
   
-
+   
     filename3$=currentdir$+filename$								' get a filename with the path
-    close #8: open filename3$ for input as #8:      		                        	' open the file and preload the buffer
-    close #8: open filename3$ for input as #8: get #8,1,wavebuf(0),250			        ' open the file and preload the buffer
-    needbuf=1: currentbuf=0 :dmppos=251: dmpplaying=1   	
-    
+    close #8: open filename3$ for input as #8: pos=1
+    let psramptr=0 
+    do
+      get #8,pos,filebuf(0),128,r : pos+=r	
+      psram.write(addr(filebuf(0)),psramptr,128)	
+      position 1,16: print psramptr,					        ' get 128 bytes and update file position
+      psramptr+=128 					' move the buffer to the RAM and update RAM position. Todo: this can be done all at once
+    loop until r<>128 '                          					' do until eof 
+    close #8
+    let sidlen=psramptr
+    dmpplaying=1   	
+    sidpos=0
     v.setwritecolors($ea,$e1)									' yellow
     position 2,15:v.write(space$(38)): filename3$=right$(filename3$,38) 		 	' clear the place for a file name
     position 2,15: v.write(filename3$)	
@@ -341,11 +325,8 @@ do
     scog=sid.start()
     scog2=cpu(sidloop,@mainstack)
     waitms(100)
+
     endif  
-
-
-
-
   ansibuf(3)=0  
   endif
 
@@ -446,6 +427,7 @@ do
 230  ansibuf(3)=0: ansibuf(2)=0 : ansibuf(1)=0  :filemove=0   
   endif
   if playnext=1 then playnext=0: ansibuf(3)=13
+ 
 loop		
 
 '' ------------------------------------------------ END OF THE MAIN LOOP started at 81 ---------------------------------------------------------------------------
@@ -604,16 +586,15 @@ end sub
 sub sidloop
 
 dim i as integer
-
-newcnt=getcnt()+177000000
-bufptr=$28000
+let newcnt=getcnt()+siddelay
 do
   waitcnt(newcnt)
   sidtime+=siddelay/(336_96) ' 100 us tick
   newcnt+=siddelay
-  for i=0 to 24: sid.regs(i)=peek(bufptr) : bufptr+=1 : next i
-  if bufptr>=$28000+$50*250 then bufptr=$28000
-loop
+  psram.read1(addr(sid.regs(0)),sidpos,25)
+  sidpos+=25
+  if sidpos>=sidlen then sidpos=0
+loop 
 end sub
 
 '' -------------------------------------- Get a dir and file list after change a directory --------------------------------------------------------------
@@ -1010,22 +991,6 @@ end sub
 '-----------------------------------------------------------------------------------------------------------------------
 '----------------------------- The file cog ----------------------------------------------------------------------------
 '-----------------------------------------------------------------------------------------------------------------------
-
-sub demo()
-
-dim scog, r,b, dp as integer
-
-scog=sid.start()
-dp=1
-open "/sd/dmp/Alloyrun.dmp" for input as #8
-do
-  get #8,dp,sid.regs(0),25,r
-  dp+=25
-  waitms(20)
-loop until r<>25
-close #8
-cpustop(scog)
-end sub
 
 '---------------------------------- THE END OF THE CODE ----------------------------------------------------------------
 

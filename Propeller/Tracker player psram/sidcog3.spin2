@@ -13,8 +13,8 @@ _clkfreq=354_689_500
 
 CON  PAL = 985248.0, NTSC = 1022727.0, MAXF = 1031000.0, TRIANGLE = 16, SAW = 32, SQUARE = 64, NOISE = 128   
 
-  L_PIN = 14
-  R_PIN = 15
+  L_PIN = 8
+  R_PIN = 9
 
   SYSTEM_CLOCK         = 354_689_500
   C64_CLOCK_FREQ       = PAL
@@ -278,7 +278,7 @@ Rel1 if_nc    shr      release1, decayDivide1
 Amplitude1    shr      arg1, #14
               sub      arg1, val15bit             
               mov      arg2, envelopeLevel1     
-              shr      arg2, #25
+              shr      arg2, #24
               getword  r1,arg1,#1
               mul      r1, arg2
               shl      r1, #16
@@ -355,7 +355,7 @@ Rel2 if_nc    shr      release2, decayDivide2
 Amplitude2    shr      arg1, #14
               sub      arg1, val17bit
               mov      arg2, envelopeLevel2
-              shr      arg2, #25
+              shr      arg2, #24
               getword  r1,arg1,#1
               mul      r1, arg2
               shl      r1, #16
@@ -432,7 +432,7 @@ Rel3 if_nc    shr      release3, decayDivide3
 Amplitude3    shr      arg1, #14
               sub      arg1, val17bit            
               mov      arg2, envelopeLevel3
-              shr      arg2, #25
+              shr      arg2, #24
               getword  r1,arg1,#1
               mul      r1, arg2
               shl      r1, #16
