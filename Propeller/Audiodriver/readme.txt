@@ -1,3 +1,8 @@
+20220401: 0.92a
+Oscilloscope can be switched off and its buffer can be set at the start
+PSRAM uses 256-byte cache for every channel, the cache address has to be set at the start 
+Getting samples from HUB or PSRAM is settable using command bit #30 individually for each channel
+
 20220314: the new version 0.91 added
 8 channel only this time, PSRAM and oscilloscope support
 
@@ -34,7 +39,8 @@ long #6  period and skip
          word #11: period. This is the number of Paula cycles between two samples. 
          word #12: skip. Set to 1 for 8 bit, 2 for 16-bit samples. 
          Setting higher skip value skips the samples while playing, allows for higher frequencies for the same period
-long #7  reserved, unused. The planned usage is ADSR stuff.
+long #7  was: (reserved, unused. The planned usage is ADSR stuff.)
+         Command, bit 31=set sample rate, bit 30 - set sample source
 
  
 

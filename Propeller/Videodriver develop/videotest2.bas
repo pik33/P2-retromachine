@@ -330,7 +330,7 @@ asm shared
 
 balls file "balls.def"
 balls2 file "balls3.def"
-balls3 file "balls5.def"
+balls3 file "balls6.def"
 balls4 file "balls7.def"
 'balls5 file "balls5.def"
 'balls6 file "balls6.def"
