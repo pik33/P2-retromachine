@@ -9,25 +9,31 @@ startvideo
 dim ccc,x1,x2,y1,y2,r as ulong
 v.cls(200,0)
 let cog=cpu(movesprite,@s)
-
 v.setfontfamily(0)
 do
-  for i=1 to 100: print i: next i
-
+  for i=1 to 1000: print i: next i
+  var qqqq=getct()
   for i=0 to 1000
     ccc=getrnd() and 255
-    x1=getrnd() mod 128
-    y1=getrnd() mod 36
-    position x1,y1: v.setwritecolors(ccc,0): print "Testing PSRAM 8bpp 1024x576 HDMI mode";
+    x1=getrnd() mod 128 
+    y1=getrnd() mod 35                                
+    position x1,y1: v.setwritecolors(ccc,0): v.write("Testing PSRAM 8bpp 1024x576 HDMI mode 00")
   next i
-
+  qqqq=getct()-qqqq
+  v.cls(200,0)
+  print(qqqq/336)
+  waitms(5000)
+'   qqqq=getct()
   for i=0 to 1000
     ccc=getrnd() and 255
     x1=getrnd() mod 1024
     y1=getrnd() mod 576
     v.outtextxycg(x1,y1,"Testing PSRAM 8bpp 1024x576 HDMI mode",ccc,0)
   next i
-  
+'  qqqq=getct()-qqqq
+'  v.cls(200,0)
+'  print(qqqq/336)
+'  waitms(5000)  
   for i = 0 to 5000
     ccc=getrnd() and 255
     x1=getrnd() mod 1024

@@ -587,21 +587,34 @@ pub putcharxycgf(x,y,achar,f,b) |xx, yy,bb,c1,c2
 repeat yy from 0 to 15
 
   bb:=byte[@vga_font+font_family<<10+achar<<4+yy]
-  repeat xx from 0 to 3
-     asm
-     testb bb,xx wcz
-     if_z setbyte c1,f,xx
-     if_nz setbyte c1,b,xx
-     endasm
-  bb:=bb >> 4
-  repeat xx from 0 to 3
-     asm
-     testb bb,xx wcz
-     if_z setbyte c2,f,xx
-     if_nz setbyte c2,b,xx
-     endasm      
-  ram.fill(s_buf_ptr+(4*s_cpl1*(y+yy)+8*x),c1,1,0,4)
-  ram.fill(s_buf_ptr+(4*s_cpl1*(y+yy)+8*x+4),c2,1,0,4)
+  asm
+  testb bb,#0 wz
+  if_z setbyte c1,f,#0
+  if_nz setbyte c1,b,#0
+  testb bb,#1 wz
+  if_z setbyte c1,f,#1
+  if_nz setbyte c1,b,#1
+  testb bb,#2 wz
+  if_z setbyte c1,f,#2
+  if_nz setbyte c1,b,#2
+  testb bb,#3 wz
+  if_z setbyte c1,f,#3
+  if_nz setbyte c1,b,#3
+  testb bb,#4 wz
+  if_z setbyte c2,f,#0
+  if_nz setbyte c2,b,#0
+  testb bb,#5 wz
+  if_z setbyte c2,f,#1
+  if_nz setbyte c2,b,#1
+  testb bb,#6 wz
+  if_z setbyte c2,f,#2
+  if_nz setbyte c2,b,#2
+  testb bb,#7 wz
+  if_z setbyte c2,f,#3
+  if_nz setbyte c2,b,#3
+  endasm      
+  ram.fill(s_buf_ptr+((y+yy)<<10+x<<3),c1,1,0,4)
+  ram.fill(s_buf_ptr+((y+yy)<<10+x<<3+4),c2,1,0,4)
  
       
 ' ------  Opaque  8x8 character      
@@ -867,7 +880,7 @@ if achar==9
   cursor_x:=(cursor_x& %11111000)+8 
   
 if (achar<>9) && (achar<>10) 
-  putcharxycg(8*cursor_x,16*cursor_y,achar,write_color,write_background)
+  putcharxycgf(cursor_x,16*cursor_y,achar,write_color,write_background)
   cursor_x+=1
 
 if cursor_x>=128
@@ -881,7 +894,7 @@ if cursor_x>=128
 
 pub putchar2(achar) | c,x,y,l,newcpl
 
-putcharxycg(8*cursor_x,16*cursor_y,achar,write_color,write_background)
+putcharxycgf(cursor_x,16*cursor_y,achar,write_color,write_background)
 cursor_x+=1
 if cursor_x>=128
   cursor_x:=0
