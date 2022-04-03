@@ -2,8 +2,8 @@
 #include "retromachine.bi"
 
 const HEAPSIZE = 8192
-const version$="Prop2play v.0.25"
-const statusline$=" Propeler2 wav/sid/mod player v. 0.25 --- 2022.04.03 --- pik33@o2.pl --- use serial terminal or RPi KBM interface to control --- arrows up,down move - pgup/pgdn or w/s move 10 positions - enter selects - tab switches panels - +,- controls volume - 1..4 switch channels on/off - 5,6 stereo separation - 7,8,9 sample rate - a,d SID speed - R rescans current directory ------"
+const version$="Prop2play v.0.24"
+const statusline$=" Propeler2 wav/sid/mod player v. 0.24 --- 2022.04.03 --- pik33@o2.pl --- use serial terminal or RPi KBM interface to control --- arrows up,down move - pgup/pgdn or w/s move 10 positions - enter selects - tab switches panels - +,- controls volume - 1..4 switch channels on/off - 5,6 stereo separation - 7,8,9 sample rate - a,d SID speed - R rescans current directory ------"
 const hubset350=%1_000001__00_0010_0010__1111_1011 '350_000_000 =31*44100
 const hubset354=%1_110000__11_0110_1100__1111_1011 '354_693_878
 const hubset356=%1_001010__00_1100_0011__1111_1011 '356_352_000 =29*256*48001,5673491
@@ -12,11 +12,11 @@ const hubset336=%1_101101__11_0000_0110__1111_1011 '336_956_522 =paula*95
 
 ' Place graphics buffers at the top of memory so they will not move while editing the program
 const base2=$72000
-const infobuf_ptr=$70E80
+const infobuf_ptr=$7EE80
 const graphicbuf_ptr=$77E80
-const mainbuf_ptr=$7F3100
+const mainbuf_ptr=$73A70
 const statusline_ptr=$738A8
-const title_ptr=$703000
+const title_ptr=$73838
 const dlcopy_ptr=$72c38
 const scope_ptr=$72238
 'const displayname_ptr=$72210		
@@ -70,7 +70,7 @@ for i=0 to 3 : oldtrigs(i)=0 : next i
 pan(0)=8192-mainpan : pan(1)=8192+mainpan : pan(2)=8192+mainpan : pan(3)=8192-mainpan
 'preparepanels
 waveplaying=0: modplaying=0 : dmpplaying=0
-
+print "kwas"
 
 mount "/sd", _vfs_open_sdcard()
 chdir "/sd"
@@ -86,28 +86,33 @@ panel=0
 s1a=0
 samplerate=100   
 
-
-
 '' --------------------------------- THE MAIN LOOP ----------------------------------------------------------------------------------
-
 
 do
   waitvbl                     									' synchronize with vblanks
-'  if cog=(-1) then framenum+=1  :  scrollstatus((framenum) mod (8*sl))                 		' if not playing module let main loop scroll the status line
+  if cog=(-1) then framenum+=1  :  scrollstatus((framenum) mod (8*sl))                 		' if not playing module let main loop scroll the status line
 '  scope												' display scope
 '  bars												' display bars
+  
 
 '' --------------------------------  Playing the .wav file in the main loop as no other cogs can acces the file system
  
-  if waveplaying=1 then
+ if waveplaying=1 then
     qqq=$1000											' one wave chunk to load, 4kB=27 ms
     currentbuf=lpeek(base) shr 12								' get a current playing 4k buffer# from the driver
-    if needbuf<>currentbuf then									' if there is a buffer to load
-      get #8,wavepos,wavebuf(0),$1000,qqq 					' then load it
-      for i=0 to 15: psram.write(addr(wavebuf(0))+i*256, i*256+needbuf shl 12 ,256): next i
+    if needbuf<>currentbuf then	
+								' if there is a buffer to load
+      get #8,wavepos,wavebuf(0),$1000,qqq 
+   let qqqq=getct()					' then load it
       psram.write(addr(wavebuf(0)), needbuf shl 12 ,$1000)
+
       needbuf=(needbuf+1) mod $100  								' we can have any count of 4k buffers, now 2 used
-      wavepos+=$1000      									' file position
+      wavepos+=$1000  
+      let qqqq=getct()-qqqq      
+      position 1,22: v.write(v.inttostr2(currentbuf,3)) : v.write(" "): v.write(v.inttostr2(needbuf,3)): v.write(" "):         :   v.write(v.inttostr2(qqqq/336,6))  
+     
+  									' file position
+   
       endif
     if qqq<>$1000 then 										' end of file
       do: currentbuf=lpeek(base) shr 12 : loop until currentbuf=needbuf				' wait until all buffers played					
@@ -116,18 +121,19 @@ do
       for i=$28000 to $70FFC step 4: lpoke i,$00000000: next i                                  ' clear the ram
       filemove=1 : playnext=1										' experimental
     endif
+
   endif  
   
 '' ------------------------------- End of wave playing   
 
 '' ------------------------------- Display the playing time
   
-  v.setwritecolors($29,$e1)
-  if cog>(-1) then time2=framenum-modtime
-  if waveplaying=1 then time2=(wavepos)/3528
-  if dmpplaying=1 then time2=sidtime/200
-  position 15,17: v.write(v.inttostr2(time2/180000,2)): v.write(":"):v.write(v.inttostr2((time2 mod 180000)/3000,2)):v.write(":"):v.write(v.inttostr2((time2 mod 3000)/50,2)):v.write(":"):v.write(v.inttostr2((time2 mod 50),2))
-  position 15,18: v.write(v.inttostr2(lpeek(0),8))
+'  v.setwritecolors($29,$e1)
+'  if cog>(-1) then time2=framenum-modtime
+'  if waveplaying=1 then time2=(wavepos)/3528
+'  if dmpplaying=1 then time2=sidtime/200
+'  position 15,17: v.write(v.inttostr2(time2/180000,2)): v.write(":"):v.write(v.inttostr2((time2 mod 180000)/3000,2)):v.write(":"):v.write(v.inttostr2((time2 mod 3000)/50,2)):v.write(":"):v.write(v.inttostr2((time2 mod 50),2))
+'  position 15,18: v.write(v.inttostr2(lpeek(0),8))
 '' ----------------------------- Get data from the keyboard
  
   if lpeek($30)<>0 then 									                         ' a Raspberry Pi based interface sent a message
@@ -181,17 +187,17 @@ do
    
   pan(0)=8192-mainpan : pan(1)=8192+mainpan : pan(2)=8192+mainpan : pan(3)=8192-mainpan 						' set channels position
   v.setwritecolors($ca,$e1)
-  position 3,19:  v.write("pan: "): v.write(v.inttostr2(mainpan/256,2))  								' display the status
-  position 13,19: v.write("vol: "): v.write(v.inttostr2(mainvolume,3)) 
-  position 24,19: v.write("chn: "): 
-  if channelvol(0)=1 then position 29,19 :v.write("1")
-  if channelvol(0)=0 then position 29,19 :v.write("-")
-  if channelvol(1)=1 then position 31,19 :v.write("2")
-  if channelvol(1)=0 then position 31,19 :v.write("-")
-  if channelvol(2)=1 then position 33,19 :v.write("3")
-  if channelvol(2)=0 then position 33,19 :v.write("-")
-  if channelvol(3)=1 then position 35,19 :v.write("4")
-  if channelvol(3)=0 then position 35,19 :v.write("-")   
+'  position 3,19:  v.write("pan: "): v.write(v.inttostr2(mainpan/256,2))  								' display the status
+'  position 13,19: v.write("vol: "): v.write(v.inttostr2(mainvolume,3)) 
+'r  position 24,19: v.write("chn: "): 
+'  if channelvol(0)=1 then position 29,19 :v.write("1")
+'  if channelvol(0)=0 then position 29,19 :v.write("-")
+'  if channelvol(1)=1 then position 31,19 :v.write("2")
+'  if channelvol(1)=0 then position 31,19 :v.write("-")
+'  if channelvol(2)=1 then position 33,19 :v.write("3")
+'  if channelvol(2)=0 then position 33,19 :v.write("-")
+'  if channelvol(3)=1 then position 35,19 :v.write("4")
+'  if channelvol(3)=0 then position 35,19 :v.write("-")   
   
 '' -------------------------- R - rescan the directory 
 
@@ -436,8 +442,8 @@ do
 230  ansibuf(3)=0: ansibuf(2)=0 : ansibuf(1)=0  :filemove=0   
   endif
   if playnext=1 then playnext=0: ansibuf(3)=13
-
-1234 loop		
+ 
+loop		
 
 '' ------------------------------------------------ END OF THE MAIN LOOP started at 81 ---------------------------------------------------------------------------
 '' ---------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -611,7 +617,7 @@ end sub
 sub getlists(mode)
 
 dim e,i as integer
-
+print "koperwas"
 if mode=1 then e=4: goto 360 								' if mode=1 then force error to rebuild fles
 
 350 e=0
@@ -643,7 +649,7 @@ if e=0 then 										' now the directory list exists
     input #5,filename$									' write first 10 entries to the panel
     filename2$=rtrim$(filename$)
     filename2$=space$((38-len(filename2$))/2)+filename2$
-    if i<12 then position 2,i : v.write(filename2$) 
+    if i<12 then position 2,i : print(filename2$) 
     i+=1
   loop until filename$=nil orelse filename$="" 						' to do: write the number of entries to avoid reading all of them
   dirnum3=i-3	
@@ -937,9 +943,9 @@ lpoke palettetest+15*4,lpeek(palettetest+168*4)
 ' Prepare the title
 var i=0
 var address=addr(version$(0))
-'for i=0 to 31: pslpoke title_ptr+4*i,$77710000 : next i
-var start=(32-len(version$)) / 2
-'for i=start to start+len(version$)-1: 'pslpoke title_ptr+4*i,$77710000+peek(address+i-start): next i
+for i=0 to 27: lpoke title_ptr+4*i,$77710000 : next i
+var start=(28-len(version$)) / 2
+for i=start to start+len(version$)-1: lpoke title_ptr+4*i,$77710000+peek(address+i-start): next i
 
 ' clear the display list
 
@@ -950,7 +956,7 @@ for i=0 to 767: lpoke dlcopy_ptr+4*i,0 : next i
 
 for i=0 to 15
   for j=0 to 1
-    lpoke dlcopy_ptr+4*(4+2*i+j),(title_ptr shl 7)+%10_0000_0000_00_01+(i shl 8)
+    lpoke dlcopy_ptr+4*(4+2*i+j),(title_ptr shl 12)+%10_0000_0000_00_01+(i shl 8)
   next j
 next i  
 
@@ -963,9 +969,9 @@ for i=0 to 20
   if i=20 then address2=infobuf_ptr+39*28*4 'display line 39 here
   for j=0 to 15
      lpoke dlcopy_ptr+4*(40+32*i+2*j+0),(address2 shl 14)+ %0000_0001_1100_1111+(0 shl 4) + j shl 12
-     lpoke dlcopy_ptr+4*(40+32*i+2*j+1),(address shl 7)+ (j shl 8) + (i shl 2) + 1
+     lpoke dlcopy_ptr+4*(40+32*i+2*j+1),(address shl 12)+ (j shl 8) + (i shl 2) + 1
   next j
-  address=address+128*4
+  address=address+84*4
   address2=address2+28*4
 next i
   

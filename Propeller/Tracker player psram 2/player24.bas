@@ -2,8 +2,8 @@
 #include "retromachine.bi"
 
 const HEAPSIZE = 8192
-const version$="Prop2play v.0.25"
-const statusline$=" Propeler2 wav/sid/mod player v. 0.25 --- 2022.04.03 --- pik33@o2.pl --- use serial terminal or RPi KBM interface to control --- arrows up,down move - pgup/pgdn or w/s move 10 positions - enter selects - tab switches panels - +,- controls volume - 1..4 switch channels on/off - 5,6 stereo separation - 7,8,9 sample rate - a,d SID speed - R rescans current directory ------"
+const version$="Prop2play v.0.24"
+const statusline$=" Propeler2 wav/sid/mod player v. 0.24 --- 2022.04.03 --- pik33@o2.pl --- use serial terminal or RPi KBM interface to control --- arrows up,down move - pgup/pgdn or w/s move 10 positions - enter selects - tab switches panels - +,- controls volume - 1..4 switch channels on/off - 5,6 stereo separation - 7,8,9 sample rate - a,d SID speed - R rescans current directory ------"
 const hubset350=%1_000001__00_0010_0010__1111_1011 '350_000_000 =31*44100
 const hubset354=%1_110000__11_0110_1100__1111_1011 '354_693_878
 const hubset356=%1_001010__00_1100_0011__1111_1011 '356_352_000 =29*256*48001,5673491
@@ -12,11 +12,11 @@ const hubset336=%1_101101__11_0000_0110__1111_1011 '336_956_522 =paula*95
 
 ' Place graphics buffers at the top of memory so they will not move while editing the program
 const base2=$72000
-const infobuf_ptr=$70E80
+const infobuf_ptr=$7EE80
 const graphicbuf_ptr=$77E80
-const mainbuf_ptr=$7F3100
+const mainbuf_ptr=$73A70
 const statusline_ptr=$738A8
-const title_ptr=$703000
+const title_ptr=$73838
 const dlcopy_ptr=$72c38
 const scope_ptr=$72238
 'const displayname_ptr=$72210		
@@ -61,14 +61,13 @@ startmachine
 startpsram
 startvideo
 startaudio
-
-'v.cursoroff
-'makedl
+v.cursoroff
+makedl
 lpoke addr(sl),len(statusline$)  ' cannot assign to sl, but still can lpoke :) 
 framenum=0
 for i=0 to 3 : oldtrigs(i)=0 : next i
 pan(0)=8192-mainpan : pan(1)=8192+mainpan : pan(2)=8192+mainpan : pan(3)=8192-mainpan
-'preparepanels
+preparepanels
 waveplaying=0: modplaying=0 : dmpplaying=0
 
 
@@ -86,16 +85,14 @@ panel=0
 s1a=0
 samplerate=100   
 
-
-
 '' --------------------------------- THE MAIN LOOP ----------------------------------------------------------------------------------
-
 
 do
   waitvbl                     									' synchronize with vblanks
-'  if cog=(-1) then framenum+=1  :  scrollstatus((framenum) mod (8*sl))                 		' if not playing module let main loop scroll the status line
-'  scope												' display scope
-'  bars												' display bars
+  if cog=(-1) then framenum+=1  :  scrollstatus((framenum) mod (8*sl))                 		' if not playing module let main loop scroll the status line
+  scope												' display scope
+  bars												' display bars
+  
 
 '' --------------------------------  Playing the .wav file in the main loop as no other cogs can acces the file system
  
@@ -104,7 +101,6 @@ do
     currentbuf=lpeek(base) shr 12								' get a current playing 4k buffer# from the driver
     if needbuf<>currentbuf then									' if there is a buffer to load
       get #8,wavepos,wavebuf(0),$1000,qqq 					' then load it
-      for i=0 to 15: psram.write(addr(wavebuf(0))+i*256, i*256+needbuf shl 12 ,256): next i
       psram.write(addr(wavebuf(0)), needbuf shl 12 ,$1000)
       needbuf=(needbuf+1) mod $100  								' we can have any count of 4k buffers, now 2 used
       wavepos+=$1000      									' file position
@@ -436,8 +432,8 @@ do
 230  ansibuf(3)=0: ansibuf(2)=0 : ansibuf(1)=0  :filemove=0   
   endif
   if playnext=1 then playnext=0: ansibuf(3)=13
-
-1234 loop		
+ 
+loop		
 
 '' ------------------------------------------------ END OF THE MAIN LOOP started at 81 ---------------------------------------------------------------------------
 '' ---------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -717,7 +713,7 @@ sub preparepanels
 v.s_buf_ptr=graphicbuf_ptr						' tell the driver to operate on the graphics buffer
 v.s_cpl=112								' char per line
 v.s_lines=64								' lines				
-'v.putpixel=v.p4								' set putpixel function to 4 bpp							
+v.putpixel=v.p4								' set putpixel function to 4 bpp							
 v.font_family=2								' Atari 8 bit 8x8 font
 v.box(0,0,895,63,0)							' clear the panel
 v.frame(675,3,892,60,15)						' draw a box
@@ -937,9 +933,9 @@ lpoke palettetest+15*4,lpeek(palettetest+168*4)
 ' Prepare the title
 var i=0
 var address=addr(version$(0))
-'for i=0 to 31: pslpoke title_ptr+4*i,$77710000 : next i
-var start=(32-len(version$)) / 2
-'for i=start to start+len(version$)-1: 'pslpoke title_ptr+4*i,$77710000+peek(address+i-start): next i
+for i=0 to 27: lpoke title_ptr+4*i,$77710000 : next i
+var start=(28-len(version$)) / 2
+for i=start to start+len(version$)-1: lpoke title_ptr+4*i,$77710000+peek(address+i-start): next i
 
 ' clear the display list
 
@@ -950,7 +946,7 @@ for i=0 to 767: lpoke dlcopy_ptr+4*i,0 : next i
 
 for i=0 to 15
   for j=0 to 1
-    lpoke dlcopy_ptr+4*(4+2*i+j),(title_ptr shl 7)+%10_0000_0000_00_01+(i shl 8)
+    lpoke dlcopy_ptr+4*(4+2*i+j),(title_ptr shl 12)+%10_0000_0000_00_01+(i shl 8)
   next j
 next i  
 
@@ -963,9 +959,9 @@ for i=0 to 20
   if i=20 then address2=infobuf_ptr+39*28*4 'display line 39 here
   for j=0 to 15
      lpoke dlcopy_ptr+4*(40+32*i+2*j+0),(address2 shl 14)+ %0000_0001_1100_1111+(0 shl 4) + j shl 12
-     lpoke dlcopy_ptr+4*(40+32*i+2*j+1),(address shl 7)+ (j shl 8) + (i shl 2) + 1
+     lpoke dlcopy_ptr+4*(40+32*i+2*j+1),(address shl 12)+ (j shl 8) + (i shl 2) + 1
   next j
-  address=address+128*4
+  address=address+84*4
   address2=address2+28*4
 next i
   

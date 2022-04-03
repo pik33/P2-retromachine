@@ -2,8 +2,8 @@
 #include "retromachine.bi"
 
 const HEAPSIZE = 8192
-const version$="Prop2play v.0.25"
-const statusline$=" Propeler2 wav/sid/mod player v. 0.25 --- 2022.04.03 --- pik33@o2.pl --- use serial terminal or RPi KBM interface to control --- arrows up,down move - pgup/pgdn or w/s move 10 positions - enter selects - tab switches panels - +,- controls volume - 1..4 switch channels on/off - 5,6 stereo separation - 7,8,9 sample rate - a,d SID speed - R rescans current directory ------"
+const version$="Prop2play v.0.22"
+const statusline$=" Propeler2 wav/sid/mod player v. 0.22 --- 2022.03.13 --- pik33@o2.pl --- use serial terminal or RPi KBM interface to control --- arrows up,down move - pgup/pgdn or w/s move 10 positions - enter selects - tab switches panels - +,- controls volume - 1..4 switch channels on/off - 5,6 stereo separation - 7,8,9 sample rate - a,d SID speed - R rescans current directory ------"
 const hubset350=%1_000001__00_0010_0010__1111_1011 '350_000_000 =31*44100
 const hubset354=%1_110000__11_0110_1100__1111_1011 '354_693_878
 const hubset356=%1_001010__00_1100_0011__1111_1011 '356_352_000 =29*256*48001,5673491
@@ -12,11 +12,11 @@ const hubset336=%1_101101__11_0000_0110__1111_1011 '336_956_522 =paula*95
 
 ' Place graphics buffers at the top of memory so they will not move while editing the program
 const base2=$72000
-const infobuf_ptr=$70E80
+const infobuf_ptr=$7EE80
 const graphicbuf_ptr=$77E80
-const mainbuf_ptr=$7F3100
+const mainbuf_ptr=$73A70
 const statusline_ptr=$738A8
-const title_ptr=$703000
+const title_ptr=$73838
 const dlcopy_ptr=$72c38
 const scope_ptr=$72238
 'const displayname_ptr=$72210		
@@ -30,7 +30,7 @@ dim oldtrigs(4) as ulong
 dim pan(4)
 dim sn$(32)
 dim sl as ulong
-dim filebuf(511) as ubyte
+'dim filebuf(127) as ubyte
 dim r as ulong
 dim i,j,k,l,m,qqq as integer
 dim ansibuf(3) as ubyte
@@ -45,13 +45,13 @@ dim channelvol(4), channelpan(4) as integer
 dim mainvolume, mainpan as integer
 dim samplerate,wavepos,currentbuf as ulong
 declare wavebuf alias $28000 as ubyte($48000)
-'declare filebuf alias $721B8 as ubyte(127)
+declare filebuf alias $721B8 as ubyte(127)
 'declare wavebuf2 alias $48000 as ubyte($28000)
 dim modplaying,waveplaying,dmpplaying, needbuf,playnext as ubyte
 dim scog as integer
 dim dmppos as ulong
 dim newcnt,bufptr,siddelay,scog2,sidfreq,sidtime as integer
-dim sidpos,sidlen as ulong
+
 
 ' ----------------------------Main program start ------------------------------------
 
@@ -61,14 +61,13 @@ startmachine
 startpsram
 startvideo
 startaudio
-
-'v.cursoroff
-'makedl
+v.cursoroff
+makedl
 lpoke addr(sl),len(statusline$)  ' cannot assign to sl, but still can lpoke :) 
 framenum=0
 for i=0 to 3 : oldtrigs(i)=0 : next i
 pan(0)=8192-mainpan : pan(1)=8192+mainpan : pan(2)=8192+mainpan : pan(3)=8192-mainpan
-'preparepanels
+preparepanels
 waveplaying=0: modplaying=0 : dmpplaying=0
 
 
@@ -86,16 +85,15 @@ panel=0
 s1a=0
 samplerate=100   
 
-
-
 '' --------------------------------- THE MAIN LOOP ----------------------------------------------------------------------------------
-
 
 do
   waitvbl                     									' synchronize with vblanks
-'  if cog=(-1) then framenum+=1  :  scrollstatus((framenum) mod (8*sl))                 		' if not playing module let main loop scroll the status line
-'  scope												' display scope
-'  bars												' display bars
+  if cog=(-1) then framenum+=1  :  scrollstatus((framenum) mod (8*sl))                 		' if not playing module let main loop scroll the status line
+  scope												' display scope
+  bars												' display bars
+  
+  if ansibuf(3)=asc("d") then ansibuf(3)=0: demo
 
 '' --------------------------------  Playing the .wav file in the main loop as no other cogs can acces the file system
  
@@ -103,10 +101,8 @@ do
     qqq=$1000											' one wave chunk to load, 4kB=27 ms
     currentbuf=lpeek(base) shr 12								' get a current playing 4k buffer# from the driver
     if needbuf<>currentbuf then									' if there is a buffer to load
-      get #8,wavepos,wavebuf(0),$1000,qqq 					' then load it
-      for i=0 to 15: psram.write(addr(wavebuf(0))+i*256, i*256+needbuf shl 12 ,256): next i
-      psram.write(addr(wavebuf(0)), needbuf shl 12 ,$1000)
-      needbuf=(needbuf+1) mod $100  								' we can have any count of 4k buffers, now 2 used
+      get #8,wavepos,wavebuf((needbuf) shl 12),$1000,qqq 					' then load it
+      needbuf=(needbuf+1) mod $48  								' we can have any count of 4k buffers, now 2 used
       wavepos+=$1000      									' file position
       endif
     if qqq<>$1000 then 										' end of file
@@ -119,6 +115,29 @@ do
   endif  
   
 '' ------------------------------- End of wave playing   
+
+'' --------------------------------  Playing the .dmp file in the main loop as no other cogs can acces the file system
+ 
+  if dmpplaying=1 then
+    qqq=250											' one wave chunk to load, 4kB=27 ms
+    currentbuf=(bufptr-$28000)/250								' get a current playing 4k buffer# from the driver
+    if needbuf<>currentbuf then									' if there is a buffer to load
+      get #8,dmppos,wavebuf(needbuf*250),250,qqq 					        ' then load it
+      needbuf=(needbuf+1) mod $50  								' we can have any count of 4k buffers, now 2 used
+      dmppos+=250   								         	' file position
+      endif
+    if qqq<>250 then 										' end of file
+      do: currentbuf=(bufptr-$28000)/250 : loop until currentbuf=needbuf				' wait until all buffers played					
+      close #8 : dmpplaying=0									' close the file, stop playing
+'      for i=0 to 7 : lpoke base+32*i+20,0 : next i 						' mute the sound
+      for i=$28000 to $70FFC step 4: lpoke i,$00000000: next i                                  ' clear the ram
+'      filemove=1 : playnext=1										' experimental
+      cpustop(scog) : scog=-1
+      cpustop(scog2) :scog2=-1
+    endif
+  endif      
+ 
+'' ------------------------------- End of dmp playing   
 
 '' ------------------------------- Display the playing time
   
@@ -244,13 +263,13 @@ do
       mb=ma											' ma is approximate low mem address available
       open filename2$ for input as #4 : pos=1							' open the module
       do
-        get #4,pos,filebuf(0),512,r : pos+=r	
-        psram.write(addr(filebuf(0)),mb,512)	
+        get #4,pos,filebuf(0),128,r : pos+=r	
+        psram.write(addr(filebuf(0)),mb,128)	
         position 1,16: print mb					        ' get 128 bytes and update file position
         if mb<addr(mainstack) then for i=0 to r-1 : poke mb+i,filebuf(i) : next i 
-        mb+=512					' move the buffer to the RAM and update RAM position. Todo: this can be done all at once
+        mb+=128 					' move the buffer to the RAM and update RAM position. Todo: this can be done all at once
 
-      loop until r<>512 ' orelse mb>=addr(mainstack)						' do until eof or end of available RAM
+      loop until r<>128 ' orelse mb>=addr(mainstack)						' do until eof or end of available RAM
       close #4
       tracker.initmodule(ma,0)									' init the tracker player
       samples=15: if peek(ma+1080)=asc("M") and peek(ma+1082)=asc("K") then samples=31          ' get sample count
@@ -273,30 +292,26 @@ do
     samplerate=256 : lpoke base+28,$80000100 : waitms(2) : lpoke base+28,$40000000             ' samplerate=clock/256 allows for HQ DAC
     hubset(hubset338)										' main clock=350 MHz, sample rate 1367187.5 Hz=31*44102.8 Hz - Todo: get a sample rate from a header and set it properly     
     filename3$=currentdir$+filename$								' get a filename with the path
-    close #8: open filename3$ for input as #8: get #8,1,wavebuf(0),$1000 
-    psram.write(addr(wavebuf(0)),0,$1000)          						' open the file and preload the buffer
+    close #8: open filename3$ for input as #8: get #8,1,wavebuf(0),$1000			' open the file and preload the buffer
     needbuf=1: currentbuf=0 :wavepos=$1001 : waveplaying=1   					' init buffering variables
       										                ' now init the driver. Todo: exact synchronization of stereo channels !!!!!
     lpoke base+12,0               								' loop start   
-    lpoke base+16,$100000                                      					' loop end, we will use $50000 bytes as $50 4k buffers
+    lpoke base+16,$48000                                      					' loop end, we will use $50000 bytes as $50 4k buffers
     dpoke base+20,16384                                                                       ' set volume 
     dpoke base+22,16384                                                              		' set pan
     dpoke base+24,30 					                			' set period
     dpoke base+26, 4    									' set skip, 1 stereo sample=4 bytes
-    lpoke base+28,$0000_0000
 
     lpoke base+32+12,2                 								' loop start   
-    lpoke base+32+16,$100002                                       				' loop end
+    lpoke base+32+16,$48000                                       				' loop end
     dpoke base+32+20,16384                                                                      ' volume
     dpoke base+32+22,0     	                                                                ' pan
     dpoke base+32+24, 30                                                                        ' period
     dpoke base+32+26, 4    									' skip
-    lpoke base+32+28,$0000_0000
+    lpoke base+32+28,$4000_0000
     
-    lpoke base+8, $0 or $c0000000  								' sample ptr, 16 bit, restart from 0 
-    lpoke base+32+8, $2 or $e0000000							' sample ptr+2 (=another channel), synchronize #1 to #2
-   
-
+    lpoke base+8, $28000 or $c0000000  								' sample ptr, 16 bit, restart from 0 
+    lpoke base+32+8, $28002 or $c0000000							' sample ptr+2 (=another channel), it is now 44 clocks delayed and the phase is random. Todo: synchronizing command in the driver
     v.setwritecolors($ea,$e1)									' yellow
     position 2,15:v.write(space$(38)): filename3$=right$(filename3$,38) 		 	' clear the place for a file name
     position 2,15: v.write(filename3$)							        ' display the 'now playing' filename 
@@ -311,20 +326,12 @@ do
    
     hubset(hubset336)										 
   
-   
+
     filename3$=currentdir$+filename$								' get a filename with the path
-    close #8: open filename3$ for input as #8: pos=1
-    let psramptr=0 
-    do
-      get #8,pos,filebuf(0),512,r : pos+=r	
-      psram.write(addr(filebuf(0)),psramptr,512)	
-      position 1,16: print psramptr,					        ' get 128 bytes and update file position
-      psramptr+=512 					' move the buffer to the RAM and update RAM position. Todo: this can be done all at once
-    loop until r<>512 '                          					' do until eof 
-    close #8
-    sidlen=psramptr
-    dmpplaying=1   	
-    sidpos=0
+    close #8: open filename3$ for input as #8:      		                        	' open the file and preload the buffer
+    close #8: open filename3$ for input as #8: get #8,1,wavebuf(0),250			        ' open the file and preload the buffer
+    needbuf=1: currentbuf=0 :dmppos=251: dmpplaying=1   	
+    
     v.setwritecolors($ea,$e1)									' yellow
     position 2,15:v.write(space$(38)): filename3$=right$(filename3$,38) 		 	' clear the place for a file name
     position 2,15: v.write(filename3$)	
@@ -334,8 +341,11 @@ do
     scog=sid.start()
     scog2=cpu(sidloop,@mainstack)
     waitms(100)
-
     endif  
+
+
+
+
   ansibuf(3)=0  
   endif
 
@@ -436,8 +446,7 @@ do
 230  ansibuf(3)=0: ansibuf(2)=0 : ansibuf(1)=0  :filemove=0   
   endif
   if playnext=1 then playnext=0: ansibuf(3)=13
-
-1234 loop		
+loop		
 
 '' ------------------------------------------------ END OF THE MAIN LOOP started at 81 ---------------------------------------------------------------------------
 '' ---------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -595,15 +604,16 @@ end sub
 sub sidloop
 
 dim i as integer
-let newcnt=getcnt()+siddelay
+
+newcnt=getcnt()+177000000
+bufptr=$28000
 do
   waitcnt(newcnt)
   sidtime+=siddelay/(336_96) ' 100 us tick
   newcnt+=siddelay
-  psram.read1(addr(sid.regs(0)),sidpos,25)
-  sidpos+=25
-  if sidpos>=sidlen then sidpos=0
-loop 
+  for i=0 to 24: sid.regs(i)=peek(bufptr) : bufptr+=1 : next i
+  if bufptr>=$28000+$50*250 then bufptr=$28000
+loop
 end sub
 
 '' -------------------------------------- Get a dir and file list after change a directory --------------------------------------------------------------
@@ -681,7 +691,7 @@ if e=0 then ' file list exists
     filename2$=space$((38-len(filename2$))/2)+filename2$
     if i<20 then position 44,i : v.write(filename2$) 
     i+=1
-  loop until filename$=nil orelse filename$="" 
+  loop until filename$=nil orelse filename$=""
   filenum3=i-3
   close #5
 endif
@@ -717,7 +727,7 @@ sub preparepanels
 v.s_buf_ptr=graphicbuf_ptr						' tell the driver to operate on the graphics buffer
 v.s_cpl=112								' char per line
 v.s_lines=64								' lines				
-'v.putpixel=v.p4								' set putpixel function to 4 bpp							
+v.putpixel=v.p4								' set putpixel function to 4 bpp							
 v.font_family=2								' Atari 8 bit 8x8 font
 v.box(0,0,895,63,0)							' clear the panel
 v.frame(675,3,892,60,15)						' draw a box
@@ -937,9 +947,9 @@ lpoke palettetest+15*4,lpeek(palettetest+168*4)
 ' Prepare the title
 var i=0
 var address=addr(version$(0))
-'for i=0 to 31: pslpoke title_ptr+4*i,$77710000 : next i
-var start=(32-len(version$)) / 2
-'for i=start to start+len(version$)-1: 'pslpoke title_ptr+4*i,$77710000+peek(address+i-start): next i
+for i=0 to 27: lpoke title_ptr+4*i,$77710000 : next i
+var start=(28-len(version$)) / 2
+for i=start to start+len(version$)-1: lpoke title_ptr+4*i,$77710000+peek(address+i-start): next i
 
 ' clear the display list
 
@@ -950,7 +960,7 @@ for i=0 to 767: lpoke dlcopy_ptr+4*i,0 : next i
 
 for i=0 to 15
   for j=0 to 1
-    lpoke dlcopy_ptr+4*(4+2*i+j),(title_ptr shl 7)+%10_0000_0000_00_01+(i shl 8)
+    lpoke dlcopy_ptr+4*(4+2*i+j),(title_ptr shl 12)+%10_0000_0000_00_01+(i shl 8)
   next j
 next i  
 
@@ -963,9 +973,9 @@ for i=0 to 20
   if i=20 then address2=infobuf_ptr+39*28*4 'display line 39 here
   for j=0 to 15
      lpoke dlcopy_ptr+4*(40+32*i+2*j+0),(address2 shl 14)+ %0000_0001_1100_1111+(0 shl 4) + j shl 12
-     lpoke dlcopy_ptr+4*(40+32*i+2*j+1),(address shl 7)+ (j shl 8) + (i shl 2) + 1
+     lpoke dlcopy_ptr+4*(40+32*i+2*j+1),(address shl 12)+ (j shl 8) + (i shl 2) + 1
   next j
-  address=address+128*4
+  address=address+84*4
   address2=address2+28*4
 next i
   
@@ -1000,6 +1010,22 @@ end sub
 '-----------------------------------------------------------------------------------------------------------------------
 '----------------------------- The file cog ----------------------------------------------------------------------------
 '-----------------------------------------------------------------------------------------------------------------------
+
+sub demo()
+
+dim scog, r,b, dp as integer
+
+scog=sid.start()
+dp=1
+open "/sd/dmp/Alloyrun.dmp" for input as #8
+do
+  get #8,dp,sid.regs(0),25,r
+  dp+=25
+  waitms(20)
+loop until r<>25
+close #8
+cpustop(scog)
+end sub
 
 '---------------------------------- THE END OF THE CODE ----------------------------------------------------------------
 
