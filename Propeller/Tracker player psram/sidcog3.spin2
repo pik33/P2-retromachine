@@ -102,13 +102,13 @@ getRegisters
 '-----------------------------------------------------------
               getnib    r1, sidRegsCogCopy + 1, #2
               alts      r1, #ADSRTable
-              mov       decay1, 0
+              mov       decay1, 0-0
               getnib    r1, sidRegsCogCopy + 1, #3
               alts      r1, #ADSRTable                      '|  Convert 4bit ADSR "presets" to their corresponding
-              mov       attack1, 0                          '|  32bit values using the attack/decay table.
+              mov       attack1, 0-0                          '|  32bit values using the attack/decay table.
               getnib    r1, sidRegsCogCopy + 1, #4
               alts      r1, #ADSRTable
-              mov       release1, 0
+              mov       release1, 0-0
               getnib    r1, sidRegsCogCopy + 1, #5
               setnib    sustain1, r1, #7
               setnib    sustain1, r1, #6
@@ -133,13 +133,13 @@ getRegisters
 '----------------------------------------------------------- 
               getnib    r1, sidRegsCogCopy + 3, #0
               alts      r1, #ADSRTable
-              mov       decay2, 0
+              mov       decay2, 0-0
               getnib    r1, sidRegsCogCopy + 3, #1
               alts      r1, #ADSRTable                      '|  Convert 4bit ADSR "presets" to their corresponding
-              mov       attack2, 0                          '|  32bit values using attack/decay tables. 
-              getnib    r1, sidRegsCogCopy + 3, #2
+              mov       attack2, 0-0                          '|  32bit values using attack/decay tables. 
+              getnib    r1, sidRegsCogCopy + 3, #2           
               alts      r1, #ADSRTable
-              mov       release2, 0
+              mov       release2, 0-0
               getnib    r1, sidRegsCogCopy + 3, #3
               setnib    sustain2, r1, #7
               setnib    sustain2, r1, #6
@@ -161,13 +161,13 @@ getRegisters
 '-----------------------------------------------------------
               getnib    r1, sidRegsCogCopy + 4, #6
               alts      r1, #ADSRTable
-              mov       decay3, 0
+              mov       decay3, 0-0
               getnib    r1, sidRegsCogCopy + 4, #7
               alts      r1, #ADSRTable                      '|  Convert 4bit ADSR "presets" to their corresponding
-              mov       attack3, 0                          '|  32bit values using attack/decay tables.    
+              mov       attack3, 0-0                          '|  32bit values using attack/decay tables.    
               getnib    r1, sidRegsCogCopy + 5, #0
               alts      r1, #ADSRTable
-              mov       release3, 0
+              mov       release3, 0-0
               getnib    r1, sidRegsCogCopy + 5, #1
               setnib    sustain3, r1, #7
               setnib    sustain3, r1, #6

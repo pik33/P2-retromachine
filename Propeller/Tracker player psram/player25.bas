@@ -2,8 +2,8 @@
 #include "retromachine.bi"
 
 const HEAPSIZE = 8192
-const version$="Prop2play v.0.23"
-const statusline$=" Propeler2 wav/sid/mod player v. 0.22 --- 2022.03.13 --- pik33@o2.pl --- use serial terminal or RPi KBM interface to control --- arrows up,down move - pgup/pgdn or w/s move 10 positions - enter selects - tab switches panels - +,- controls volume - 1..4 switch channels on/off - 5,6 stereo separation - 7,8,9 sample rate - a,d SID speed - R rescans current directory ------"
+const version$="Prop2play v.0.24"
+const statusline$=" Propeler2 wav/sid/mod player v. 0.24 --- 2022.04.03 --- pik33@o2.pl --- use serial terminal or RPi KBM interface to control --- arrows up,down move - pgup/pgdn or w/s move 10 positions - enter selects - tab switches panels - +,- controls volume - 1..4 switch channels on/off - 5,6 stereo separation - 7,8,9 sample rate - a,d SID speed - R rescans current directory ------"
 const hubset350=%1_000001__00_0010_0010__1111_1011 '350_000_000 =31*44100
 const hubset354=%1_110000__11_0110_1100__1111_1011 '354_693_878
 const hubset356=%1_001010__00_1100_0011__1111_1011 '356_352_000 =29*256*48001,5673491
@@ -100,8 +100,9 @@ do
     qqq=$1000											' one wave chunk to load, 4kB=27 ms
     currentbuf=lpeek(base) shr 12								' get a current playing 4k buffer# from the driver
     if needbuf<>currentbuf then									' if there is a buffer to load
-      get #8,wavepos,wavebuf((needbuf) shl 12),$1000,qqq 					' then load it
-      needbuf=(needbuf+1) mod $40  								' we can have any count of 4k buffers, now 2 used
+      get #8,wavepos,wavebuf(0),$1000,qqq 					' then load it
+      psram.write(addr(wavebuf(0)), needbuf shl 12 ,$1000)
+      needbuf=(needbuf+1) mod $100  								' we can have any count of 4k buffers, now 2 used
       wavepos+=$1000      									' file position
       endif
     if qqq<>$1000 then 										' end of file
@@ -268,26 +269,28 @@ do
     samplerate=256 : lpoke base+28,$80000100 : waitms(2) : lpoke base+28,$40000000             ' samplerate=clock/256 allows for HQ DAC
     hubset(hubset338)										' main clock=350 MHz, sample rate 1367187.5 Hz=31*44102.8 Hz - Todo: get a sample rate from a header and set it properly     
     filename3$=currentdir$+filename$								' get a filename with the path
-    close #8: open filename3$ for input as #8: get #8,1,wavebuf(0),$1000			' open the file and preload the buffer
+    close #8: open filename3$ for input as #8: get #8,1,wavebuf(0),$1000 
+    psram.write(addr(wavebuf(0)),0,$1000)          						' open the file and preload the buffer
     needbuf=1: currentbuf=0 :wavepos=$1001 : waveplaying=1   					' init buffering variables
       										                ' now init the driver. Todo: exact synchronization of stereo channels !!!!!
     lpoke base+12,0               								' loop start   
-    lpoke base+16,$40000                                      					' loop end, we will use $50000 bytes as $50 4k buffers
+    lpoke base+16,$100000                                      					' loop end, we will use $50000 bytes as $50 4k buffers
     dpoke base+20,16384                                                                       ' set volume 
     dpoke base+22,16384                                                              		' set pan
     dpoke base+24,30 					                			' set period
     dpoke base+26, 4    									' set skip, 1 stereo sample=4 bytes
+    lpoke base+28,$0000_0000
 
     lpoke base+32+12,2                 								' loop start   
-    lpoke base+32+16,$40002                                       				' loop end
+    lpoke base+32+16,$100002                                       				' loop end
     dpoke base+32+20,16384                                                                      ' volume
     dpoke base+32+22,0     	                                                                ' pan
     dpoke base+32+24, 30                                                                        ' period
     dpoke base+32+26, 4    									' skip
-    lpoke base+32+28,$4000_0000
+    lpoke base+32+28,$0000_0000
     
-    lpoke base+8, $28000 or $c0000000  								' sample ptr, 16 bit, restart from 0 
-    lpoke base+32+8, $28002 or $e0000000							' sample ptr+2 (=another channel), synchronize #1 to #2
+    lpoke base+8, $0 or $c0000000  								' sample ptr, 16 bit, restart from 0 
+    lpoke base+32+8, $2 or $e0000000							' sample ptr+2 (=another channel), synchronize #1 to #2
    
 
     v.setwritecolors($ea,$e1)									' yellow
@@ -674,7 +677,7 @@ if e=0 then ' file list exists
     filename2$=space$((38-len(filename2$))/2)+filename2$
     if i<20 then position 44,i : v.write(filename2$) 
     i+=1
-  loop until filename$=nil orelse filename$=""
+  loop until filename$=nil orelse filename$="" 
   filenum3=i-3
   close #5
 endif
