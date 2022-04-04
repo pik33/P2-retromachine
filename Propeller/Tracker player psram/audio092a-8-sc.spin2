@@ -9,8 +9,8 @@ con
 '_clkfreq = 354693878  ' This is 100x Amiga PAL 3546895, 360 x SID (PAL) 
 
 
-left= 8
-right=9
+left= 14
+right=15
 
 c4=262
 d4=294
@@ -71,7 +71,7 @@ repeat iii from 0 to 7
   word[base+32*iii+24]:=400+2*iii
   word[base+32*iii+26]:=2
   long [base+32*iii+8]:=@null | $C0000000
-  
+  long[base+32*iii+28]:=$40000000 
 cog:=coginit(16,@audio,@mailboxaddr)
 waitms(100)
 return cog,base
@@ -83,6 +83,8 @@ return cog,base
 dat
 
 audio       org     0
+
+wrlong #0,#$50
 
             rdlong  mailbox2, ptra++     ' get start address of all mailboxes
             rdlong  scbase, ptra++       ' get start address of scope buffer
@@ -179,12 +181,19 @@ p405        getword oldls,sample0,#0          ' extract old sample value
             mov     qq,pointer0               ' compute place in the memory from where the sample will be loaded
             add     qq,sstart0
 
-            cmps    mailbox,#$1FF wcz            ' the mailbox has to point somewhere not at the start of HUB RAM
+            cmps    mailbox,#$1FF wcz          ' the mailbox has to point somewhere not at the start of HUB RAM
     if_le   rdword  spl,qq                     ' if not, use HUB RAM for samples
     if_gt   call    #cache_read
          
+            rdlong  test1,#$50
+            cmp spl,#255 wcz
+      if_gt wrlong spl,#$50
+      if_gt wrlong qq,#$54   
+        
+         
             testb   sstart0,#31 wz 
     if_nz   shl     spl,#8
+
 
 p406        scas    spl,avol0                 ' apply volume
             mov     spl,0-0
@@ -196,6 +205,7 @@ p406        scas    spl,avol0                 ' apply volume
             scas    spl,qq
             mov     rs0, 0-0
 
+
             sub     rs,oldrs 		      ' replace the old sample with the new one in the mix
             add     rs,rs0
             sub     ls,oldls
@@ -203,6 +213,11 @@ p406        scas    spl,avol0                 ' apply volume
    
             setword sample0,rs0,#1           ' pack samples into long
             setword sample0,ls0,#0
+            
+
+
+
+            
             
             bitl    sstart0, #30 wcz          ' if bit #30 of start pointer is set, the current pointer needs resetting  
     if_z    mov     pointer0, #0  
@@ -268,7 +283,8 @@ p302        wrlut   oldsample, front        ' if there is a free slot, put the s
 ' else load the cache from PSRAM, update the pointer, then read a sample
 
 
-cache_read  getbyte addrlo,qq,#0 		' when this is called, qq is the addres of the sample			
+cache_read  getct test1
+            getbyte addrlo,qq,#0 		' when this is called, qq is the addres of the sample			
             
 	    mov     addrhi,qq		
 	    shr     addrhi,#8		        ' get 24 upper bits
@@ -284,19 +300,20 @@ p702	    altd    cn,#cache1			' cache miss.
             mov     hubaddr,cn                  ' to the channel cache
             shl     hubaddr,#8                  '
             add     hubaddr,hubptr 
-            mov     count,#256                  ' 256 bytes
+            mov     count,#256                 ' 256 bytes
             setq    #2                          ' write 3 longs
             wrlong  cmd, mailbox                ' run it
+
 poll1       rdlong  cmd, mailbox                ' poll mailbox for result
             tjs     cmd, #poll1                 ' retry until valid 
             
 	
-p701	    mov     qq,cn			' cache hit
-	    shl     qq,#8			' compute the cache start
-	    add     qq,hubptr
-	    add	    qq,addrlo			' add 8 lower bits to the cache addredd
-    _ret_   rdword  spl,qq                      ' read a word
-          
+p701	    mov     test3,cn			' cache hit
+	    shl     test3,#8			' compute the cache start
+	    add     test3,hubptr
+	    add	    test3,addrlo			' add 8 lower bits to the cache addredd
+	    
+    _ret_   rdword  spl,test3                     ' read a word
 
 '--------------------------------------------------------------------------
 '------ Interrupt service -------------------------------------------------
@@ -411,8 +428,9 @@ cache5      long 0
 cache6      long 0
 cache7      long 0
 cache8      long 0
-
-
+test1 long 0
+test2 long 0
+test3 long 0
 cmd         long 0
 hubaddr     long 0
 count       long 256

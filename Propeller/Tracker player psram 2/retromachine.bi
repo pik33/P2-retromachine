@@ -11,7 +11,7 @@
 const _clkfreq = 336956522
 
 'option implicit
-dim v as class using "hg007.spin2"
+dim v as class using "hg007b.spin2"
 dim rm as class using "retrocog.spin2"
 dim tracker as class using "trackerplayer.spin2"
 dim paula as class using "audio092a-8-sc.spin2"

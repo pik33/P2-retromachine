@@ -48,7 +48,7 @@ videocog=v.start(mode,pin,mbox)
 v.setbordercolor(0,0,0)
 v.cls(154,147)
 'for thecog=0 to 7:psram.setQos(thecog, 112 << 16) :next thecog
-psram.setQoS(0, $7FFFf400) 
+'psram.setQoS(audiocog, $7FFFf400) 
 open SendRecvDevice(@v.putchar, nil, nil) as #0
 return videocog
 end function

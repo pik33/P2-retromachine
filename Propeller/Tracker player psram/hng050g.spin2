@@ -441,7 +441,7 @@ if (mode & (%10_00_11_0000))==(%10_00_10_0000)              	' 4bit graphics
 repeat i from 0 to 4
   timings[i]:=timings[i]+hdmibase<<17+ timingsxxt          	' add a streamer config (imm->pins) to horizontal timings 
 clkfreq:=timings[10]					    	' set the clock frequency for the mode
-hubset(timings[11])
+'hubset(timings[11])
 waitms(1)                                                   	' wait for stabilization
 xzoom:=1<<(mode & 3)				            	' compute a horizontal zoom
 if (xzoom==8) && (((mode>>4)&3)<>3)			    	' zoom x8 is available only for 8bpp modes
