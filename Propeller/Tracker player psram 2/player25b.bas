@@ -2,7 +2,7 @@
 #include "retromachine.bi"
 
 const HEAPSIZE = 8192
-const version$="Prop2play v.0.24"
+const version$="Prop2play v.0.25"
 const statusline$=" Propeler2 wav/sid/mod player v. 0.24 --- 2022.04.03 --- pik33@o2.pl --- use serial terminal or RPi KBM interface to control --- arrows up,down move - pgup/pgdn or w/s move 10 positions - enter selects - tab switches panels - +,- controls volume - 1..4 switch channels on/off - 5,6 stereo separation - 7,8,9 sample rate - a,d SID speed - R rescans current directory ------"
 const hubset350=%1_000001__00_0010_0010__1111_1011 '350_000_000 =31*44100
 const hubset354=%1_110000__11_0110_1100__1111_1011 '354_693_878
@@ -63,8 +63,8 @@ startmachine
 startpsram
 startvideo
 startaudio
-v.cursoroff
-makedl
+'v.cursoroff
+'makedl
 lpoke addr(sl),len(statusline$)  ' cannot assign to sl, but still can lpoke :) 
 framenum=0
 for i=0 to 3 : oldtrigs(i)=0 : next i
@@ -92,8 +92,8 @@ samplerate=100
 do
   waitvbl                     									' synchronize with vblanks
   if cog=(-1) then framenum+=1  :  scrollstatus((framenum) mod (8*sl))                 		' if not playing module let main loop scroll the status line
-  scope												' display scope
-  bars												' display bars
+'  scope												' display scope
+'  bars												' display bars
   
 
 '' --------------------------------  Playing the .wav file in the main loop as no other cogs can acces the file system
@@ -200,10 +200,11 @@ do
          getlists(0)										' get and display file lists
        endif  
      endif   
-     v.setwritecolors($29,$22)									' display currentdir$ in the file panel
-     position 44,0: v.write(string$(38,chr$(3)))
-     position 44,0: v.write(left$(currentdir$,38))
-     ansibuf(3)=0
+     v.setfontfamily(0)
+								' display currentdir$ in the file panel
+     v.box(363,41,719,59,42)	
+     v.outtextxycf(373,42,left$(currentdir$,38),0)
+  ansibuf(3)=0
   endif
 
 '' -------------------- Enter and also file panel active - open and play the file
@@ -624,14 +625,14 @@ endif
 if e=0 then 										' now the directory list exists
   i=1
   v.setwritecolors($c8,$c1)
-  for  i=1 to 11: position 2,i : print space$(38) : next i  				' clear the directory panel
+  for  i=2 to 11: position 2,2+i : print space$(38) : next i  				' clear the directory panel
   i=2
   do
     input #5,filename$									' write first 10 entries to the panel
     filename2$=rtrim$(filename$)
     filename2$=space$((38-len(filename2$))/2)+filename2$
     if waveplaying then getwave
-    if i<12 then position 2,i : v.write(filename2$) 
+    if i<12 then position 2,2+i : v.write(filename2$) 
     i+=1
   loop until filename$=nil orelse filename$="" 						' to do: write the number of entries to avoid reading all of them
   dirnum3=i-3	
@@ -665,14 +666,14 @@ endif
     
 if e=0 then ' file list exists
   v.setwritecolors($29,$22)
-  for i=1 to 19: position 44,i : print space$(38) : next i  
+  for i=2 to 19: position 46,2+i : print space$(38) : next i  
   i=2
   do
     input #5,filename$
     filename2$=rtrim$(filename$)
     filename2$=space$((38-len(filename2$))/2)+filename2$
     if waveplaying then getwave
-    if i<20 then position 44,i : v.write(filename2$) 
+    if i<20 then position 46,2+i : v.write(filename2$) 
     i+=1
   loop until filename$=nil orelse filename$="" 
   filenum3=i-3
@@ -707,28 +708,47 @@ sub preparepanels
 
 ' 1. Channel and oscilloscope panel at graphic canvas
 
-v.s_buf_ptr=graphicbuf_ptr						' tell the driver to operate on the graphics buffer
-v.s_cpl=112								' char per line
-v.s_lines=64								' lines				
-v.putpixel=v.p4								' set putpixel function to 4 bpp							
-v.font_family=2								' Atari 8 bit 8x8 font
-v.box(0,0,895,63,0)							' clear the panel
-v.frame(675,3,892,60,15)						' draw a box
-v.frame(676,3,891,60,15)
-outtext48(86,0," Channels ",15)						' print a header
-v.buf_ptr=mainbuf_ptr
-v.frame(3,3,668,60,15)							' repeat for oscilloscope
-v.frame(4,3,667,60,15)
-outtext48(2,0," Oscilloscope ",15)
-v.draw(16,32,655,32,14)                                                 ' cannot use "line"
+cls(154,113)	
+v.setfontfamily(4)						'
+v.outtextxycz((1024-32*len(version$))/2,4,version$,120,113,4,2)
+v.setfontfamily(0)						'
+
+v.frame(4,408,524,555,15)							' clear the panel
+v.box(5,409,523,427,188)							' clear the panel
+v.box(5,428,523,554,177)							' clear the panel
+v.outtextxycf(12,410,"Osciloscope",0)
+
+v.frame(528,408,720,555,15)							' clear the panel
+v.box(529,409,719,427,26)							' clear the panel
+v.box(529,428,719,554,16)							' clear the panel
+v.outtextxycf(536,410,"Visualization",0)
+
+v.frame(724,408,1019,555,15)							' clear the panel
+v.box(725,409,1018,427,170)							' clear the panel
+v.box(725,428,1018,554,162)
+v.outtextxycf(732,410,"Channels",0)
+
+v.frame(724,40,1019,404,15)							' clear the panel
+v.box(725,41,1018,59,154)
+v.box(725,60,1018,403,147)
+v.outtextxycf(732,43,"File info",0)
+
+v.frame(362,40,720,404,15)							' clear the panel
+v.box(363,41,719,59,42)							' clear the panel
+v.box(363,60,719,403,34)							' clear the panel
+v.outtextxycf(370,43,"Files",0)
+
+v.frame(4,40,358,236,15)							' clear the panel
+v.box(5,41,357,59,200)							' clear the panel
+v.box(5,60,357,235,193)							' clear the panel
+v.outtextxycf(12,43,"Directories",0)
+
+v.setfontfamily(4)
+
+                                              ' cannot use "line"
 
 ' 2 File info scrolling panel
 
-v.s_buf_ptr=infobuf_ptr                                                                                                       'set display variables to info buffer
-v.s_lines=40
-v.s_cpl=28
-v.s_buflen=40*28
-cls($9a,$93) 
 poke infobuf_ptr, 10: poke infobuf_ptr+4,3 : for i=13 to 26:poke infobuf_ptr+4*i,3 : next i : poke infobuf_ptr+4*i,9           'Upper line with semigraphic frame
 poke infobuf_ptr+39*28*4, 12: for i=1 to 26 : poke infobuf_ptr+39*28*4+i*4,3 :  next i : poke infobuf_ptr+39*28*4+4*i,11       'Lower (#39, but displayed at #20 via DL) semigraphic frame
 for i=1 to 38: poke infobuf_ptr+112*i,4:  poke infobuf_ptr+112*i+108,4: next i                                                 'Left and right semigraphic
@@ -736,22 +756,18 @@ position 3,0 : print "File info"                                                
 
 ' 3 Directories, files and now playing on the main panel
 
-v.s_buf_ptr=mainbuf_ptr
-v.s_lines=21
-v.s_cpl=84
-v.s_buflen=21*84
-cls($c8,$c1)                                                                                                                    'clear the buffer and make it green
-for i=0 to 20: for j=42 to 83:  lpoke mainbuf_ptr+4*(84*i+j), $29220020 :next j : next i					'red for files
-for i=13 to 20: for j=0 to 41:  lpoke mainbuf_ptr+4*(84*i+j), $EAE10020 :next j : next i                                        'yellow for playing timer
-poke mainbuf_ptr, 10: for i=1 to 40:poke mainbuf_ptr+4*i,3 : next i : poke mainbuf_ptr+4*i,9                                    'Upper line with semigraphic frame
-poke mainbuf_ptr+12*84*4, 12: for i=1 to 40 : poke mainbuf_ptr+12*84*4+i*4,3 :  next i : poke mainbuf_ptr+12*84*4+4*i,11        'Lower semigraphic frame
-for i=1 to 11: poke mainbuf_ptr+84*4*i,4:  poke mainbuf_ptr+(84*4)*i+41*4,4: next i                                             'Left and right semigraphic
-position 2,0 : print " Directories "                                                                                            'Header
+                                                                                                                  'clear the buffer and make it green
+'for i=0 to 20: for j=42 to 83:  lpoke mainbuf_ptr+4*(84*i+j), $29220020 :next j : next i					'red for files
+'for i=13 to 20: for j=0 to 41:  lpoke mainbuf_ptr+4*(84*i+j), $EAE10020 :next j : next i                                        'yellow for playing timer
+'poke mainbuf_ptr, 10: for i=1 to 40:poke mainbuf_ptr+4*i,3 : next i : poke mainbuf_ptr+4*i,9                                    'Upper line with semigraphic frame
+'poke mainbuf_ptr+12*84*4, 12: for i=1 to 40 : poke mainbuf_ptr+12*84*4+i*4,3 :  next i : poke mainbuf_ptr+12*84*4+4*i,11        'Lower semigraphic frame
+'for i=1 to 11: poke mainbuf_ptr+84*4*i,4:  poke mainbuf_ptr+(84*4)*i+41*4,4: next i                                             'Left and right semigraphic
+'position 2,0 : print " Directories "                                                                                            'Header
 
-poke mainbuf_ptr+42*4, 10: for i=1 to 40:poke mainbuf_ptr+42*4+4*i,3 : next i : poke mainbuf_ptr+42*4+4*i,9                   
-poke mainbuf_ptr+42*4+20*84*4, 12: for i=1 to 40 : poke mainbuf_ptr+42*4+20*84*4+i*4,3 :  next i : poke mainbuf_ptr+42*4+20*84*4+4*i,11       
-for i=1 to 19: poke mainbuf_ptr+42*4+84*4*i,4:  poke mainbuf_ptr+42*4+(84*4)*i+41*4,4: next i                                                  
-v.setwritecolors($29,$22): position 44,0 : print " Files "                                                                     
+'poke mainbuf_ptr+42*4, 10: for i=1 to 40:poke mainbuf_ptr+42*4+4*i,3 : next i : poke mainbuf_ptr+42*4+4*i,9                   
+'poke mainbuf_ptr+42*4+20*84*4, 12: for i=1 to 40 : poke mainbuf_ptr+42*4+20*84*4+i*4,3 :  next i : poke mainbuf_ptr+42*4+20*84*4+4*i,11       
+'for i=1 to 19: poke mainbuf_ptr+42*4+84*4*i,4:  poke mainbuf_ptr+42*4+(84*4)*i+41*4,4: next i                                                  
+'v.setwritecolors($29,$22): position 44,0 : print " Files "                                                                     
 
 poke mainbuf_ptr+13*84*4, 10: for i=1 to 40 : poke mainbuf_ptr+13*84*4+i*4,3 : next i : poke mainbuf_ptr+13*84*4+4*i,9            
 poke mainbuf_ptr+20*84*4, 12: for i=1 to 40 : poke mainbuf_ptr+20*84*4+i*4,3 : next i : poke mainbuf_ptr+20*84*4+4*i,11       

@@ -1008,8 +1008,9 @@ r_locked_burst              mov     c, count wz             ' | | | d e f  get c
                             wypin   clks, clkpin            'start clock output
                             xcont   #0,#0                   '1 dummy transfer to resync to the streamer for timely tri-stating
                             xcont   #6,#0                   '6 clock transfers for bus turnaround delay
-                          '  drvh    datapins                'enable this only if validating actual tri-state time on a scope
+                            drvh    datapins                'enable this only if validating actual tri-state time on a scope
                             fltl    datapins                'safe to float the data bus, address has been sent by now
+                      
                             wrpin   regdatabus, datapins    'setup data bus inputs as registered or not for read timing control
                             setq    xfreq1                  'reconfigure with single cycle xfreq (sysclk/1)
                             xcont   delay, #0               'configurable fine input delay per P2 clock cycle

@@ -25,7 +25,7 @@ dim base as ulong
 dim mbox as ulong
 
 sub startpsram
-psram.startx(0, 0, 12, -1)
+psram.startx(0, 0, 11, -1)
 mbox=psram.getMailbox(0)
 end sub
 
