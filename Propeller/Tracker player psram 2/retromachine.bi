@@ -113,6 +113,21 @@ sub pslpoke(addr as ulong,value as ulong)
 psram.filllongs(addr,value,1,0)
 end sub
 
+sub pspoke(addr as ulong,value as ulong)
+psram.fillbytes(addr,value,1,0)
+end sub
+
+function pspeek(adr as ulong) as ubyte
+dim res as ubyte
+psram.read1(addr(res),adr,1)
+return res
+end function
+
+function pslpeek(adr as ulong) as ulong
+dim res as ulong
+psram.read1(addr(res),adr,4)
+return res
+end function
 
 function addr(byref v as const any) as ulong
 

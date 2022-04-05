@@ -121,6 +121,9 @@ do
 
   if lpeek($3c)<>0 then ansibuf(0)=ansibuf(1): ansibuf(1)=ansibuf(2) : ansibuf(2)=ansibuf(3) : ansibuf(3)=peek($3D): lpoke($3C,0) ' A serial interface at P62.63 from ANSI terminal
   
+  if ansibuf(3)=asc("q") then testhighlight: ansibuf(3)=0
+  
+  
 '' ---------------------------- Key 7,8,9 pressed - samplerate (period) change     
 
   if ansibuf(3)=asc("7") then 									' 7 - decrease the period
@@ -692,15 +695,59 @@ end sub
 
 sub highlight(hpanel,hpos,hhigh)								' panel 0 dir, 1 file, high0 = off, 1 - on
 
-var hq1=8+42*4*hpanel										' compute x offset for the panel
-var hq2=mainbuf_ptr+(2+hpos)*84*4                                                               ' compute adderss + y offset
-if hpanel=0 andalso hhigh=1 then var hq3=$c1c80000						' determine colors
-if hpanel=0 andalso hhigh=0 then hq3=$c8c10000
-if hpanel=1 andalso hhigh=1 then hq3=$22290000
-if hpanel=1 andalso hhigh=0 then hq3=$29220000
-for hi=0 to 37: lpoke hq1+hq2+hi*4,((lpeek(hq1+hq2+hi*4) and $FFFF) or hq3 ): next hi           ' and change colors 
+'var hq1=8+42*4*hpanel										' compute x offset for the panel
+'var hq2=mainbuf_ptr+(2+hpos)*84*4                                                               ' compute adderss + y offset
+'if hpanel=0 andalso hhigh=1 then var hq3=$c1c80000						' determine colors
+'if hpanel=0 andalso hhigh=0 then hq3=$c8c10000
+'if hpanel=1 andalso hhigh=1 then hq3=$22290000
+'if hpanel=1 andalso hhigh=0 then hq3=$29220000
+'for hi=0 to 37: lpoke hq1+hq2+hi*4,((lpeek(hq1+hq2+hi*4) and $FFFF) or hq3 ): next hi           ' and change colors 
+
+if hhigh=1 then
+  if hpanel=0 then
+    v.frame(8,65+16*hpos,352,65+16*hpos+15,15)
+  else
+    v.frame(368,65+16*hpos,712,65+16*hpos+15,15)
+  endif  
+else
+  if hpanel==0 then
+    v.frame(8,65+16*hpos,352,65+16*hpos+15,193)
+  else
+    v.frame(368,65+16*hpos,712,65+16*hpos+15,34)
+  endif
+endif  
 end sub
 
+sub testhighlight
+
+
+  for j=65+32 to 65+15+32
+  for i=16 to 344 step 4
+  var c=0
+    var px = pslpeek(v.buf_ptr+1024*j+i)
+    asm
+    getbyte c,px,#0
+    cmp c,#196 wcz
+    if_lt setbyte px,#200,#0
+    if_ge setbyte px,#193,#0
+    getbyte c,px,#1
+    cmp c,#196 wcz
+    if_lt setbyte px,#200,#1
+    if_ge setbyte px,#193,#1
+    getbyte c,px,#2
+    cmp c,#196 wcz
+    if_lt setbyte px,#200,#2
+    if_ge setbyte px,#193,#2
+    getbyte c,px,#3
+    cmp c,#196 wcz
+    if_lt setbyte px,#200,#3
+    if_ge setbyte px,#193,#3
+    end asm
+    pslpoke  v.buf_ptr+1024*j+i,px 
+      
+    next i
+    next j
+    end sub
 
 ' ---------------- Prepare the user interface --- rev 20220206 ---------------------------------------------------
 
