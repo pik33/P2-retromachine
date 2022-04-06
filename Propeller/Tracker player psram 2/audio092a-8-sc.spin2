@@ -246,6 +246,7 @@ p301        alts    ptrb,#511                ' checking if the buffer is full - 
     if_c    mov scptr2,scptr
     if_c    shl scptr2,#2
     if_c    add scptr2,scbase     
+             wrlong scptr2,#$60
     if_c    wrlong oldsample,scptr2
     if_c    incmod scptr,##639
 			    

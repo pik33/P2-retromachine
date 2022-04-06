@@ -293,7 +293,7 @@ pub start(base,mb):result
 '--------------------------- initialize pointers and variables
 
 border_ptr:=@bordercolor					' Initial border color pointer, can be changed via DL
-font_ptr:=@vga_font						' Initial 8x16 font definition
+font_ptr:=@amiga_font						' Initial 8x16 font definition
 hdmibase:=base							' HDMI base pin, 8*n
 mailbox_ptr:=mb		
 mailbox0:=mb				' PSRAM mailbox pointer
@@ -623,7 +623,7 @@ repeat yy from 0 to 15
   ccc[1]:=c2 
   long[mailbox0][2]:=8
   long[mailbox0][1]:=@ccc
-  long[mailbox0]:= s_buf_ptr+((y+yy)<<10+x<<3)+$f0000000   
+  long[mailbox0]:= s_buf_ptr+((y+yy)<<10+x<<2)+$f0000000   
   repeat
   while long[mailbox0] < 0 
 '  long[mailbox0][2]:=1
@@ -721,6 +721,9 @@ repeat iii from 0 to strsize(text)-1
 pub setfontfamily(afontnum)
 
 font_family:=afontnum
+if afontnum==8
+  font_ptr:=@amiga_font
+
 if afontnum==4
   font_ptr:=@st_font
 if afontnum==0
@@ -919,13 +922,13 @@ pub putchar(achar) | c,x,y,l,newcpl
 if achar==10
   crlf()
 if achar==9
-  cursor_x:=(cursor_x& %11111000)+8 
+  cursor_x:=(cursor_x& %11110000)+16
   
 if (achar<>9) && (achar<>10) 
   putcharxycgf(cursor_x,16*cursor_y,achar,write_color,write_background)
-  cursor_x+=1
+  cursor_x+=2
 
-if cursor_x>=128
+if cursor_x>=256
   cursor_x:=0
   cursor_y+=1
   if cursor_y>st_lines-1
@@ -937,8 +940,8 @@ if cursor_x>=128
 pub putchar2(achar) | c,x,y,l,newcpl
 
 putcharxycgf(cursor_x,16*cursor_y,achar,write_color,write_background)
-cursor_x+=1
-if cursor_x>=128
+cursor_x+=2
+if cursor_x>=256
   cursor_x:=0
   cursor_y+=1
   if cursor_y>st_lines-1
@@ -1105,6 +1108,39 @@ pub setpalette(colors)
 if colors==256 
   palette_ptr:=@ataripalette
 
+'**********************************************************************************
+'
+'        Blitting
+'
+'**********************************************************************************
+
+pub blit(f,x1a,y1a,x2a,y2a,s1,t,x1b,y1b,s2)
+
+'' bit 30 set=psram
+
+if ((f & $40000000) <>0) && ((t & $40000000)<>0)
+  f:=f & $FFFFFFF
+  t:=t & $FFFFFFF
+  repeat y from y1a to y2a
+    ram.read1(f+(y1a+y)*s1+x1a,$80000-16384*debugger-4096-2048,x2a-x1a+1)
+    ram.write(t+(y1b+y)*s2+x1b,$80000-16384*debugger-4096-2048,x2a-x1a+1)
+    
+if ((f & $40000000) <>0) && ((t & $40000000)==0)
+  f:=f & $FFFFFFF
+  repeat y from y1a to y2a
+    ram.read1(f+(y1a+y)*s1+x1a,t+(y1b+y)*s2+x1b,x2a-x1a+1)
+    
+if ((f & $40000000) == 0) && ((t & $40000000)<>0)
+  t:=t & $FFFFFFF
+  repeat y from y1a to y2a
+    ram.write(t+(y1b+y)*s2+x1b,f+(y1a+y)*s1+x1a, x2a-x1a+1)
+    
+if ((f & $40000000) <>0) && ((t & $40000000)<>0)
+  repeat y from y1a to y2a
+    bytemove (f+(y1a+y)*s1+x1a,t+(y1b+y)*s2+x1b,x2a-x1a+1)
+
+
+
 
 '**********************************************************************************
 '
@@ -1112,8 +1148,11 @@ if colors==256
 '
 '**********************************************************************************
 dat
+
 vga_font       file "vgafont.def"
+'vga_font       file "vgafont.def"
 st_font        file "st4font.def"
+amiga_font     file "amigafont.def"
 a8_font        file "atari8.fnt"
 vga16          long  $00000000,$00008000,$00800000,$00808000,$80000000,$80008000,$80400000,$AAAAAA00,$55555500,$0000FF00,$00FF0000,$00FFFF00,$FF000000,$FF00FF00,$FFFF0000,$FFFFFF00
 ataripalette   file "ataripalettep2.def"
@@ -1313,7 +1352,7 @@ p802            mov     t2,linenum
                 getword sprite_x,0-0,#0                    ' and x
            
            
-                debug(udec(sprite_y))
+          '      debug(udec(sprite_y))
 		subs    t2,sprite_y wcz                    ' check if the sprite has to be displayed
 		
       if_c      jmp     #p801				   ' if not, go out

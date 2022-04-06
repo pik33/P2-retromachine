@@ -110,8 +110,8 @@ do
   if cog>(-1) then time2=framenum-modtime
   if waveplaying=1 then time2=(wavepos)/3528
   if dmpplaying=1 then time2=sidtime/200
-  position 15,17: v.write(v.inttostr2(time2/180000,2)): v.write(":"):v.write(v.inttostr2((time2 mod 180000)/3000,2)):v.write(":"):v.write(v.inttostr2((time2 mod 3000)/50,2)):v.write(":"):v.write(v.inttostr2((time2 mod 50),2))
-  position 15,18: v.write(v.inttostr2(lpeek(0),8))
+  position 2*15,17: v.write(v.inttostr2(time2/180000,2)): v.write(":"):v.write(v.inttostr2((time2 mod 180000)/3000,2)):v.write(":"):v.write(v.inttostr2((time2 mod 3000)/50,2)):v.write(":"):v.write(v.inttostr2((time2 mod 50),2))
+  position 2*15,18: v.write(v.inttostr2(lpeek(0),8))
 '' ----------------------------- Get data from the keyboard
  
   if lpeek($30)<>0 then 									                         ' a Raspberry Pi based interface sent a message
@@ -121,7 +121,7 @@ do
 
   if lpeek($3c)<>0 then ansibuf(0)=ansibuf(1): ansibuf(1)=ansibuf(2) : ansibuf(2)=ansibuf(3) : ansibuf(3)=peek($3D): lpoke($3C,0) ' A serial interface at P62.63 from ANSI terminal
   
-  if ansibuf(3)=asc("q") then testhighlight: ansibuf(3)=0
+'  if ansibuf(3)=asc("q") then testhighlight: ansibuf(3)=0
   
   
 '' ---------------------------- Key 7,8,9 pressed - samplerate (period) change     
@@ -168,17 +168,17 @@ do
    
   pan(0)=8192-mainpan : pan(1)=8192+mainpan : pan(2)=8192+mainpan : pan(3)=8192-mainpan 						' set channels position
   v.setwritecolors($ca,$e1)
-  position 3,19:  v.write("pan: "): v.write(v.inttostr2(mainpan/256,2))  								' display the status
-  position 13,19: v.write("vol: "): v.write(v.inttostr2(mainvolume,3)) 
-  position 24,19: v.write("chn: "): 
-  if channelvol(0)=1 then position 29,19 :v.write("1")
-  if channelvol(0)=0 then position 29,19 :v.write("-")
-  if channelvol(1)=1 then position 31,19 :v.write("2")
-  if channelvol(1)=0 then position 31,19 :v.write("-")
-  if channelvol(2)=1 then position 33,19 :v.write("3")
-  if channelvol(2)=0 then position 33,19 :v.write("-")
-  if channelvol(3)=1 then position 35,19 :v.write("4")
-  if channelvol(3)=0 then position 35,19 :v.write("-")   
+  position 2*3,19:  v.write("pan: "): v.write(v.inttostr2(mainpan/256,2))  								' display the status
+  position 2*13,19: v.write("vol: "): v.write(v.inttostr2(mainvolume,3)) 
+  position 2*24,19: v.write("chn: "): 
+  if channelvol(0)=1 then position 2*29,19 :v.write("1")
+  if channelvol(0)=0 then position 2*29,19 :v.write("-")
+  if channelvol(1)=1 then position 2*31,19 :v.write("2")
+  if channelvol(1)=0 then position 2*31,19 :v.write("-")
+  if channelvol(2)=1 then position 2*33,19 :v.write("3")
+  if channelvol(2)=0 then position 2*33,19 :v.write("-")
+  if channelvol(3)=1 then position 2*35,19 :v.write("4")
+  if channelvol(3)=0 then position 2*35,19 :v.write("-")   
   
 '' -------------------------- R - rescan the directory 
 
@@ -234,7 +234,7 @@ do
       do
         get #4,pos,filebuf(0),512,r : pos+=r	
         psram.write(addr(filebuf(0)),mb,512)	
-        position 1,16: print mb					        ' get 128 bytes and update file position
+        position 2*1,16: print mb					        ' get 128 bytes and update file position
         if mb<addr(mainstack) then for i=0 to r-1 : poke mb+i,filebuf(i) : next i 
         mb+=512					' move the buffer to the RAM and update RAM position. Todo: this can be done all at once
 
@@ -249,8 +249,8 @@ do
       cog=cpu (mainloop, @mainstack) 								' start the playing
       modtime=framenum										' get the current frame # for displaying module time
       v.setwritecolors($ea,$e1)									' yellow
-      position 2,15:v.write(space$(38)): filename2$=right$(filename2$,38) 			' clear the place for a file name
-      position 2,15: v.write(filename2$)							' display the 'now playing' filename 
+      position 2*2,15:v.write(space$(38)): filename2$=right$(filename2$,38) 			' clear the place for a file name
+      position 2*2,15: v.write(filename2$)							' display the 'now playing' filename 
     endif
     
   if lcase$(right$(filename$,3))="wav" then  							' this is a wave file. Todo - read and use the header!
@@ -288,8 +288,8 @@ do
   
 
     v.setwritecolors($ea,$e1)									' yellow
-    position 2,15:v.write(space$(38)): filename3$=right$(filename3$,38) 		 	' clear the place for a file name
-    position 2,15: v.write(filename3$)							        ' display the 'now playing' filename 
+    position 2*2,15:v.write(space$(38)): filename3$=right$(filename3$,38) 		 	' clear the place for a file name
+    position 2*2,15: v.write(filename3$)							        ' display the 'now playing' filename 
     endif  
 
   if lcase$(right$(filename$,3))="dmp" then  							' this is a wave file. Todo - read and use the header!
@@ -308,7 +308,7 @@ do
     do
       get #8,pos,filebuf(0),512,r : pos+=r	
       psram.write(addr(filebuf(0)),psramptr,512)	
-      position 1,16: print psramptr,					        ' get 128 bytes and update file position
+      position 2*1,16: print psramptr,					        ' get 128 bytes and update file position
       psramptr+=512 					' move the buffer to the RAM and update RAM position. Todo: this can be done all at once
     loop until r<>512 '                          					' do until eof 
     close #8
@@ -316,8 +316,8 @@ do
     dmpplaying=1   	
     sidpos=0
     v.setwritecolors($ea,$e1)									' yellow
-    position 2,15:v.write(space$(38)): filename3$=right$(filename3$,38) 		 	' clear the place for a file name
-    position 2,15: v.write(filename3$)	
+    position 2*2,15:v.write(space$(38)): filename3$=right$(filename3$,38) 		 	' clear the place for a file name
+    position 2*2,15: v.write(filename3$)	
 					        ' display the 'now playing' filename 
     siddelay=336956522/50 : sidfreq=50 :sidtime=0
     for i=0 to 17: sid.regs(i)=0: next i
@@ -355,13 +355,15 @@ do
       if dirnum2>=dirnum3 then dirnum2=dirnum3-1            						' dirnum2 has to be less than all directoriess count
       if dirnum1>=dirnum3 then dirnum1=dirnum3-1 : goto 199 						' dirnum1 has to be less than all directories count. If it is, nothing more to do, go to the end of this part     
       if dirnum1<=9 then highlight(0,olddirnum1,0) : highlight(0,dirnum1,1) : goto 199                  ' only highlight changed, change the highlighted entry and go away
+      highlight(0,olddirnum1,0)
       dirnum1=9	: v.setwritecolors($c9,$c1)    							        ' if we are still here, the highlight is at the bottom of the panel
       close #9 : open currentdir$+"dirlist.txt" for input as #9   					' and the new entry has to be read from the file, so open it
-      for ii=dirnum2-9 to dirnum2									' read and display directory names from the file
-        get #9,1+39*ii,displayname(0),38 : displayname(38)=32								' get the name
-        j=38 : do : j-=1 : loop until displayname(j)>32:  k=j 		     			        ' find the end of the name
-        position 2,ii+2-dirnum2+9: for j=0 to (39-k)/2-2: v.write(" ") : next j                         ' clear the space before the centered name
-        for j=0 to 39-(38-k)/2-1: v.write(chr$(displayname(j))) :next j					' display the name and spaces after it
+      for ii=dirnum2-9 to dirnum2
+       get #9,1+39*ii,displayname(0),38								' get the name
+        j=38 : do : j-=1 : loop until displayname(j)>32:  k=j 		     			        ' find the end of the nam
+        v.box(8,(ii+4-dirnum2+9)*16,352,(ii+4-dirnum2+9)*16+15,193)
+        position ((360-8*k-8)/8, ii+4-dirnum2+9)
+        for j=0 to k: v.write(chr$(displayname(j))) :next j
       next ii
       close #9
       highlight(0,dirnum1,1) 										' highlight the selected entry         
@@ -378,7 +380,7 @@ do
       close #9 : open currentdir$+"filelist.txt" for input as #9                                        ' so do the same as in dir panel
       for ii=filenum2-17 to filenum2: get #9,1+39*ii,displayname(0),38: displayname(38)=32		' except we have now 18 slots
         j=38 : do : j-=1 : loop until displayname(j)>32: k=j 
-        position 44,ii+2-filenum2+17: for j=0 to (39-k)/2-2: v.write(" ") : next j  
+        position 2*44,ii+2-filenum2+17: for j=0 to (39-k)/2-2: v.write(" ") : next j  
         for j=0 to 39-(38-k)/2-1: v.write(chr$(displayname(j))) :next j
       next ii
       close #9
@@ -395,13 +397,22 @@ do
       dirnum2+=filemove 										' file
       if dirnum2<0 then dirnum2=0									' we are going up so dirnum2 may be negative and this is not allowed here
       if dirnum1>=0 then highlight(0,olddirnum1,0) : highlight(0,dirnum1,1) : goto 230 		        ' only change highlight and go away		
+      highlight(0,olddirnum1,0)
       dirnum1=0 : v.setwritecolors($c9,$c1)  							        ' dirnum1 negative, read data from the file
       close #9 : open currentdir$+"dirlist.txt" for input as #9     				        ' do the same stuff as in dir panel down			
-      for ii=dirnum2 to dirnum2+9 : get #9,1+39*ii,displayname(0),38: displayname(38)=32	
-        j=38 : do : j-=1 : loop until displayname(j)>32:  k=j 
-        position 2,ii+2-dirnum2: for j=0 to (39-k)/2-2: v.write(" ") : next j  
-        if ii<dirnum3 then for j=0 to 39-(38-k)/2-1: v.write(chr$(displayname(j))) :next j
+'      for ii=dirnum2 to dirnum2+9 : get #9,1+39*ii,displayname(0),38: displayname(38)=32	
+'        j=38 : do : j-=1 : loop until displayname(j)>32:  k=j 
+'        position 2*2,ii+4-dirnum2: for j=0 to (39-k)/2-2: v.write(" ") : next j  
+'        if ii<dirnum3 then for j=0 to 39-(38-k)/2-1: v.write(chr$(displayname(j))) :next j
+'      next ii
+      for ii=dirnum2 to dirnum2+9
+       get #9,1+39*ii,displayname(0),38								' get the name
+        j=38 : do : j-=1 : loop until displayname(j)>32:  k=j 		     			        ' find the end of the nam
+        v.box(8,(ii+4-dirnum2)*16,352,(ii+4-dirnum2)*16+15,193)
+        position ((360-8*k-8)/8, ii+4-dirnum2)
+        if ii<dirnum3 then for j=0 to k: v.write(chr$(displayname(j))) :next j
       next ii
+
       close #9
       highlight(0,dirnum1,1)    
     endif
@@ -416,7 +427,7 @@ do
       close #9 : open currentdir$+"filelist.txt" for input as #9   
       for ii=filenum2 to filenum2+17 : get #9,1+39*ii,displayname(0),38 : displayname(38)=32	
         j=38 : do : j-=1 : loop until displayname(j)>32:  k=j 
-        position 44,ii+2-filenum2: for j=0 to (39-k)/2-2: v.write(" ") : next j  
+        position 2*44,ii+2-filenum2: for j=0 to (39-k)/2-2: v.write(" ") : next j  
         for j=0 to 39-(38-k)/2-1: v.write(chr$(displayname(j))) :next j
       next ii
       close #9
@@ -600,7 +611,7 @@ end sub
 
 sub getlists(mode)
 
-dim e,i as integer
+dim e,i,p as integer
 
 if mode=1 then e=4: goto 360 								' if mode=1 then force error to rebuild fles
 
@@ -628,14 +639,14 @@ endif
 if e=0 then 										' now the directory list exists
   i=1
   v.setwritecolors($c8,$c1)
-  for  i=2 to 11: position 2,2+i : print space$(38) : next i  				' clear the directory panel
+  v.box(5,60,357,235,193)						' clear the directory panel
   i=2
   do
     input #5,filename$									' write first 10 entries to the panel
     filename2$=rtrim$(filename$)
-    filename2$=space$((38-len(filename2$))/2)+filename2$
+    p=(360-8*len(filename2$))/8
     if waveplaying then getwave
-    if i<12 then position 2,2+i : v.write(filename2$) 
+    if i<12 then position p,2+i : v.write(filename2$) 
     i+=1
   loop until filename$=nil orelse filename$="" 						' to do: write the number of entries to avoid reading all of them
   dirnum3=i-3	
@@ -669,14 +680,14 @@ endif
     
 if e=0 then ' file list exists
   v.setwritecolors($29,$22)
-  for i=2 to 19: position 46,2+i : print space$(38) : next i  
+  v.box(363,60,719,403,34)
   i=2
   do
     input #5,filename$
     filename2$=rtrim$(filename$)
     filename2$=space$((38-len(filename2$))/2)+filename2$
     if waveplaying then getwave
-    if i<20 then position 46,2+i : v.write(filename2$) 
+    if i<20 then position 2*50,2+i : v.write(filename2$) 
     i+=1
   loop until filename$=nil orelse filename$="" 
   filenum3=i-3
@@ -693,61 +704,106 @@ end sub
 
 '' ------------------------------------------ Highlight the entry in the panel --------------------------------------------
 
-sub highlight(hpanel,hpos,hhigh)								' panel 0 dir, 1 file, high0 = off, 1 - on
 
-'var hq1=8+42*4*hpanel										' compute x offset for the panel
-'var hq2=mainbuf_ptr+(2+hpos)*84*4                                                               ' compute adderss + y offset
-'if hpanel=0 andalso hhigh=1 then var hq3=$c1c80000						' determine colors
-'if hpanel=0 andalso hhigh=0 then hq3=$c8c10000
-'if hpanel=1 andalso hhigh=1 then hq3=$22290000
-'if hpanel=1 andalso hhigh=0 then hq3=$29220000
-'for hi=0 to 37: lpoke hq1+hq2+hi*4,((lpeek(hq1+hq2+hi*4) and $FFFF) or hq3 ): next hi           ' and change colors 
+sub highlight(hpanel,hpos,hhigh)
 
-if hhigh=1 then
-  if hpanel=0 then
-    v.frame(8,65+16*hpos,352,65+16*hpos+15,15)
-  else
-    v.frame(368,65+16*hpos,712,65+16*hpos+15,15)
-  endif  
-else
-  if hpanel==0 then
-    v.frame(8,65+16*hpos,352,65+16*hpos+15,193)
-  else
-    v.frame(368,65+16*hpos,712,65+16*hpos+15,34)
+      var i=0
+      var v0=0
+      var v1=0
+      var px=0
+      var c=0
+'goto 999
+
+if hpanel=0 then
+
+  var back=pspeek(v.buf_ptr+1024*(16*hpos+65)+13) 
+  
+  if ((hhigh=1) and (back<196)) or ((hhigh=0) and (back>=196)) then
+
+    c=0
+    for j=64+16*hpos to 79+16*hpos
+      psram.read1($7a800,v.buf_ptr+1024*j+12,340)
+      i=336
+      v0=0
+      v1=$7a800
+
+ 		asm
+
+p001  		mov v0,v1
+    		add v0,i
+    		rdlong px,v0
+        	getbyte c,px,#0
+    		cmp c,#196 wcz
+  	if_lt 	setbyte px,#200,#0
+  	if_ge 	setbyte px,#193,#0
+		getbyte c,px,#1
+    		cmp c,#196 wcz
+  	if_lt 	setbyte px,#200,#1
+  	if_ge 	setbyte px,#193,#1
+    		getbyte c,px,#2
+    		cmp c,#196 wcz
+  	if_lt 	setbyte px,#200,#2
+  	if_ge 	setbyte px,#193,#2
+    		getbyte c,px,#3
+    		cmp c,#196 wcz
+  	if_lt 	setbyte px,#200,#3
+  	if_ge 	setbyte px,#193,#3
+    		wrlong px,v0
+    		sub i,#4 wcz
+  	if_nc 	jmp #p001
+  		
+  		end asm
+
+      psram.write($7a800,v.buf_ptr+1024*j+12,340)  
+      next j
+    endif  
   endif
-endif  
-end sub
 
-sub testhighlight
+if hpanel=1 then
 
+  back=pspeek(v.buf_ptr+1024*(16*hpos+65)+373) 
+  
+  if ((hhigh=1) and (back<36)) or ((hhigh=0) and (back>=36)) then
+    c=0
+    for j=64+16*hpos to 79+16*hpos
+      psram.read1($7a800,v.buf_ptr+1024*j+372,340)
+      i=336
+      v0=0
+      v1=$7a800
 
-  for j=65+32 to 65+15+32
-  for i=16 to 344 step 4
-  var c=0
-    var px = pslpeek(v.buf_ptr+1024*j+i)
-    asm
-    getbyte c,px,#0
-    cmp c,#196 wcz
-    if_lt setbyte px,#200,#0
-    if_ge setbyte px,#193,#0
-    getbyte c,px,#1
-    cmp c,#196 wcz
-    if_lt setbyte px,#200,#1
-    if_ge setbyte px,#193,#1
-    getbyte c,px,#2
-    cmp c,#196 wcz
-    if_lt setbyte px,#200,#2
-    if_ge setbyte px,#193,#2
-    getbyte c,px,#3
-    cmp c,#196 wcz
-    if_lt setbyte px,#200,#3
-    if_ge setbyte px,#193,#3
-    end asm
-    pslpoke  v.buf_ptr+1024*j+i,px 
-      
-    next i
-    next j
-    end sub
+ 		asm
+
+p002  		mov v0,v1
+    		add v0,i
+    		rdlong px,v0
+        	getbyte c,px,#0
+    		cmp c,#36 wcz
+  	if_lt 	setbyte px,#40,#0
+  	if_ge 	setbyte px,#34,#0
+		getbyte c,px,#1
+    		cmp c,#36 wcz
+  	if_lt 	setbyte px,#40,#1
+  	if_ge 	setbyte px,#34,#1
+    		getbyte c,px,#2
+    		cmp c,#36 wcz
+  	if_lt 	setbyte px,#40,#2
+  	if_ge 	setbyte px,#34,#2
+    		getbyte c,px,#3
+    		cmp c,#36 wcz
+  	if_lt 	setbyte px,#40,#3
+  	if_ge 	setbyte px,#34,#3
+    		wrlong px,v0
+    		sub i,#4 wcz
+  	if_nc 	jmp #p002
+  		
+  		end asm
+
+      psram.write($7a800,v.buf_ptr+1024*j+372,340)  
+      next j
+    endif  
+  endif
+       
+999 end sub
 
 ' ---------------- Prepare the user interface --- rev 20220206 ---------------------------------------------------
 
@@ -781,7 +837,7 @@ v.box(725,60,1018,403,147)
 v.outtextxycf(732,43,"File info",0)
 
 v.frame(362,40,720,404,15)							' clear the panel
-v.box(363,41,719,59,42)							' clear the panel
+v.box(363,41,719,59,40)							' clear the panel
 v.box(363,60,719,403,34)							' clear the panel
 v.outtextxycf(370,43,"Files",0)
 
@@ -790,7 +846,12 @@ v.box(5,41,357,59,200)							' clear the panel
 v.box(5,60,357,235,193)							' clear the panel
 v.outtextxycf(12,43,"Directories",0)
 
-v.setfontfamily(4)
+v.frame(4,240,358,404,15)							' clear the panel
+v.box(5,241,357,259,232)							' clear the panel
+v.box(5,260,357,403,225)							' clear the panel
+v.outtextxycf(12,243,"Now playing",0)
+
+'v.setfontfamily(4)
 
                                               ' cannot use "line"
 
@@ -799,7 +860,7 @@ v.setfontfamily(4)
 poke infobuf_ptr, 10: poke infobuf_ptr+4,3 : for i=13 to 26:poke infobuf_ptr+4*i,3 : next i : poke infobuf_ptr+4*i,9           'Upper line with semigraphic frame
 poke infobuf_ptr+39*28*4, 12: for i=1 to 26 : poke infobuf_ptr+39*28*4+i*4,3 :  next i : poke infobuf_ptr+39*28*4+4*i,11       'Lower (#39, but displayed at #20 via DL) semigraphic frame
 for i=1 to 38: poke infobuf_ptr+112*i,4:  poke infobuf_ptr+112*i+108,4: next i                                                 'Left and right semigraphic
-position 3,0 : print "File info"                                                                                               'Header
+position 2*3,0 : print "File info"                                                                                               'Header
 
 ' 3 Directories, files and now playing on the main panel
 
@@ -819,7 +880,7 @@ position 3,0 : print "File info"                                                
 poke mainbuf_ptr+13*84*4, 10: for i=1 to 40 : poke mainbuf_ptr+13*84*4+i*4,3 : next i : poke mainbuf_ptr+13*84*4+4*i,9            
 poke mainbuf_ptr+20*84*4, 12: for i=1 to 40 : poke mainbuf_ptr+20*84*4+i*4,3 : next i : poke mainbuf_ptr+20*84*4+4*i,11       
 for i=14 to 19: poke mainbuf_ptr+84*4*i,4:  poke mainbuf_ptr+(84*4)*i+41*4,4: next i                                                 
-v.setwritecolors($ea,$e1) : position 2,13 : print " Now playing "                                                                    
+v.setwritecolors($ea,$e1) : position 2*2,13 : print " Now playing "                                                                    
                                  
 v.setbordercolor2(v.getpalettecolor(113))											' dark blue border
 lpoke v.palette_ptr+4,lpeek(v.palette_ptr+4*202)										' colors for the scope
@@ -866,12 +927,12 @@ v.s_cpl=28
 v.s_buflen=40*28
 v.s_ppl=28*8
 v.setwritecolors($9a,$93) 
-for i=1 to 38: position 1,i : print space$(26);: next i 
+for i=1 to 38: position 2*1,i : print space$(26);: next i 
 v.setwritecolors($93,$9a)
-position 2,2 : print "                        " 
-position 2,2: print filename$ :v.setwritecolors($9a,$93)                      ' test: module file name will be here
-position 2,3 : print "Amiga module: "; samples;" samples"
-position 2,5 : for i=ma to ma+19 : print chr$(peek(i) mod 128); : next i      ' first 20 bytes of module=title
+position 2*2,2 : print "                        " 
+position 2*2,2: print filename$ :v.setwritecolors($9a,$93)                      ' test: module file name will be here
+position 2*2,3 : print "Amiga module: "; samples;" samples"
+position 2*2,5 : for i=ma to ma+19 : print chr$(peek(i) mod 128); : next i      ' first 20 bytes of module=title
 for i=0 to 31: sn$(i)=space$(22) :next i
 c=0
 for i=1 to num
@@ -881,7 +942,7 @@ for i=1 to num
     if b>=32 then poke a+j,b : c=i ' c will be the last named sample
   next j
 next i
-for i=1 to c: position 2,i+5 :print sn$(i) :next i
+for i=1 to c: position 2*2,i+5 :print sn$(i) :next i
 v.s_buf_ptr=mainbuf_ptr
 v.s_lines=21
 v.s_cpl=84
@@ -980,78 +1041,6 @@ next i
 end sub  
 
 '----------------- Prepare a custom displaylist for the player --- rev 20220205 ---------------------------------------------------------
-
-sub makedl
-
-' Make colors 0 and 15 blue-green for the graphics part of the screen
-
-'dltest=v.dl_ptr
-var palettetest=v.palette_ptr
-lpoke palettetest,lpeek(palettetest+161*4)
-lpoke palettetest+15*4,lpeek(palettetest+168*4)
-
-' Prepare the title
-var i=0
-var address=addr(version$(0))
-for i=0 to 27: lpoke title_ptr+4*i,$77710000 : next i
-var start=(28-len(version$)) / 2
-for i=start to start+len(version$)-1: lpoke title_ptr+4*i,$77710000+peek(address+i-start): next i
-
-' clear the display list
-
-for i=0 to 767: lpoke dlcopy_ptr+4*i,0 : next i
-
-' First 4 lines = 0 for upper border over the title
-' then a big title, 32 lines in 4x horizontal, 2x vertical zoom
-
-for i=0 to 15
-  for j=0 to 1
-    lpoke dlcopy_ptr+4*(4+2*i+j),(title_ptr shl 12)+%10_0000_0000_00_01+(i shl 8)
-  next j
-next i  
-
-' lines 36 to 42 empty, then 21 lines (= 21*16 screen lines and 21*32 DL entries) of 8x16 text with split screen - 84 chars from mainbuf, 28 from infobuf
-
-address=mainbuf_ptr
-var address2=infobuf_ptr
-
-for i=0 to 20
-  if i=20 then address2=infobuf_ptr+39*28*4 'display line 39 here
-  for j=0 to 15
-     lpoke dlcopy_ptr+4*(40+32*i+2*j+0),(address2 shl 14)+ %0000_0001_1100_1111+(0 shl 4) + j shl 12
-     lpoke dlcopy_ptr+4*(40+32*i+2*j+1),(address shl 12)+ (j shl 8) + (i shl 2) + 1
-  next j
-  address=address+84*4
-  address2=address2+28*4
-next i
-  
-' Live change registers have to be cleared now
-
-lpoke dlcopy_ptr+4*714, %0000_0000_0000_0000_0000_1111_1111_1111 
-
-' Next 6 lines empty, over the graphic part
-' We will use repeat command for this
-
-lpoke dlcopy_ptr+4*721, %0000_1000_0000_0001_0001_1100_0000_0111   ' repeat 128, every second line add 448 (=2x vertical zoom)
-'lpoke dlcopy_ptr+4*721, graphicbuf_ptr shl 12 +%00_0000_0000_1010  ' graphic line with 4bpp
-lpoke dlcopy_ptr+4*722, graphicbuf_ptr shl 12 +%00_0000_0000_1010  ' graphic line with 4bpp
-
-' 6 empty lines under the graphic lines. 2 lines before status/help line enable the horizontal fine scroll
-
-lpoke dlcopy_ptr+4*728, %0000_0000_0000_0000_0001_0000_0101_0011
-
-' scrolling help line, using repeat 
-
-lpoke dlcopy_ptr+4*730, %0000_0001_0000_1111_0000_0000_0000_0111          ' repeat 16
-lpoke dlcopy_ptr+4*731, (statusline_ptr+4) shl 12+ %00_0000_0000_0001     ' text line
-
-lpoke dlcopy_ptr+4*732, %0000_0000_0000_0000_0001_0000_0101_0011          ' reset horizontal scroll to 0
-
-' the rest of DL are zero
-' Now tell the driver wheere is a new DL
-
-v.dl_ptr=dlcopy_ptr 
-end sub
 
 sub getwave
     qqq=$4000											' one wave chunk to load, 4kB=27 ms

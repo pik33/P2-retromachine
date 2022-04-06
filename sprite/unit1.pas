@@ -6,7 +6,7 @@ interface
 
 uses
   Classes, SysUtils, Forms, Controls, Graphics, Dialogs, ExtCtrls, Buttons,
-  retro;
+  StdCtrls, retro;
 
 type
 
@@ -14,8 +14,10 @@ type
 
   TForm1 = class(TForm)
     BitBtn1: TBitBtn;
+    Button1: TButton;
     Image1: TImage;
     procedure BitBtn1Click(Sender: TObject);
+    procedure Button1Click(Sender: TObject);
   private
 
   public
@@ -56,6 +58,18 @@ for n:=0 to 15 do
        filewrite(fh,luma16,1);        filewrite(fh,luma16,1);
 
       end;
+  fileclose(fh);
+end;
+
+procedure TForm1.Button1Click(Sender: TObject);
+
+
+var i,j,fh:integer;
+begin
+  fh:=filecreate('amigafont.def');
+  for i:=0 to 255 do
+    for j:=0 to 15 do
+     filewrite(fh,amigafont[i,j],1);
   fileclose(fh);
 end;
 
