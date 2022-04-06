@@ -111,8 +111,8 @@ do
   if cog>(-1) then time2=framenum-modtime
   if waveplaying=1 then time2=(wavepos)/3528
   if dmpplaying=1 then time2=sidtime/200
-  position 2*15,17: v.write(v.inttostr2(time2/180000,2)): v.write(":"):v.write(v.inttostr2((time2 mod 180000)/3000,2)):v.write(":"):v.write(v.inttostr2((time2 mod 3000)/50,2)):v.write(":"):v.write(v.inttostr2((time2 mod 50),2))
-  position 2*15,18: v.write(v.inttostr2(lpeek(0),8))
+  position 2*15,19: v.write(v.inttostr2(time2/180000,2)): v.write(":"):v.write(v.inttostr2((time2 mod 180000)/3000,2)):v.write(":"):v.write(v.inttostr2((time2 mod 3000)/50,2)):v.write(":"):v.write(v.inttostr2((time2 mod 50),2))
+  position 2*15,20: v.write(v.inttostr2(lpeek(0),8))
 '' ----------------------------- Get data from the keyboard
  
   if lpeek($30)<>0 then 									                         ' a Raspberry Pi based interface sent a message
@@ -169,17 +169,17 @@ do
    
   pan(0)=8192-mainpan : pan(1)=8192+mainpan : pan(2)=8192+mainpan : pan(3)=8192-mainpan 						' set channels position
   v.setwritecolors($ca,$e1)
-  position 2*3,19:  v.write("pan: "): v.write(v.inttostr2(mainpan/256,2))  								' display the status
-  position 2*13,19: v.write("vol: "): v.write(v.inttostr2(mainvolume,3)) 
-  position 2*24,19: v.write("chn: "): 
-  if channelvol(0)=1 then position 2*29,19 :v.write("1")
-  if channelvol(0)=0 then position 2*29,19 :v.write("-")
-  if channelvol(1)=1 then position 2*31,19 :v.write("2")
-  if channelvol(1)=0 then position 2*31,19 :v.write("-")
-  if channelvol(2)=1 then position 2*33,19 :v.write("3")
-  if channelvol(2)=0 then position 2*33,19 :v.write("-")
-  if channelvol(3)=1 then position 2*35,19 :v.write("4")
-  if channelvol(3)=0 then position 2*35,19 :v.write("-")   
+  position 2*3,22:  v.write("pan: "): v.write(v.inttostr2(mainpan/256,2))  								' display the status
+  position 2*13,22: v.write("vol: "): v.write(v.inttostr2(mainvolume,3)) 
+  position 2*24,22: v.write("chn: "): 
+  if channelvol(0)=1 then position 2*29,22 :v.write("1")
+  if channelvol(0)=0 then position 2*29,22 :v.write("-")
+  if channelvol(1)=1 then position 2*31,22 :v.write("2")
+  if channelvol(1)=0 then position 2*31,22 :v.write("-")
+  if channelvol(2)=1 then position 2*33,22 :v.write("3")
+  if channelvol(2)=0 then position 2*33,22 :v.write("-")
+  if channelvol(3)=1 then position 2*35,22 :v.write("4")
+  if channelvol(3)=0 then position 2*35,22 :v.write("-")   
   
 '' -------------------------- R - rescan the directory 
 
@@ -235,7 +235,7 @@ do
       do
         get #4,pos,filebuf(0),512,r : pos+=r	
         psram.write(addr(filebuf(0)),mb,512)	
-        position 4,24: print pos; " bytes loaded"					        ' get 128 bytes and update file position
+        position 4,24: print pos; " bytes loaded     "					        ' get 128 bytes and update file position
         if mb<addr(mainstack) then for i=0 to r-1 : poke mb+i,filebuf(i) : next i 
         mb+=512					' move the buffer to the RAM and update RAM position. Todo: this can be done all at once
 
@@ -243,15 +243,15 @@ do
       close #4
       tracker.initmodule(ma,0)									' init the tracker player
       samples=15: if peek(ma+1080)=asc("M") and peek(ma+1082)=asc("K") then samples=31          ' get sample count
-      getinfo(ma,samples)									' and information
+ '     getinfo(ma,samples)									' and information
       hubset(hubset336)										' set the main clock to Paula (PAL) * 100       
       samplerate=100 : lpoke base+28,$8000_005F: waitms(2): lpoke base+28,0   	   	        ' set the sample rate to standard Paula
       lpoke base+28+32,0 									' switch channel #1 to PSRAM after wav playing
       cog=cpu (mainloop, @mainstack) 								' start the playing
       modtime=framenum										' get the current frame # for displaying module time
       v.setwritecolors($ea,$e1)									' yellow
-      position 2*2,15:v.write(space$(38)): filename2$=right$(filename2$,38) 			' clear the place for a file name
-      position 2*2,15: v.write(filename2$)							' display the 'now playing' filename 
+      position 2*2,17:v.write(space$(38)): filename2$=right$(filename2$,38) 			' clear the place for a file name
+      position 2*2,17: v.write(filename2$)							' display the 'now playing' filename 
     endif
     
   if lcase$(right$(filename$,3))="wav" then  							' this is a wave file. Todo - read and use the header!
@@ -289,8 +289,8 @@ do
   
 
     v.setwritecolors($ea,$e1)									' yellow
-    position 2*2,15:v.write(space$(38)): filename3$=right$(filename3$,38) 		 	' clear the place for a file name
-    position 2*2,15: v.write(filename3$)							        ' display the 'now playing' filename 
+    position 2*2,17:v.write(space$(38)): filename3$=right$(filename3$,38) 		 	' clear the place for a file name
+    position 2*2,17: v.write(filename3$)							        ' display the 'now playing' filename 
     endif  
 
   if lcase$(right$(filename$,3))="dmp" then  							' this is a wave file. Todo - read and use the header!
@@ -309,7 +309,7 @@ do
     do
       get #8,pos,filebuf(0),512,r : pos+=r	
       psram.write(addr(filebuf(0)),psramptr,512)	
-      position 2*1,16: print psramptr,					        ' get 128 bytes and update file position
+      position 4,24: print pos; " bytes loaded     "					        ' get 128 bytes and update file position
       psramptr+=512 					' move the buffer to the RAM and update RAM position. Todo: this can be done all at once
     loop until r<>512 '                          					' do until eof 
     close #8
@@ -317,8 +317,8 @@ do
     dmpplaying=1   	
     sidpos=0
     v.setwritecolors($ea,$e1)									' yellow
-    position 2*2,15:v.write(space$(38)): filename3$=right$(filename3$,38) 		 	' clear the place for a file name
-    position 2*2,15: v.write(filename3$)	
+    position 2*2,17:v.write(space$(38)): filename3$=right$(filename3$,38) 		 	' clear the place for a file name
+    position 2*2,17: v.write(filename3$)	
 					        ' display the 'now playing' filename 
     siddelay=336956522/50 : sidfreq=50 :sidtime=0
     for i=0 to 17: sid.regs(i)=0: next i
@@ -560,7 +560,8 @@ sub scope
 
 dim ii as integer
 var ttt=getct()
-v.box(5,428,523,554,177)                                                                                                                                          ' clear the panel
+v.box(5,428,523,554,176)          
+v.fastline(8,520,491,177)                                                                                                                               ' clear the panel
 qq1=dpeek(scope_ptr):qq1+=dpeek(scope_ptr+2) 
 							                                          ' try to trigger the scope at zero					
 var iii=1: do : var oldqq1=qq1: qq1=dpeek(scope_ptr+4*iii):qq1+=dpeek(scope_ptr+4*iii+2) : iii+=1: loop until iii>=128  orelse (oldqq1<65536 andalso qq1>65536)   ' if not succeed with first 128 of 640 samples, there is no samples left for triggering
@@ -570,12 +571,12 @@ for ii=iii to iii+511 																		  ' display 512 samples
   qq1=qq1/1024 : if qq1<2 then qq1=2 															          ' reduce from 17 to 6 bits		
   if qq1>126 then qq1=126
 																	  ' clip to fit in the panel
-  qq2=abs(64-qq1)/5' : position 1,1: v.write(v.inttostr2(qq2,3))
-  if qq2=0 then let qq3=202
-  if qq2=1 then let qq3=218
-  if qq2=2 then let qq3=234
-  if qq2=3 then let qq3=250
-  if qq2=4 then let qq3=26
+  qq2=abs(65-qq1)/5' : position 1,1: v.write(v.inttostr2(qq2,3))
+  if qq2=0 then let qq3=204
+  if qq2=1 then let qq3=220
+  if qq2=2 then let qq3=236
+  if qq2=3 then let qq3=252
+  if qq2=4 then let qq3=28
   if qq2=5 then let qq3=42
 		
     qq1=qq1+428	
@@ -592,12 +593,14 @@ sub mainloop
 
 do
   tracker.tick							 ' let the player compute new values
-  waitvbl                                                        ' wait vor vblank
+  do : loop while v.vblank=1                                                       ' wait vor vblank
+  do : loop while v.vblank=0                                                       ' wait vor vblank
+  
   for mi=0 to 3 : setchannel(mi,oldtrigs(mi)) : next mi          ' this line has to be vblk syynchronized as much as possible - set new values in audio driver
   framenum+=1							 ' frame number to track time					
-  movedl							 ' vertical fine scroll the file info panel via DL 
-  scrollstatus((framenum) mod (8*sl))				 ' horizontal fine scroll the help/status line
-  displaysamples						 ' display current playing samples information
+					
+'  scrollstatus((framenum) mod (8*sl))				 ' horizontal fine scroll the help/status line
+ ' displaysamples						 ' display current playing samples information
 loop
 end sub
 
