@@ -9,8 +9,8 @@ con
 '_clkfreq = 354693878  ' This is 100x Amiga PAL 3546895, 360 x SID (PAL) 
 
 
-left= 8
-right=9
+left= 14
+right=15
 
 c4=262
 d4=294
@@ -242,7 +242,7 @@ p301        alts    ptrb,#511                ' checking if the buffer is full - 
 		
 	    cmp     scbase,#0 wz
     if_z    jmp #p302	   
-            incmod  scope,#127 wc            ' save every 127th sample to the scope buffer
+            incmod  scope,#63 wc            ' save every 127th sample to the scope buffer
     if_c    mov scptr2,scptr
     if_c    shl scptr2,#2
     if_c    add scptr2,scbase     

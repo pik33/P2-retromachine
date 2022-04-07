@@ -46,6 +46,7 @@ dim channelvol(4), channelpan(4) as integer
 dim mainvolume, mainpan as integer
 dim samplerate,wavepos,currentbuf as ulong
 declare wavebuf alias $50000 as ubyte($20000)
+dim newdl(32)
 
 'declare filebuf alias $721B8 as ubyte(127)
 'declare wavebuf2 alias $48000 as ubyte($28000)
@@ -64,7 +65,7 @@ startpsram
 startvideo
 startaudio
 'v.cursoroff
-'makedl
+makedl
 lpoke addr(sl),len(statusline$)  ' cannot assign to sl, but still can lpoke :) 
 framenum=0
 for i=0 to 3 : oldtrigs(i)=0 : next i
@@ -90,12 +91,17 @@ samplerate=100
 '' --------------------------------- THE MAIN LOOP ----------------------------------------------------------------------------------
 
 do
-  waitvbl                     									' synchronize with vblanks
+  let bbbb=getct()-bbbb
+  position 1,1: v.write(v.inttostr2(bbbb/336,6))  
+  waitvbl    
+  let bbbb=getct()                 									' synchronize with vblanks
   if cog=(-1) then framenum+=1  :  scrollstatus((framenum) mod (8*sl))                 		' if not playing module let main loop scroll the status line
+  if cog>0 then displaysamples
   scope	
 '  position 0,0: print 1234											' display scope
-'  bars												' display bars
-  
+
+  bars												' display bars
+
 
 '' --------------------------------  Playing the .wav file in the main loop as no other cogs can acces the file system
 
@@ -122,7 +128,7 @@ do
 
   if lpeek($3c)<>0 then ansibuf(0)=ansibuf(1): ansibuf(1)=ansibuf(2) : ansibuf(2)=ansibuf(3) : ansibuf(3)=peek($3D): lpoke($3C,0) ' A serial interface at P62.63 from ANSI terminal
   
-'  if ansibuf(3)=asc("q") then testhighlight: ansibuf(3)=0
+  if ansibuf(3)=asc("q") then testbars: ansibuf(3)=0
   
   
 '' ---------------------------- Key 7,8,9 pressed - samplerate (period) change     
@@ -243,7 +249,7 @@ do
       close #4
       tracker.initmodule(ma,0)									' init the tracker player
       samples=15: if peek(ma+1080)=asc("M") and peek(ma+1082)=asc("K") then samples=31          ' get sample count
- '     getinfo(ma,samples)									' and information
+      getinfo(ma,samples)									' and information
       hubset(hubset336)										' set the main clock to Paula (PAL) * 100       
       samplerate=100 : lpoke base+28,$8000_005F: waitms(2): lpoke base+28,0   	   	        ' set the sample rate to standard Paula
       lpoke base+28+32,0 									' switch channel #1 to PSRAM after wav playing
@@ -255,7 +261,7 @@ do
     endif
     
   if lcase$(right$(filename$,3))="wav" then  							' this is a wave file. Todo - read and use the header!
-    if cog>0 then cpustop(cog)									' if module playing, stop it
+    if cog>0 then cpustop(cog)	: cog=-1								' if module playing, stop it
     if dmpplaying=1 then dmpplaying= 0: waitms(20): close #8 : cpustop(scog)                    ' if dmp file is playing, stop it
     if audiocog<1 then startaudio   
     for i=0 to 7 : lpoke base+32*i+20,0 : next i 						' mute the sound
@@ -354,7 +360,7 @@ do
       dirnum1+=filemove  										' highlighting point
       dirnum2+=filemove 									        ' file point
       if dirnum2>=dirnum3 then dirnum2=dirnum3-1            						' dirnum2 has to be less than all directoriess count
-      if dirnum1>=dirnum3 then dirnum1=dirnum3-1 : goto 199 						' dirnum1 has to be less than all directories count. If it is, nothing more to do, go to the end of this part     
+      if dirnum1>=dirnum3 then dirnum1=dirnum3-1 ': goto 199 						' dirnum1 has to be less than all directories count. If it is, nothing more to do, go to the end of this part     
       if dirnum1<=9 then highlight(0,olddirnum1,0) : highlight(0,dirnum1,1) : goto 199                  ' only highlight changed, change the highlighted entry and go away
       highlight(0,olddirnum1,0)
       dirnum1=9	: v.setwritecolors($c9,$c1)    							        ' if we are still here, the highlight is at the bottom of the panel
@@ -370,14 +376,14 @@ do
       highlight(0,dirnum1,1) 										' highlight the selected entry         
     endif    
 
-    if panel=1 then											' 1 - file panel
+    if panel=1 then 											' 1 - file panel
       oldfilenum1=filenum1										' remember current
       filenum1+=filemove  										' highlighting
       filenum2+=filemove  										' file
       if filenum2>=filenum3 then filenum2=filenum3-1            					' filenum2 has to be less than all files count
-      if filenum1>=filenum3 then filenum1=filenum3-1 : goto 199 					' filenum1 has to be less than all files count, if not, go away     
+      if filenum1>=filenum3 then filenum1=filenum3-1 ': goto 199 					' filenum1 has to be less than all files count, if not, go away     
       if filenum1<=20 then highlight(1,oldfilenum1,0) : highlight(1,filenum1,1) : goto 199              ' only highlight changed, go away
-      filenum1=20 : v.setwritecolors($29,$22)  								' we are at the bottom now
+      filenum1=20 : v.setwritecolors($28,$22)  								' we are at the bottom now
       close #9 : open currentdir$+"filelist.txt" for input as #9                                        ' so do the same as in dir panel
       for ii=filenum2-20 to filenum2
        get #9,1+39*ii,displayname(0),38								' get the name
@@ -421,7 +427,7 @@ do
       filenum2+=filemove
       if filenum2<0 then filenum2=0
       if filenum1>=0 then highlight(1,oldfilenum1,0) : highlight(1,filenum1,1) : goto 230    
-      filenum1=0 : v.setwritecolors($29,$22)  
+      filenum1=0 : v.setwritecolors($28,$22)  
       close #9 : open currentdir$+"filelist.txt" for input as #9   
       
       for ii=filenum2 to filenum2+20
@@ -502,56 +508,63 @@ asm
   add s41,s42
   shr s41,#1
 end asm
-
+bdiv=64: if waveplaying then let bdiv=96 
 
 s1=abs(s1-32768)				' compute the amplitude
 if s1>=s1a then s1a=s1				' if bigger than average, replace average with amplitude (the bar goes up fast)
 if s1<s1a then s1a=(15*s1a+s1)/16		' else decay slowly
-s1b=s1a/128 :if s1b<0 then s1b=0		' but not less than 0
-if s1b>52 then s1b=52				' and no more than 52 to fit in the panel
+s1b=s1a/bdiv :if s1b<0 then s1b=0		' but not less than 0
+if s1b>120 then s1b=120				' and no more than 52 to fit in the panel
 
 s21=abs(s21-32768)				' channel 2
 if s21>s21a then s21a=s21
 if s21<s21a then s21a=(15*s21a+s21)/16
-s21b=s21a/128 :if s21b<0 then s21b=0
-if s21b>52 then s21b=52
+s21b=s21a/bdiv :if s21b<0 then s21b=0
+if s21b>120 then s21b=120
 
 s31=abs(s31-32768)				' channel 3
 if s31>s31a then s31a=s31
 if s31<s31a then s31a=(15*s31a+s31)/16
-s31b=s31a/256 :if s31b<0 then s31b=0
-if s31b>52 then s31b=52
+s31b=s31a/bdiv :if s31b<0 then s31b=0
+if s31b>120 then s31b=120
 
 s41=abs(s41-32768)				' channel 4
 if s41>s41a then s41a=s41
 if s41<s41a then s41a=(15*s41a+s41)/16
-s41b=s41a/128 :if s41b<0 then s41b=0
-if s41b>52 then s41b=52
+s41b=s41a/bdiv :if s41b<0 then s41b=0
+if s41b>120 then s41b=120
 
-if s1b<16 then lpoke v.palette_ptr+4*$b,$00110000*((s1b+16)/2)             ' green
-if s1b>=16 then lpoke v.palette_ptr+4*$b,$00FF0000+(s1b-16)*$11000000	   ' green to yellow
-if s1b>=32 then lpoke v.palette_ptr+4*$b,$FFFF0000-(s1b-32)*$00220000	   ' yellow to red
-if s1b>=48 then lpoke v.palette_ptr+4*$b,$FF000000		           ' red
+let s1c=s1b>>1
+if s1c<16 then lpoke v.palette_ptr+4*$b,$00110000*((s1c+16)/2)             ' green
+if s1c>=16 then lpoke v.palette_ptr+4*$b,$00FF0000+(s1c-16)*$11000000	   ' green to yellow
+if s1c>=32 then lpoke v.palette_ptr+4*$b,$FFFF0000-(s1c-32)*$00220000	   ' yellow to red
+if s1c>=48 then lpoke v.palette_ptr+4*$b,$FF000000		           ' red
 
-if s21b<16 then lpoke v.palette_ptr+4*$c,$00110000*((s21b+16)/2)           ' the same for the rest of channels
-if s21b>=16 then lpoke v.palette_ptr+4*$c,$00FF0000+(s21b-16)*$11000000    ' using colors b,c,d,e from the palette
-if s21b>=32 then lpoke v.palette_ptr+4*$c,$FFFF0000-(s21b-32)*$00220000
-if s21b>=48 then lpoke v.palette_ptr+4*$c,$FF000000
+let s21c=s21b>>1
+if s21c<16 then lpoke v.palette_ptr+4*$c,$00110000*((s21c+16)/2)           ' the same for the rest of channels
+if s21c>=16 then lpoke v.palette_ptr+4*$c,$00FF0000+(s21c-16)*$11000000    ' using colors b,c,d,e from the palette
+if s21c>=32 then lpoke v.palette_ptr+4*$c,$FFFF0000-(s21c-32)*$00220000
+if s21c>=48 then lpoke v.palette_ptr+4*$c,$FF000000
 
-if s31b<16 then lpoke v.palette_ptr+4*$d,$00110000*((s31b+16)/2)
-if s31b>=16 then lpoke v.palette_ptr+4*$d,$00FF0000+(s31b-16)*$11000000
-if s31b>=32 then lpoke v.palette_ptr+4*$d,$FFFF0000-(s31b-32)*$00220000
-if s31b>=48 then lpoke v.palette_ptr+4*$d,$FF000000
+let s31c=s31b>>1
+if s31c<16 then lpoke v.palette_ptr+4*$d,$00110000*((s31c+16)/2)
+if s31c>=16 then lpoke v.palette_ptr+4*$d,$00FF0000+(s31c-16)*$11000000
+if s31c>=32 then lpoke v.palette_ptr+4*$d,$FFFF0000-(s31c-32)*$00220000
+if s31c>=48 then lpoke v.palette_ptr+4*$d,$FF000000
 
-if s41b<16 then lpoke v.palette_ptr+4*$e,$00110000*((s41b+16)/2)
-if s41b>=16 then lpoke v.palette_ptr+4*$e,$00FF0000+(s41b-16)*$11000000
-if s41b>=32 then lpoke v.palette_ptr+4*$e,$FFFF0000-(s41b-32)*$00220000
-if s41b>=48 then lpoke v.palette_ptr+4*$e,$FF000000
+let s41c=s41b>>1
+if s41c<16 then lpoke v.palette_ptr+4*$e,$00110000*((s41c+16)/2)
+if s41c>=16 then lpoke v.palette_ptr+4*$e,$00FF0000+(s41c-16)*$11000000
+if s41c>=32 then lpoke v.palette_ptr+4*$e,$FFFF0000-(s41c-32)*$00220000
+if s41c>=48 then lpoke v.palette_ptr+4*$e,$FF000000
 
-for ii=0 to s1b:  cc=$bbbbbbbb : for jj=270 to 278 step 4: lpoke graphicbuf_ptr+448*(59-ii)+jj,cc : next jj: next ii ' now draw these bars
-for ii=0 to s21b: cc=$cccccccc : for jj=286 to 294 step 4: lpoke graphicbuf_ptr+448*(59-ii)+jj,cc : next jj: next ii
-for ii=0 to s31b: cc=$dddddddd : for jj=302 to 310 step 4: lpoke graphicbuf_ptr+448*(59-ii)+jj,cc : next jj: next ii
-for ii=0 to s41b: cc=$eeeeeeee : for jj=318 to 326 step 4: lpoke graphicbuf_ptr+448*(59-ii)+jj,cc : next jj: next ii
+for ii=0 to s1b:  v.fastline(540,571,554-ii,$0b) : next ii: for ii=s1b+1 to 120 :v.fastline(540,571,554-ii,16): next ii 'cc=$bbbbbbbb : for jj=270 to 278 step 4: lpoke graphicbuf_ptr+448*(59-ii)+jj,cc : next jj: next ii ' now draw these bars
+for ii=0 to s21b: v.fastline(586,617,554-ii,$0c) : next ii: for ii=s21b+1 to 120:v.fastline(586,617,554-ii,16): next ii 'cc=$bbbbbbbb : for jj=270 to 278 step 4: lpoke graphicbuf_ptr+448*(59-ii)+jj,cc : next jj: next ii ' now draw these bars
+for ii=0 to s31b: v.fastline(632,663,554-ii,$0d) : next ii: for ii=s31b+1 to 120:v.fastline(632,663,554-ii,16): next ii 'cc=$bbbbbbbb : for jj=270 to 278 step 4: lpoke graphicbuf_ptr+448*(59-ii)+jj,cc : next jj: next ii ' now draw these bars
+for ii=0 to s41b: v.fastline(678,709,554-ii,$0e) : next ii: for ii=s41b+1 to 120:v.fastline(678,709,554-ii,16): next ii 'cc=$bbbbbbbb : for jj=270 to 278 step 4: lpoke graphicbuf_ptr+448*(59-ii)+jj,cc : next jj: next ii ' now draw these bars
+'for ii=0 to s21b: 'cc=$cccccccc : for jj=286 to 294 step 4: lpoke graphicbuf_ptr+448*(59-ii)+jj,cc : next jj: next ii
+'for ii=0 to s31b: 'cc=$dddddddd : for jj=302 to 310 step 4: lpoke graphicbuf_ptr+448*(59-ii)+jj,cc : next jj: next ii
+'for ii=0 to s41b: 'cc=$eeeeeeee : for jj=318 to 326 step 4: lpoke graphicbuf_ptr+448*(59-ii)+jj,cc : next jj: next ii
 end sub
 
 '' ---------------------------------------- Oscilloscope ----------------------------------------------------------------------------------------------
@@ -599,8 +612,8 @@ do
   for mi=0 to 3 : setchannel(mi,oldtrigs(mi)) : next mi          ' this line has to be vblk syynchronized as much as possible - set new values in audio driver
   framenum+=1							 ' frame number to track time					
 					
-'  scrollstatus((framenum) mod (8*sl))				 ' horizontal fine scroll the help/status line
- ' displaysamples						 ' display current playing samples information
+  scrollstatus((framenum) mod (8*sl))				 ' horizontal fine scroll the help/status line
+'  displaysamples						 ' display current playing samples information
 loop
 end sub
 
@@ -691,7 +704,7 @@ e=geterr()
 endif
     
 if e=0 then ' file list exists
-  v.setwritecolors($29,$22)
+  v.setwritecolors($28,$22)
   v.box(363,60,719,403,34)
   i=2
   do
@@ -863,6 +876,12 @@ v.box(5,241,357,259,232)							' clear the panel
 v.box(5,260,357,403,225)							' clear the panel
 v.outtextxycf(12,243,"Now playing",0)
 
+
+let oldcpl=v.s_cpl: let oldcpl1=v.s_cpl1: let oldbufptr=v.s_buf_ptr: v.setfontfamily(4)
+v.s_cpl=2048:v.s_cpl1=2048: v.s_buf_ptr=$700000: :position 0,0 : v.outtextxycg(0,0,statusline$+statusline$,120,113)
+v.s_cpl=oldcpl:v.s_cpl1=oldcpl1:v.s_buf_ptr=oldbufptr: v.setfontfamily(0)
+
+
 end sub
 
 ' ---------------- Find an adress of the current top of the stack --- rev 20220206 -------------------------------
@@ -893,18 +912,12 @@ end sub
 
 sub getinfo(ma,num)
 
-v.s_buf_ptr=infobuf_ptr        					              ' set display variables to info buffer
-v.s_lines=40
-v.s_cpl=28
-v.s_buflen=40*28
-v.s_ppl=28*8
-v.setwritecolors($9a,$93) 
-for i=1 to 38: position 2*1,i : print space$(26);: next i 
+v.box(725,60,1018,403,147)
 v.setwritecolors($93,$9a)
-position 2*2,2 : print "                        " 
-position 2*2,2: print filename$ :v.setwritecolors($9a,$93)                      ' test: module file name will be here
-position 2*2,3 : print "Amiga module: "; samples;" samples"
-position 2*2,5 : for i=ma to ma+19 : print chr$(peek(i) mod 128); : next i      ' first 20 bytes of module=title
+position 184,4 : print "                        " 
+position 184,4: print filename$ :v.setwritecolors($9a,$93)                      ' test: module file name will be here
+position 184,5 : print "Amiga module: "; samples;" samples"
+position 184,7 : for i=ma to ma+19 : print chr$(peek(i) mod 128); : next i      ' first 20 bytes of module=title
 for i=0 to 31: sn$(i)=space$(22) :next i
 c=0
 for i=1 to num
@@ -912,77 +925,28 @@ for i=1 to num
     var a=lpeek(addr(sn$(i)))
     var b=(peek(ma+20+30*(i-1)+j))
     if b>=32 then poke a+j,b : c=i ' c will be the last named sample
+
   next j
+  sn$(i)=left$(sn$(i),22)
 next i
-for i=1 to c: position 2*2,i+5 :print sn$(i) :next i
-v.s_buf_ptr=mainbuf_ptr
-v.s_lines=21
-v.s_cpl=84
-v.s_buflen=21*84'print
-v.s_ppl=84*8
-end sub
-
-
-''------------ Fast character output on 4bpp graphic canvas - reduce time 19x comparing to high level spin code --- rev 20220205 ---------
-
-'----------- text output
-
-sub outtext48(x,y, s$ as string ,c)
-
-for i=0 to len(s$)-1
-putchar48(graphicbuf_ptr,112,x+i,y,peek(addr(s$(0))+i),v.font_ptr+2048,15)
-next i
-end sub
-
-'----------- Single char output
-
-sub putchar48(buf,cpl,x,y,char,font,c)
-
-dim q,i,b,r  as ulong
-
-
-asm
-          mov i,#7
-       
-p101      mov b,char
-          shl b,#3
-          add b,font
-          add b,i
-          rdbyte b,b
-          mergeb b
-          getword q,b,#1
-          mul b,c
-          mul q,c
-          setword b,q,#1
-          mov q,y
-          add q,i
-          mul q,cpl
-          shl q,#2
-          add q,buf
-          mov r,x
-          shl r,#2
-          add q,r
-          wrlong b,q
-          djnf i,#p101
-   
-end asm
-
+if c>17 then c=17
+for i=1 to c: position 184,i+7 :print sn$(i) :next i
 end sub
 
 '---------------- Display current samples and periods  using fast char output --- rev 20220205 ----------------------
 
 sub displaysamples 
 
+v.setwritecolors(170,162)
+position 246,29:v.write(v.inttostr2(tracker.currperiod(0)+tracker.deltaperiod(0),3))
+position 246,30:v.write(v.inttostr2(tracker.currperiod(1)+tracker.deltaperiod(1),3))
+position 246,31:v.write(v.inttostr2(tracker.currperiod(2)+tracker.deltaperiod(2),3))
+position 246,32:v.write(v.inttostr2(tracker.currperiod(3)+tracker.deltaperiod(3),3))
 
-outtext48(108,20,v.inttostr2(tracker.currperiod(0)+tracker.deltaperiod(0),3),15)
-outtext48(108,28,v.inttostr2(tracker.currperiod(1)+tracker.deltaperiod(1),3),15)
-outtext48(108,36,v.inttostr2(tracker.currperiod(2)+tracker.deltaperiod(2),3),15)
-outtext48(108,44,v.inttostr2(tracker.currperiod(3)+tracker.deltaperiod(3),3),15)
-
-outtext48(86,20,sn$(tracker.currsamplenr(0)),15) 
-outtext48(86,28,sn$(tracker.currsamplenr(1)),15)
-outtext48(86,36,sn$(tracker.currsamplenr(2)),15)
-outtext48(86,44,sn$(tracker.currsamplenr(3)),15)
+position 184,29: v.write(sn$(tracker.currsamplenr(0))) 
+position 184,30: v.write(sn$(tracker.currsamplenr(1)))
+position 184,31: v.write(sn$(tracker.currsamplenr(2)))
+position 184,32: v.write(sn$(tracker.currsamplenr(3)))
 
 end sub
 
@@ -991,26 +955,9 @@ end sub
 sub scrollstatus(amount)
 
 dim i as integer
-lpoke statusline_ptr, peek(addr(statusline$(0))+(0+amount/8) mod sl)+$71710000
-lpoke statusline_ptr+4,peek(addr(statusline$(0))+(1+amount/8) mod sl)+$71710000
-lpoke statusline_ptr+4*112, peek(addr(statusline$(112))+(112+amount/8) mod (0))+$71710000
-lpoke dlcopy_ptr+4*729, %0000_0000_0000_0000_0000_0000_0101_0011 + (((amount mod 8)+8) shl 8) 
-for i=2 to 111 : lpoke statusline_ptr+4*i, peek(addr(statusline$(0))+(i+(amount/8)) mod sl)+$77710000: next i
+for i=2 to 17: newdl(i)=$7000002+2*65536*(i-2)+amount<<4 :next i
 end sub
 
-'------------------ A display list vertical scrolling of file info screen  --- rev 20220205 --------------------------------------------
-
-sub movedl
-
-dim i,j as integer
-
-for i=0 to 14 
-  for j=0 to 15  
-     lpoke dlcopy_ptr+4*(200+32*i+2*j+0), ((infobuf_ptr+560+112*((i+((framenum+j) /16)) mod (c+2)))  shl 14)+ %0000_0001_1100_1111+(0 shl 4) + ((j+framenum) mod 16) shl 12
-   next j
-next i
-
-end sub  
 
 '----------------- Prepare a custom displaylist for the player --- rev 20220205 ---------------------------------------------------------
 
@@ -1020,7 +967,10 @@ sub getwave
     if needbuf<>currentbuf then									' if there is a buffer to load
 '      get #8,wavepos,wavebuf(needbuf shl 14),$4000,qqq 		'
 '      get #8,wavepos,wavebuf(needbuf shl 14),$4000,qqq 		'
+   
+   let aaaa=getct()
       get #8,wavepos,wavebuf(0),$4000,qqq 		'
+   aaaa=getct()-aaaa: position 20,1: print aaaa /336  
       psram.write(addr(wavebuf(0)), needbuf shl 14 ,$4000)
       needbuf=(needbuf+1) mod 16								' we can have any count of 4k buffers, now 2 used
       wavepos+=$4000      									' file position
@@ -1033,6 +983,45 @@ sub getwave
       filemove=1 : playnext=1										' experimental
     endif
 end sub    
+
+
+sub testbars
+
+for i=554 to 434 step -1
+if i<450 then 
+  v.fastline(540,572,i,40)
+else if i<470 then 
+  v.fastline(540,572,i,24)
+else  if i<490 then
+  v.fastline(540,572,i,248)
+else  if i<500 then
+  v.fastline(540,572,i,232)
+else  if i<510 then
+  v.fastline(540,572,i,216)
+else  if i<520 then
+  v.fastline(540,572,i,200)
+else  if i<530 then
+  v.fastline(540,572,i,184)
+else  if i<540 then
+  v.fastline(540,572,i,168)
+endif  
+next i
+
+
+v.fastline(540,562,547,200)
+v.fastline(590,602,554,193)
+v.fastline(640,642,554,193)
+v.fastline(690,722,554,193)
+
+end sub
+
+sub makedl
+newdl(0)=559<<20+(0)<<16+%0001+ (0+(v.cpl1<<2)) <<4             
+newdl(1)=v.buf_ptr<<4+%10  
+for i=2 to 17: newdl(i)=$7000002+2*65536*(i-2) :next i
+for i=18 to 32: newdl(i)=$7000002 : next i
+v.dl_ptr=addr(newdl(0))
+end sub
 
 '-----------------------------------------------------------------------------------------------------------------------
 '----------------------------- The file cog ----------------------------------------------------------------------------
