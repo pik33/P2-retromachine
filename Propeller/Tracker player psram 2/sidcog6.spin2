@@ -13,8 +13,8 @@ _clkfreq=354_689_500
 
 CON  PAL = 985248.0, NTSC = 1022727.0, MAXF = 1031000.0, TRIANGLE = 16, SAW = 32, SQUARE = 64, NOISE = 128   
 
-  L_PIN = 14
-  R_PIN = 15
+  L_PIN = 8
+  R_PIN = 9
 
   SYSTEM_CLOCK         = 354_689_500
   C64_CLOCK_FREQ       = PAL
@@ -157,13 +157,12 @@ Noise1        cmp      selectedWaveform1, #8            wz
   if_c        getrnd   noiseValue1
               jmp      #Envelope1
 '-----------------------------------------------------------                
-Combined1     mov      sv1, selectedWaveform1
-              sub      sv1, #4
-              fges     sv1, #0     
-              shl      sv1, #3
+Combined1     sub      selectedWaveform1, #4
+              fges     selectedWaveform1, #0     
+              shl      selectedWaveform1, #3
               shr      arg1,#24
               rdlut    arg1,arg1
-              shr      arg1,sv1
+              shr      arg1,selectedWaveform1
               shl      arg1, #24  
               
 
@@ -204,8 +203,6 @@ Amplitude1    shr      arg1, #14
               mul      r1, arg2
               shl      r1, #16
               mul      arg1, arg2
-'              add      r1, arg1
-'              call     #multiply
               mov      out1, r1
 '===========================================================
 '            Waveform shaping channel 2 -> arg1                           
@@ -236,14 +233,12 @@ Noise2        cmp      selectedWaveform2, #8            wz
   if_c        getrnd   noiseValue2
               jmp      #Envelope2
 '-----------------------------------------------------------                
-Combined2     mov      sv2,selectedWaveform2
-              sub      sv2, #4
-              fges     sv2, #0     
-              shl      sv2, #3
+Combined2     sub      selectedWaveform2, #4
+              fges     selectedWaveform2, #0     
+              shl      selectedWaveform2, #3
               shr      arg1,#24
               rdlut    arg1,arg1
-              shr      arg1, sv2
-              debug(udec(selectedWaveform2))
+              shr      arg1,selectedWaveform2
               shl      arg1, #24                         
 
 '===========================================================
@@ -283,7 +278,6 @@ Amplitude2    shr      arg1, #14
               shl      r1, #16
               mul      arg1, arg2
               add      r1, arg1
- '             call     #multiply
               mov      out2, r1
 '===========================================================            
 '            Waveform shaping channel 3 -> arg1                           
@@ -314,13 +308,12 @@ Noise3        cmp      selectedWaveform3, #8            wz
   if_c        getrnd   noiseValue3
               jmp      #Envelope3
 '-----------------------------------------------------------
-Combined3     mov      sv3,selectedWaveform3
-              sub      sv3, #4
-              fges     sv3, #0     
-              shl      sv3, #3
+Combined3     sub      selectedWaveform3, #4
+              fges     selectedWaveform3, #0     
+              shl      selectedWaveform3, #3
               shr      arg1,#24
               rdlut    arg1,arg1
-              shr      arg1,sv3
+              shr      arg1,selectedWaveform3
               shl      arg1, #24  
               
               
@@ -361,9 +354,6 @@ Amplitude3    shr      arg1, #14
               mul      r1, arg2
               shl      r1, #16
               mul      arg1, arg2
-              add      r1, arg1 
- 
-   '           call     #multiply
               mov      out3, r1
 
 '===========================================================
@@ -440,7 +430,7 @@ mixer         mov      arg1, filterOutput
               shl      r1, #16
               mul      arg1, arg2
               add      r1, arg1
-        '      call     #multiply                           '| 
+                      
 '-----------------------------------------------------------
               add      r1, val31bit                        '  DC offset
 '-----------------------------------------------------------  
@@ -449,40 +439,14 @@ mixer         mov      arg1, filterOutput
               wypin    r1, #R_PIN                          ' Output sample on right channel
               getct cnt2
               waitse1
-'-----------------------------------------------------------  
-              mov      tempValue, ptra
-              add      tempValue, #32
-              wrlong   r1, tempValue                       '| Write the sample to hub ram
               jmp      #getRegisters
 
-'---------------------------------------------------------------------------------------------------------------------- 
-'    Multiplication     r1(I32) = arg1(I32) * arg2(I32)
-'----------------------------------------------------------------------------------------------------------------------
-multiply      getword  r1,arg1,#1
-              mul      r1, arg2
-              shl      r1, #16
-              mul      arg1, arg2
-    _ret_     add      r1, arg1
+
 
 '---------------------------------------------------------------------------------------------------------------------- 
 '    Variables, tables, masks and reference values
 '----------------------------------------------------------------------------------------------------------------------
-ADSRTable           long trunc(ENV_CAL_FACTOR * (1.0 / 9.0    )) '2   ms   3784819
-                    long trunc(ENV_CAL_FACTOR * (1.0 / 32.0   )) '8   ms    1064480    
-                    long trunc(ENV_CAL_FACTOR * (1.0 / 63.0   )) '16  ms     540688
-                    long trunc(ENV_CAL_FACTOR * (1.0 / 95.0   )) '24  ms      358561  
-                    long trunc(ENV_CAL_FACTOR * (1.0 / 149.0  )) '38  ms     228613  
-                    long trunc(ENV_CAL_FACTOR * (1.0 / 220.0  )) '56  ms        154833   
-                    long trunc(ENV_CAL_FACTOR * (1.0 / 267.0  )) '68  ms         127578
-                    long trunc(ENV_CAL_FACTOR * (1.0 / 313.0  )) '80  ms      108828
-                    long trunc(ENV_CAL_FACTOR * (1.0 / 392.0  )) '100 ms        86896    
-                    long trunc(ENV_CAL_FACTOR * (1.0 / 977.0  )) '250 ms      34865
-                    long trunc(ENV_CAL_FACTOR * (1.0 / 1954.0 )) '500 ms     17432   
-                    long trunc(ENV_CAL_FACTOR * (1.0 / 3126.0 )) '800 ms      10896    
-                    long trunc(ENV_CAL_FACTOR * (1.0 / 3907.0 )) '1   s    8718   
-                    long trunc(ENV_CAL_FACTOR * (1.0 / 11720.0)) '3   s     2906    
-                    long trunc(ENV_CAL_FACTOR * (1.0 / 19532.0)) '5   s      1744    
-                    long trunc(ENV_CAL_FACTOR * (1.0 / 31251.0)) '8   s      1090        
+      
 
 'Masks and reference values
 startLogLevel       long START_LOG_LEVEL
@@ -496,9 +460,7 @@ clipLevelHigh       long $8000000
 clipLevelLow        long-$8000000
 filterOffset        long FILTER_OFFSET
 decayDivideRef      long DECAY_DIVIDE_REF
-'maxCutoff           long CUTOFF_LIMIT
 
-'par                 long @ch1_frequencyLo
 samplePeriod        long SAMPLE_PERIOD                 'clocks between samples ( ~31.250 khz )
 smartConfigAudioDAC long SMARTPIN_DAC_MODE
 
@@ -507,7 +469,6 @@ arg1                long 1
 arg2                long 1
 r1                  long 1
 
-'Sid variables
 noiseValue1         long $ffffff
 noiseValue2         long $ffffff
 noiseValue3         long $ffffff
@@ -556,9 +517,7 @@ filterResonance long 0
 filterMode long 0
 volume long 0
  
-sv1 long 0
-sv2 long 0
-sv3 long 0    
+  
 envelopeLevel1      res  1 
 envelopeLevel2      res  1 
 envelopeLevel3      res  1 
@@ -588,39 +547,3 @@ cnt1 long 0
 cnt2 long 0
 'Working variables
 tempValue           res  1
-
- 
-  
-         
-                                        
-{{
-
-
-DAT orgh            $1400
-  ch1_frequencyLo        byte 0    
-  ch1_frequencyHi        byte 0    
-  ch1_pulseWidthLo       byte 0    
-  ch1_pulseWidthHi       byte 0    
-  ch1_controlRegister    byte 0    
-  ch1_attackDecay        byte 0    
-  ch1_sustainRelease     byte 0    
-  ch2_frequencyLo        byte 0    
-  ch2_frequencyHi        byte 0    
-  ch2_pulseWidthLo       byte 0    
-  ch2_pulseWidthHi       byte 0    
-  ch2_controlRegister    byte 0    
-  ch2_attackDecay        byte 0    
-  ch2_sustainRelease     byte 0
-  ch3_frequencyLo        byte 0
-  ch3_frequencyHi        byte 0
-  ch3_pulseWidthLo       byte 0
-  ch3_pulseWidthHi       byte 0
-  ch3_controlRegister    byte 0
-  ch3_attackDecay        byte 0
-  ch3_sustainRelease     byte 0
-  Filter_cutoffLo        byte 0 
-  Filter_cutoffHi        byte 0
-  Filter_reso_routing    byte 0
-  Filter_mode_volume     byte 0
-  SIDSample              long 0
-}}

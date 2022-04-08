@@ -101,9 +101,9 @@ do
   if cog>0 then scrollinfo
   scope	
 '  position 0,0: print 1234											' display scope
-for i=0 to 7: position 24*i ,0: v.write(v.inttostr2(sid.regs(i),10)) : next i
-for i=0 to 7: position 24*i ,1: v.write(v.inttostr2(sid.regs(i+8),10)) : next i
-for i=0 to 7: position 24*i ,2: v.write(v.inttostr2(sid.regs(i+16),10)) : next i
+'for i=0 to 7: position 24*i ,0: v.write(v.inttostr2(sid.regs(i),10)) : next i
+'for i=0 to 7: position 24*i ,1: v.write(v.inttostr2(sid.regs(i+8),10)) : next i
+'for i=0 to 7: position 24*i ,2: v.write(v.inttostr2(sid.regs(i+16),10)) : next i
 
   bars												' display bars
 

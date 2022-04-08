@@ -9,8 +9,8 @@ con
 '_clkfreq = 354693878  ' This is 100x Amiga PAL 3546895, 360 x SID (PAL) 
 
 
-left= 14
-right=15
+left= 8
+right=9
 
 c4=262
 d4=294
