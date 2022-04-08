@@ -3,7 +3,7 @@
 
 const HEAPSIZE = 8192
 const version$="Prop2play v.0.25"
-const statusline$=" Propeler2 wav/sid/mod player v. 0.24 --- 2022.04.03 --- pik33@o2.pl --- use serial terminal or RPi KBM interface to control --- arrows up,down move - pgup/pgdn or w/s move 10 positions - enter selects - tab switches panels - +,- controls volume - 1..4 switch channels on/off - 5,6 stereo separation - 7,8,9 sample rate - a,d SID speed - R rescans current directory ------"
+const statusline$=" Propeller2 wav/sid/mod player v. 0.25 --- 2022.04.08 --- pik33@o2.pl --- use a serial terminal or a RPi KBM interface to control --- arrows up,down move - pgup/pgdn or w/s move 10 positions - enter selects - tab switches panels - +,- controls volume - 1..4 switch channels on/off - 5,6 stereo separation - 7,8,9 sample rate - a,d SID speed - R rescans current directory ------"
 const hubset350=%1_000001__00_0010_0010__1111_1011 '350_000_000 =31*44100
 const hubset354=%1_110000__11_0110_1100__1111_1011 '354_693_878
 const hubset356=%1_001010__00_1100_0011__1111_1011 '356_352_000 =29*256*48001,5673491
@@ -55,6 +55,7 @@ dim scog as integer
 dim dmppos as ulong
 dim newcnt,bufptr,siddelay,scog2,sidfreq,sidtime as integer
 dim sidpos,sidlen as ulong
+dim stop as ulong
 
 ' ----------------------------Main program start ------------------------------------
 
@@ -72,7 +73,7 @@ for i=0 to 3 : oldtrigs(i)=0 : next i
 pan(0)=8192-mainpan : pan(1)=8192+mainpan : pan(2)=8192+mainpan : pan(3)=8192-mainpan
 preparepanels
 waveplaying=0: modplaying=0 : dmpplaying=0
-
+stop=0
 
 mount "/sd", _vfs_open_sdcard()
 chdir "/sd"
@@ -130,6 +131,8 @@ do
   if lpeek($3c)<>0 then ansibuf(0)=ansibuf(1): ansibuf(1)=ansibuf(2) : ansibuf(2)=ansibuf(3) : ansibuf(3)=peek($3D): lpoke($3C,0) ' A serial interface at P62.63 from ANSI terminal
   
   if ansibuf(3)=asc("q") then let aaa=getct(): v.blit($40000000+v.buf_ptr,725,111,1018,403,1024,$40000000+v.buf_ptr,725,110,1024): ansibuf(3)=0 : let aaa=getct()-aaa: position 128,20: print aaa/336
+  'v.box(725,60,1018,403,147)
+  if ansibuf(3)=asc(" ") then stop=not stop: ansibuf(3)=0 
   'v.box(725,60,1018,403,147)
   
 '' ---------------------------- Key 7,8,9 pressed - samplerate (period) change     
@@ -938,7 +941,7 @@ for i=1 to c
   v.outtextxycg(0,16*(i-1),sn$(i),154,147)
 next i
 for i=c+2 to 2*c+1
-  v.outtextxycg(0,16*(i-1),sn$(i-c),154,147)
+  v.outtextxycg(0,16*(i-1),sn$(i-c-1),154,147)
 next i
 v.s_cpl=oldcpl:v.s_cpl1=oldcpl1:v.s_buf_ptr=oldbufptr: v.s_lines=oldlines: v.setfontfamily(0)
 if c>16 then v.blit($40_720_000,0,0,255,255,256,$4000_0000+v.buf_ptr,736,144,1024)
@@ -956,10 +959,10 @@ position 246,30:v.write(v.inttostr2(tracker.currperiod(1)+tracker.deltaperiod(1)
 position 246,31:v.write(v.inttostr2(tracker.currperiod(2)+tracker.deltaperiod(2),3))
 position 246,32:v.write(v.inttostr2(tracker.currperiod(3)+tracker.deltaperiod(3),3))
 
-position 184,29: v.write(sn$(tracker.currsamplenr(0))) 
-position 184,30: v.write(sn$(tracker.currsamplenr(1)))
-position 184,31: v.write(sn$(tracker.currsamplenr(2)))
-position 184,32: v.write(sn$(tracker.currsamplenr(3)))
+if tracker.currsamplenr(0)<=samples then position 184,29: v.write(sn$(tracker.currsamplenr(0))) 
+if tracker.currsamplenr(1)<=samples then position 184,30: v.write(sn$(tracker.currsamplenr(1)))
+if tracker.currsamplenr(2)<=samples then position 184,31: v.write(sn$(tracker.currsamplenr(2)))
+if tracker.currsamplenr(3)<=samples then position 184,32: v.write(sn$(tracker.currsamplenr(3)))
 
 end sub
 
@@ -1011,7 +1014,7 @@ end sub
 sub scrollinfo
 
 if c>16 then 
-  let from=(framenum mod (16*c))*256
+  let from=(framenum mod (16*c+16))*256
   v.blit($40_720_000+from,0,0,255,255,256,$4000_0000+v.buf_ptr,736,144,1024)
 endif  
 end sub
