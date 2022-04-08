@@ -626,37 +626,7 @@ repeat yy from 0 to 15
   long[mailbox0]:= s_buf_ptr+((y+yy)<<10+x<<2)+$f0000000   
   repeat
   while long[mailbox0] < 0 
-'  long[mailbox0][2]:=1
-'  long[mailbox0][1]:=c2
-'  long[mailbox0]:= s_buf_ptr+((y+yy)<<10+x<<3+4)+$e0000000   
-'  repeat
-'  while long[mailbox0] < 0       
-'  ram.fill(s_buf_ptr+((y+yy)<<10+x<<3),c1,1,0,4)
-'  ram.fill(s_buf_ptr+((y+yy)<<10+x<<3+4),c2,1,0,4)
  
- 
- 
-PUB fill(addr, pattern, count, listPtr, datasize) : r | mailbox, req
-    case datasize 
-        1: req := driver.R_WRITEBYTE
-        2: req := driver.R_WRITEWORD
-        4: req := driver.R_WRITELONG
-        other : return ERR_INVALID
-    if count == 0   ' nothing to do
-        return 0
-    if drivercog == -1
-        return ERR_INACTIVE
-    mailbox := @mailboxes + 12*cogid() ' get mailbox base address for this COG
-    if long[mailbox] < 0
-        return ERR_MAILBOX_BUSY
-    long[mailbox][2] := count
-    long[mailbox][1] := pattern
-    long[mailbox] := req + (addr & $0ffffff)
-    repeat
-        r := long[mailbox]
-    while r < 0
-    return -r                  ' return 0 for success or negated error code
-  
  
       
 ' ------  Opaque  8x8 character      
