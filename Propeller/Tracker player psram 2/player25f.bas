@@ -12,14 +12,8 @@ const hubset338a=%1_111010__11_1110_0110__1111_1011 '338_644_068 =30*44100
 const hubset336=%1_101101__11_0000_0110__1111_1011 '336_956_522 =paula*95
 
 ' Place graphics buffers at the top of memory so they will not move while editing the program
-const base2=$72000
-const infobuf_ptr=$7EE80
-const graphicbuf_ptr=$77E80
-const mainbuf_ptr=$73A70
-const statusline_ptr=$738A8
-const title_ptr=$73838
-const dlcopy_ptr=$72c38
-const scope_ptr=$72238
+
+'const scope_ptr=$72238
 'const displayname_ptr=$72210		
 'declare displayname alias $72210 as ubyte(40)
 
