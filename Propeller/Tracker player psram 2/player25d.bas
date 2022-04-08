@@ -91,10 +91,10 @@ samplerate=100
 '' --------------------------------- THE MAIN LOOP ----------------------------------------------------------------------------------
 
 do
-  let bbbb=getct()-bbbb
-  position 1,1: v.write(v.inttostr2(bbbb/336,6))  
+'  let bbbb=getct()-bbbb
+'  position 1,1: v.write(v.inttostr2(bbbb/336,6))  
   waitvbl    
-  let bbbb=getct()                 									' synchronize with vblanks
+'  let bbbb=getct()                 									' synchronize with vblanks
   if cog=(-1) then framenum+=1  :  scrollstatus((framenum) mod (8*sl))                 		' if not playing module let main loop scroll the status line
   if cog>0 then displaysamples
   if cog>0 then scrollinfo
@@ -161,7 +161,7 @@ do
     siddelay=clkfreq/sidfreq
     ansibuf(3)=0
   endif  
-   position 0,0: print 1235  
+'   position 0,0: print 1235  
    
 '' --------------------------- Keys 1..4 - channels on/off, 5,6 - stereo separation, +,- volume
    
@@ -1046,10 +1046,6 @@ if c>16 then
   v.blit($40_720_000+from,0,0,255,255,256,$4000_0000+v.buf_ptr,736,144,1024)
 endif  
 end sub
-
-
-
-
 
 '-----------------------------------------------------------------------------------------------------------------------
 '----------------------------- The file cog ----------------------------------------------------------------------------
