@@ -1,13 +1,3 @@
-'const _clkfreq = 319_215_686  'PAL*90
-'const _clkfreq = 354693878 
-'349977600=31*256*44100=350000000=2/35=44102,8225806
-'356352000=29*256*48000=356363636=11/196=48001,5673491
-'336959184,1
-' 46 775 
-'336956522,   %1_101101__11_0000_0110__1111_1011
-
-' 60	1016	338666667 1_111011__11_1111_0111__1111_1011
-
 const _clkfreq = 336956522
 
 'option implicit
@@ -15,7 +5,7 @@ dim v as class using "hg007c.spin2"
 dim rm as class using "retrocog.spin2"
 dim tracker as class using "trackerplayer.spin2"
 dim paula as class using "audio092a-8-sc.spin2"
-dim sid as class using "sidcog4.spin2"
+dim sid as class using "sidcog6.spin2"
 dim psram as class using "psram4.spin2"
 dim spc as class using "spccog.spin2"
 #include "dir.bi"

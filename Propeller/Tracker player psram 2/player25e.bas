@@ -101,6 +101,9 @@ do
   if cog>0 then scrollinfo
   scope	
 '  position 0,0: print 1234											' display scope
+for i=0 to 7: position 24*i ,0: v.write(v.inttostr2(sid.regs(i),10)) : next i
+for i=0 to 7: position 24*i ,1: v.write(v.inttostr2(sid.regs(i+8),10)) : next i
+for i=0 to 7: position 24*i ,2: v.write(v.inttostr2(sid.regs(i+16),10)) : next i
 
   bars												' display bars
 
@@ -632,8 +635,10 @@ do
   waitcnt(newcnt)
   sidtime+=siddelay/(336_96) ' 100 us tick
   newcnt+=siddelay
-  psram.read1(addr(sid.regs(0)),sidpos,25)
-  sidpos+=25
+  psram.read1(addr(sid.oldregs(0)),sidpos,25)
+  decoderegs(addr(sid.oldregs(0)),addr(sid.regs(0)))
+
+    sidpos+=25
   if sidpos>=sidlen then sidpos=0
 loop 
 end sub
@@ -1018,6 +1023,175 @@ if c>16 then
   v.blit($40_720_000+from,0,0,255,255,256,$4000_0000+v.buf_ptr,736,144,1024)
 endif  
 end sub
+
+
+
+sub decoderegs(regaddr,outaddr)
+ 
+              cpu asm
+              
+              setq #6
+              rdlong sidRegs0,regaddr
+              
+'===========================================================
+'              Extract channel 1 register data
+'===========================================================
+              getword   frequency1, sidRegs0, #0
+              getword   pulseWidth1, sidRegs0, #1
+              shl       pulseWidth1, #20                    ' Shift in "12 bit" pulse width value( make it 32 bits )
+              shl       frequency1, #9
+'-----------------------------------------------------------
+              getnib    selectedWaveform1, sidRegs1, #1
+              getbyte   controlRegister1, sidRegs1,#0
+'-----------------------------------------------------------
+              getnib    r1, sidRegs1, #2
+              alts      r1, #ADSRTable
+              mov       decay1, 0-0
+              getnib    r1, sidRegs1, #3
+              alts      r1, #ADSRTable                      '|  Convert 4bit ADSR "presets" to their corresponding
+              mov       attack1, 0-0                          '|  32bit values using the attack/decay table.
+              getnib    r1, sidRegs1, #4
+              alts      r1, #ADSRTable
+              mov       release1, 0-0
+              getnib    r1, sidRegs1, #5
+              setnib    sustain1, r1, #7
+              setnib    sustain1, r1, #6
+
+'===========================================================
+'              Extract channel 2 register data
+'===========================================================
+              getbyte   frequency2, sidRegs2, #0
+              rolbyte   frequency2, sidRegs1, #3
+              mov       pulseWidth2, sidRegs2 
+              shr       pulseWidth2, #8
+              zerox     pulseWidth2, #15
+              shl       pulseWidth2, #20                    ' Shift in "12 bit" pulse width value( make it 32 bits )
+              shl       frequency2, #9
+'----------------------------------------------------------- 
+              getnib    selectedWaveform2, sidRegs2, #7
+              getbyte   controlRegister2,  sidRegs2, #3
+'----------------------------------------------------------- 
+              getnib    r1, sidRegs3, #0
+              alts      r1, #ADSRTable
+              mov       decay2, 0-0
+              getnib    r1, sidRegs3, #1
+              alts      r1, #ADSRTable                      '|  Convert 4bit ADSR "presets" to their corresponding
+              mov       attack2, 0-0                          '|  32bit values using attack/decay tables. 
+              getnib    r1, sidRegs3, #2           
+              alts      r1, #ADSRTable
+              mov       release2, 0-0
+              getnib    r1, sidRegs3, #3
+              setnib    sustain2, r1, #7
+              setnib    sustain2, r1, #6
+
+      
+'===========================================================
+'              Extract channel 3 register data
+'===========================================================
+              getword   frequency3, sidRegs3, #1
+              getword   pulseWidth3, sidRegs4, #0
+              shl       pulseWidth3, #20                    ' Shift in "12 bit" pulse width value( make it 32 bits )
+              shl       frequency3, #9
+'-----------------------------------------------------------
+              getnib    selectedWaveform3, sidRegs4, #5
+              getbyte   controlRegister3,  sidRegs4, #2
+'-----------------------------------------------------------
+              getnib    r1, sidRegs4, #6
+              alts      r1, #ADSRTable
+              mov       decay3, 0-0
+              getnib    r1, sidRegs4, #7
+              alts      r1, #ADSRTable                      '|  Convert 4bit ADSR "presets" to their corresponding
+              mov       attack3, 0-0                          '|  32bit values using attack/decay tables.    
+              getnib    r1, sidRegs5, #0
+              alts      r1, #ADSRTable
+              mov       release3, 0-0
+              getnib    r1, sidRegs5, #1
+              setnib    sustain3, r1, #7
+              setnib    sustain3, r1, #6
+'-----------------------------------------------------------
+
+'===========================================================
+'            Extract filter/volume register data
+'===========================================================
+              getbyte   filterCutoff, sidRegs5, #2
+              shl       filterCutoff, #2 ' was 3
+              add       filterCutoff, #16
+              getnib    filterControl, sidRegs5, #6
+              getnib    filterResonance, sidRegs5, #7
+              getnib    volume, sidRegs6, #0 
+              getnib    filterMode, sidRegs6, #1
+              jmp #p999
+
+sidRegs0  long 0
+sidRegs1  long 0
+sidRegs2  long 0
+sidRegs3  long 0
+sidRegs4  long 0
+sidRegs5  long 0
+sidRegs6  long 0
+
+
+              
+frequency1 		long 0
+pulseWidth1		long 0
+selectedWaveform1	long 0
+controlRegister1 	long 0
+attack1			long 0
+decay1 			long 0
+sustain1		long 0
+release1 		long 0
+
+frequency2 		long 0
+pulseWidth2		long 0
+selectedWaveform2	long 0
+controlRegister2 	long 0
+attack2			long 0
+decay2 			long 0
+sustain2		long 0
+release2 		long 0
+
+frequency3 		long 0
+pulseWidth3		long 0
+selectedWaveform3	long 0
+controlRegister3 	long 0
+attack3			long 0
+decay3 			long 0
+sustain3		long 0
+release3 		long 0      
+
+filterCutoff long 0
+filterControl long 0
+filterResonance long 0
+filterMode long 0
+volume long 0
+
+
+r1 long 0
+
+ADSRTable         	long 3784819
+                    	long 1064480    
+                    	long 540688
+                    	long 358561  
+                    	long 228613  
+                    	long 154833   
+                    	long 127578
+                    	long 108828
+                    	long 86896    
+                    	long 34865
+                    	long 17432   
+                    	long 10896    
+                    	long 8718   
+                    	long 2906    
+                    	long 1744    
+                    	long 1090                  
+
+p999
+
+          setq #28
+          wrlong frequency1,outaddr
+   end asm
+end sub   
+
 
 '-----------------------------------------------------------------------------------------------------------------------
 '----------------------------- The file cog ----------------------------------------------------------------------------

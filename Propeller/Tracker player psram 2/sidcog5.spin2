@@ -51,13 +51,12 @@ long SIDSample
 
 pub start():cog
 
-combinedptr:=@combinedWaveforms
-sidsample:=@cv2
+combinedptr:=@cv2
+sidsample:=@SIDSample
 cog:=coginit(16,@SIDEMU,@regs )
 return cog
 
 dat
-combinedWaveforms   file "combinedwaveforms.bin"
 cv2 file "cv2.bin"
 
 
@@ -70,10 +69,9 @@ SIDEMU        wrpin   smartConfigAudioDAC, #L_PIN   addpins 1        ' Config sm
               wxpin   samplePeriod, #L_PIN  addpins 1                ' Sample period for left audio channel
               dirh    #L_PIN       addpins 1                         ' Enable smartpin DAC mode on left pin
               setse1  #%001_000000 | L_PIN                  ' Event triggered every new sample period (when "left in pin rises")
-              rdlong  combTableAddr,ptra[8]
+              rdlong  combTableAddr,ptra[7]
               setq2   #256
               rdlong   0, combTableAddr   
-              rdlong  combTableAddr,ptra[7]
 
 '----------------------------------------------------------------------------------------------------------------------
 ' Read all SID-registers from hub memory and convert
@@ -86,7 +84,8 @@ getRegisters
 
               setq      #6                              ' Number of longs, minus 1, to read
               rdlong    sidRegsCogCopy, ptra                 ' Read 6 longs to cog address
-
+             
+                  
 
               
 '===========================================================
@@ -194,7 +193,7 @@ getRegisters
 '===========================================================
 '    Increment phase accumulator 1 - 3 and handle syncing
 '===========================================================
-              add      phaseAccumulator1, frequency1    wc ' Add frequency value to phase accumulator 1
+p999              add      phaseAccumulator1, frequency1    wc ' Add frequency value to phase accumulator 1
   if_nc       andn     controlRegister2, #2
               test     controlRegister2, #10            wz ' Sync oscilator 2 to oscillator 1 if sync = on 
   if_nz       mov      phaseAccumulator2, #0               ' Or reset oscilator 2 when bit 4 of control register is 1
@@ -592,40 +591,53 @@ decayDivide1        long 0
 decayDivide2        long 0
 decayDivide3        long 0
 sidRegsCogCopy      long 0,0,0,0,0,0,0
-combTableAddr       long 0
+
+
+
+combTableAddr       	long 0
+
+frequency1 		long 0
+pulseWidth1		long 0
+selectedWaveform1	long 0
+controlRegister1 	long 0
+attack1			long 0
+decay1 			long 0
+sustain1		long 0
+release1 		long 0
+
+frequency2 		long 0
+pulseWidth2		long 0
+selectedWaveform2	long 0
+controlRegister2 	long 0
+attack2			long 0
+decay2 			long 0
+sustain2		long 0
+release2 		long 0
+
+frequency3 		long 0
+pulseWidth3		long 0
+selectedWaveform3	long 0
+controlRegister3 	long 0
+attack3			long 0
+decay3 			long 0
+sustain3		long 0
+release3 		long 0
+
+
 envelopeLevel1      res  1 
 envelopeLevel2      res  1 
 envelopeLevel3      res  1 
-controlRegister1    res  1 
-controlRegister2    res  1
-controlRegister3    res  1
-frequency1          res  1
-frequency2          res  1
-frequency3          res  1 
+
 phaseAccumulator1   res  1
 phaseAccumulator2   res  1
 phaseAccumulator3   res  1
-pulseWidth1         res  1 
-pulseWidth2         res  1
-pulseWidth3         res  1
-selectedWaveform1   res  1
-selectedWaveform2   res  1
-selectedWaveform3   res  1 
+  
+
+
 envelopeState1      res  1
 envelopeState2      res  1
 envelopeState3      res  1
-attack1             res  1
-attack2             res  1
-attack3             res  1 
-decay1              res  1
-decay2              res  1
-decay3              res  1 
-sustain1            res  1
-sustain2            res  1
-sustain3            res  1 
-release1            res  1
-release2            res  1
-release3            res  1
+
 out1                res  1
 out2                res  1
 out3                res  1
@@ -644,7 +656,7 @@ cnt2 long 0
 'Working variables
 tempValue           res  1
 
-    fit 220     
+     
          
                                         
 {{

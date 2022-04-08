@@ -40,24 +40,19 @@ CON  PAL = 985248.0, NTSC = 1022727.0, MAXF = 1031000.0, TRIANGLE = 16, SAW = 32
 
 
 var
-byte regs[28]
 long combinedptr
 long SIDSample
-
-
-
-
-
+long regs[30]
+byte oldregs[28]
 
 pub start():cog
 
-combinedptr:=@combinedWaveforms
-sidsample:=@cv2
-cog:=coginit(16,@SIDEMU,@regs )
+combinedptr:=@cv2
+sidsample:=@SIDSample
+cog:=coginit(16,@SIDEMU,@combinedptr )
 return cog
 
 dat
-combinedWaveforms   file "combinedwaveforms.bin"
 cv2 file "cv2.bin"
 
 
@@ -70,10 +65,10 @@ SIDEMU        wrpin   smartConfigAudioDAC, #L_PIN   addpins 1        ' Config sm
               wxpin   samplePeriod, #L_PIN  addpins 1                ' Sample period for left audio channel
               dirh    #L_PIN       addpins 1                         ' Enable smartpin DAC mode on left pin
               setse1  #%001_000000 | L_PIN                  ' Event triggered every new sample period (when "left in pin rises")
-              rdlong  combTableAddr,ptra[8]
+              rdlong  combTableAddr,ptra
               setq2   #256
               rdlong   0, combTableAddr   
-              rdlong  combTableAddr,ptra[7]
+              add ptra,#8
 
 '----------------------------------------------------------------------------------------------------------------------
 ' Read all SID-registers from hub memory and convert
@@ -84,108 +79,32 @@ getRegisters
               wrlong cnt2,#0
 	      getct cnt1
 
-              setq      #6                              ' Number of longs, minus 1, to read
-              rdlong    sidRegsCogCopy, ptra                 ' Read 6 longs to cog address
-
+              setq      #28                             ' Number of longs, minus 1, to read
+ '             rdlong    sidRegsCogCopy, ptra                 ' Read 6 longs to cog address
+              rdlong    frequency1, ptra                 ' Read 6 longs to cog address
+         '    jmp #p999
+                  
 
               
-'===========================================================
-'              Extract channel 1 register data
-'===========================================================
-              getword   frequency1, sidRegsCogCopy, #0
-              getword   pulseWidth1, sidRegsCogCopy, #1
-              shl       pulseWidth1, #20                    ' Shift in "12 bit" pulse width value( make it 32 bits )
-              shl       frequency1, #9
-'-----------------------------------------------------------
-              getnib    selectedWaveform1, sidRegsCogCopy + 1, #1
-              mov       controlRegister1, sidRegsCogCopy + 1
-'-----------------------------------------------------------
-              getnib    r1, sidRegsCogCopy + 1, #2
-              alts      r1, #ADSRTable
-              mov       decay1, 0-0
-              getnib    r1, sidRegsCogCopy + 1, #3
-              alts      r1, #ADSRTable                      '|  Convert 4bit ADSR "presets" to their corresponding
-              mov       attack1, 0-0                          '|  32bit values using the attack/decay table.
-              getnib    r1, sidRegsCogCopy + 1, #4
-              alts      r1, #ADSRTable
-              mov       release1, 0-0
-              getnib    r1, sidRegsCogCopy + 1, #5
-              setnib    sustain1, r1, #7
-              setnib    sustain1, r1, #6
+
 '-----------------------------------------------------------
               test      controlRegister1, #1            wc
               cmp       envelopeState1, #2              wz
  if_z_and_c   mov       envelopeState1, #0
  if_nz_and_nc mov       envelopeState1, #2
-'===========================================================
-'              Extract channel 2 register data
-'===========================================================
-              getbyte   frequency2, sidRegsCogCopy + 2, #0
-              rolbyte   frequency2, sidRegsCogCopy + 1, #3
-              mov       pulseWidth2, sidRegsCogCopy + 2 
-              shr       pulseWidth2, #8
-              zerox     pulseWidth2, #15
-              shl       pulseWidth2, #20                    ' Shift in "12 bit" pulse width value( make it 32 bits )
-              shl       frequency2, #9
-'----------------------------------------------------------- 
-              getnib    selectedWaveform2, sidRegsCogCopy + 2, #7
-              getbyte   controlRegister2,  sidRegsCogCopy + 2, #3
-'----------------------------------------------------------- 
-              getnib    r1, sidRegsCogCopy + 3, #0
-              alts      r1, #ADSRTable
-              mov       decay2, 0-0
-              getnib    r1, sidRegsCogCopy + 3, #1
-              alts      r1, #ADSRTable                      '|  Convert 4bit ADSR "presets" to their corresponding
-              mov       attack2, 0-0                          '|  32bit values using attack/decay tables. 
-              getnib    r1, sidRegsCogCopy + 3, #2           
-              alts      r1, #ADSRTable
-              mov       release2, 0-0
-              getnib    r1, sidRegsCogCopy + 3, #3
-              setnib    sustain2, r1, #7
-              setnib    sustain2, r1, #6
+
 '----------------------------------------------------------- 
               test      controlRegister2, #1            wc
               cmp       envelopeState2, #2              wz
  if_z_and_c   mov       envelopeState2, #0
  if_nz_and_nc mov       envelopeState2, #2           
-'===========================================================
-'              Extract channel 3 register data
-'===========================================================
-              getword   frequency3, sidRegsCogCopy + 3, #1
-              getword   pulseWidth3, sidRegsCogCopy + 4, #0
-              shl       pulseWidth3, #20                    ' Shift in "12 bit" pulse width value( make it 32 bits )
-              shl       frequency3, #9
-'-----------------------------------------------------------
-              getnib    selectedWaveform3, sidRegsCogCopy + 4, #5
-              getbyte   controlRegister3,  sidRegsCogCopy + 4, #2
-'-----------------------------------------------------------
-              getnib    r1, sidRegsCogCopy + 4, #6
-              alts      r1, #ADSRTable
-              mov       decay3, 0-0
-              getnib    r1, sidRegsCogCopy + 4, #7
-              alts      r1, #ADSRTable                      '|  Convert 4bit ADSR "presets" to their corresponding
-              mov       attack3, 0-0                          '|  32bit values using attack/decay tables.    
-              getnib    r1, sidRegsCogCopy + 5, #0
-              alts      r1, #ADSRTable
-              mov       release3, 0-0
-              getnib    r1, sidRegsCogCopy + 5, #1
-              setnib    sustain3, r1, #7
-              setnib    sustain3, r1, #6
+'
 '-----------------------------------------------------------
               test      controlRegister3, #1            wc
               cmp       envelopeState3, #2              wz
  if_z_and_c   mov       envelopeState3, #0
  if_nz_and_nc mov       envelopeState3, #2
-'===========================================================
-'            Extract filter/volume register data
-'===========================================================
-              getbyte   filterCutoff, sidRegsCogCopy + 5, #2
-              shl       filterCutoff, #2 ' was 3
-              add       filterCutoff, filterOffset
-              getnib    filterControl, sidRegsCogCopy + 5, #6
-              getnib    filterResonance, sidRegsCogCopy + 5, #7
-              getnib    volume, sidRegsCogCopy + 6, #0 
-              getnib    filterMode, sidRegsCogCopy + 6, #1
+
 
 
 '----------------------------------------------------------------------------------------------------------------------
@@ -238,12 +157,13 @@ Noise1        cmp      selectedWaveform1, #8            wz
   if_c        getrnd   noiseValue1
               jmp      #Envelope1
 '-----------------------------------------------------------                
-Combined1     sub      selectedWaveform1, #4
-              fges     selectedWaveform1, #0     
-              shl      selectedWaveform1, #3
+Combined1     mov      sv1, selectedWaveform1
+              sub      sv1, #4
+              fges     sv1, #0     
+              shl      sv1, #3
               shr      arg1,#24
               rdlut    arg1,arg1
-              shr      arg1,selectedWaveform1
+              shr      arg1,sv1
               shl      arg1, #24  
               
 
@@ -316,12 +236,14 @@ Noise2        cmp      selectedWaveform2, #8            wz
   if_c        getrnd   noiseValue2
               jmp      #Envelope2
 '-----------------------------------------------------------                
-Combined2     sub      selectedWaveform2, #4
-              fges     selectedWaveform2, #0     
-              shl      selectedWaveform2, #3
+Combined2     mov      sv2,selectedWaveform2
+              sub      sv2, #4
+              fges     sv2, #0     
+              shl      sv2, #3
               shr      arg1,#24
               rdlut    arg1,arg1
-              shr      arg1,selectedWaveform2
+              shr      arg1, sv2
+              debug(udec(selectedWaveform2))
               shl      arg1, #24                         
 
 '===========================================================
@@ -392,12 +314,13 @@ Noise3        cmp      selectedWaveform3, #8            wz
   if_c        getrnd   noiseValue3
               jmp      #Envelope3
 '-----------------------------------------------------------
-Combined3     sub      selectedWaveform3, #4
-              fges     selectedWaveform3, #0     
-              shl      selectedWaveform3, #3
+Combined3     mov      sv3,selectedWaveform3
+              sub      sv3, #4
+              fges     sv3, #0     
+              shl      sv3, #3
               shr      arg1,#24
               rdlut    arg1,arg1
-              shr      arg1,selectedWaveform3
+              shr      arg1,sv3
               shl      arg1, #24  
               
               
@@ -544,22 +467,22 @@ multiply      getword  r1,arg1,#1
 '---------------------------------------------------------------------------------------------------------------------- 
 '    Variables, tables, masks and reference values
 '----------------------------------------------------------------------------------------------------------------------
-ADSRTable           long trunc(ENV_CAL_FACTOR * (1.0 / 9.0    )) '2   ms   
-                    long trunc(ENV_CAL_FACTOR * (1.0 / 32.0   )) '8   ms        
-                    long trunc(ENV_CAL_FACTOR * (1.0 / 63.0   )) '16  ms     
-                    long trunc(ENV_CAL_FACTOR * (1.0 / 95.0   )) '24  ms        
-                    long trunc(ENV_CAL_FACTOR * (1.0 / 149.0  )) '38  ms       
-                    long trunc(ENV_CAL_FACTOR * (1.0 / 220.0  )) '56  ms           
-                    long trunc(ENV_CAL_FACTOR * (1.0 / 267.0  )) '68  ms         
-                    long trunc(ENV_CAL_FACTOR * (1.0 / 313.0  )) '80  ms      
-                    long trunc(ENV_CAL_FACTOR * (1.0 / 392.0  )) '100 ms            
-                    long trunc(ENV_CAL_FACTOR * (1.0 / 977.0  )) '250 ms      
-                    long trunc(ENV_CAL_FACTOR * (1.0 / 1954.0 )) '500 ms        
-                    long trunc(ENV_CAL_FACTOR * (1.0 / 3126.0 )) '800 ms          
-                    long trunc(ENV_CAL_FACTOR * (1.0 / 3907.0 )) '1   s       
-                    long trunc(ENV_CAL_FACTOR * (1.0 / 11720.0)) '3   s         
-                    long trunc(ENV_CAL_FACTOR * (1.0 / 19532.0)) '5   s          
-                    long trunc(ENV_CAL_FACTOR * (1.0 / 31251.0)) '8   s              
+ADSRTable           long trunc(ENV_CAL_FACTOR * (1.0 / 9.0    )) '2   ms   3784819
+                    long trunc(ENV_CAL_FACTOR * (1.0 / 32.0   )) '8   ms    1064480    
+                    long trunc(ENV_CAL_FACTOR * (1.0 / 63.0   )) '16  ms     540688
+                    long trunc(ENV_CAL_FACTOR * (1.0 / 95.0   )) '24  ms      358561  
+                    long trunc(ENV_CAL_FACTOR * (1.0 / 149.0  )) '38  ms     228613  
+                    long trunc(ENV_CAL_FACTOR * (1.0 / 220.0  )) '56  ms        154833   
+                    long trunc(ENV_CAL_FACTOR * (1.0 / 267.0  )) '68  ms         127578
+                    long trunc(ENV_CAL_FACTOR * (1.0 / 313.0  )) '80  ms      108828
+                    long trunc(ENV_CAL_FACTOR * (1.0 / 392.0  )) '100 ms        86896    
+                    long trunc(ENV_CAL_FACTOR * (1.0 / 977.0  )) '250 ms      34865
+                    long trunc(ENV_CAL_FACTOR * (1.0 / 1954.0 )) '500 ms     17432   
+                    long trunc(ENV_CAL_FACTOR * (1.0 / 3126.0 )) '800 ms      10896    
+                    long trunc(ENV_CAL_FACTOR * (1.0 / 3907.0 )) '1   s    8718   
+                    long trunc(ENV_CAL_FACTOR * (1.0 / 11720.0)) '3   s     2906    
+                    long trunc(ENV_CAL_FACTOR * (1.0 / 19532.0)) '5   s      1744    
+                    long trunc(ENV_CAL_FACTOR * (1.0 / 31251.0)) '8   s      1090        
 
 'Masks and reference values
 startLogLevel       long START_LOG_LEVEL
@@ -592,59 +515,82 @@ decayDivide1        long 0
 decayDivide2        long 0
 decayDivide3        long 0
 sidRegsCogCopy      long 0,0,0,0,0,0,0
-combTableAddr       long 0
+
+
+
+combTableAddr       	long 0
+
+frequency1 		long 0
+pulseWidth1		long 0
+selectedWaveform1	long 0
+controlRegister1 	long 0
+attack1			long 0
+decay1 			long 0
+sustain1		long 0
+release1 		long 0
+
+frequency2 		long 0
+pulseWidth2		long 0
+selectedWaveform2	long 0
+controlRegister2 	long 0
+attack2			long 0
+decay2 			long 0
+sustain2		long 0
+release2 		long 0
+
+frequency3 		long 0
+pulseWidth3		long 0
+selectedWaveform3	long 0
+controlRegister3 	long 0
+attack3			long 0
+decay3 			long 0
+sustain3		long 0
+release3 		long 0
+
+
+
+filterCutoff long 0
+filterControl long 0
+filterResonance long 0
+
+filterMode long 0
+volume long 0
+ 
+sv1 long 0
+sv2 long 0
+sv3 long 0    
 envelopeLevel1      res  1 
 envelopeLevel2      res  1 
 envelopeLevel3      res  1 
-controlRegister1    res  1 
-controlRegister2    res  1
-controlRegister3    res  1
-frequency1          res  1
-frequency2          res  1
-frequency3          res  1 
+
 phaseAccumulator1   res  1
 phaseAccumulator2   res  1
 phaseAccumulator3   res  1
-pulseWidth1         res  1 
-pulseWidth2         res  1
-pulseWidth3         res  1
-selectedWaveform1   res  1
-selectedWaveform2   res  1
-selectedWaveform3   res  1 
+  
+
+
 envelopeState1      res  1
 envelopeState2      res  1
 envelopeState3      res  1
-attack1             res  1
-attack2             res  1
-attack3             res  1 
-decay1              res  1
-decay2              res  1
-decay3              res  1 
-sustain1            res  1
-sustain2            res  1
-sustain3            res  1 
-release1            res  1
-release2            res  1
-release3            res  1
+
 out1                res  1
 out2                res  1
 out3                res  1
-filterResonance     res  1
-filterCutoff        res  1
+
 highPassFilter      res  1
 bandPassFilter      res  1 
 lowPassFilter       res  1
-filterMode          res  1
-filterControl       res  1
+
 filterOutput        res  1
-volume              res  1
+
 ordinaryOutput      res  1
 cnt1 long 0
 cnt2 long 0
 'Working variables
 tempValue           res  1
 
-    fit 220     
+ 
+  
          
                                         
 {{
