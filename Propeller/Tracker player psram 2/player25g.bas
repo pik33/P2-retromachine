@@ -46,7 +46,7 @@ dim dmppos as ulong
 dim newcnt,bufptr,siddelay,scog2,sidfreq,sidtime as integer
 dim sidpos,sidlen as ulong
 dim stop as ulong
-
+dim sidregs(34) as ulong
 ' ----------------------------Main program start ------------------------------------
 
 channelvol(0)=1 : channelvol(1)=1 : channelvol(2)=1 : channelvol(3)=1    
@@ -87,7 +87,7 @@ do
   waitvbl    
 '  let bbbb=getct()                 									' synchronize with vblanks
   if cog=(-1) then framenum+=1  :  scrollstatus((framenum) mod (8*sl))                 		' if not playing module let main loop scroll the status line
-  if cog>0 then displaysamples
+  if dmpplaying or modplaying then displaysamples
   if cog>0 then scrollinfo
   scope	
 '  position 0,0: print 1234											' display scope
@@ -182,8 +182,10 @@ do
   if channelvol(1)=0 then position 2*31,22 :v.write("-")
   if channelvol(2)=1 then position 2*33,22 :v.write("3")
   if channelvol(2)=0 then position 2*33,22 :v.write("-")
-  if channelvol(3)=1 then position 2*35,22 :v.write("4")
-  if channelvol(3)=0 then position 2*35,22 :v.write("-")   
+  if (modplaying=1) and (channelvol(3)=1) then position 2*35,22 :v.write("4")
+  if (modplaying=1) and (channelvol(3)=0) then position 2*35,22 :v.write("-")   
+  if (dmpplaying=1) or (waveplaying=1)then position 2*35,22 :v.write(" ")  
+  if (waveplaying=1) then position 2*33,22 :v.write(" ")  
   
 '' -------------------------- R - rescan the directory 
 
@@ -586,7 +588,9 @@ var iii=1: do : var oldqq1=qq1: qq1=dpeek(scope_ptr+4*iii):qq1+=dpeek(scope_ptr+
 for ii=iii to iii+511 																		  ' display 512 samples																	
   qq1=dpeek(scope_ptr+4*ii)																	  ' left	
   qq1+=dpeek(scope_ptr+4*ii+2)																	  ' right
-  qq1=qq1/1024 : if qq1<2 then qq1=2 															          ' reduce from 17 to 6 bits		
+  if dmpplaying=0 then  qq1=qq1/1024 
+  if dmpplaying=1 then  qq1=128-((qq1/512)-64)
+  if qq1<2 then qq1=2 															          ' reduce from 17 to 6 bits		
   if qq1>126 then qq1=126
 																	  ' clip to fit in the panel
   qq2=abs(65-qq1)/5' : position 1,1: v.write(v.inttostr2(qq2,3))
@@ -634,11 +638,15 @@ do
   sidtime+=siddelay/(336_96) ' 100 us tick
   newcnt+=siddelay
   psram.read1(addr(sid.oldregs(0)),sidpos,25)
-  decoderegs(addr(sid.oldregs(0)),addr(sid.regs(0)))
-  sid.regs(29)=192*mainvolume
-  sid.regs(30)=8192-mainpan
-  sid.regs(31)=8192
+  decoderegs(addr(sid.oldregs(0)),addr(sidregs(0)))
+  sidregs(8)*=channelvol(0)
+  sidregs(17)*=channelvol(1)
+  sidregs(26)*=channelvol(2)
+  for i=0 to 30 :sid.regs(i)=sidregs(i) :next i
+  sid.regs(31)=192*mainvolume
   sid.regs(32)=8192+mainpan
+  sid.regs(33)=8192
+  sid.regs(34)=8192-mainpan
     sidpos+=25
   if sidpos>=sidlen then sidpos=0
 loop 
@@ -960,6 +968,8 @@ end sub
 sub displaysamples 
 
 v.setwritecolors(170,162)
+
+if modplaying then
 position 246,29:v.write(v.inttostr2(tracker.currperiod(0)+tracker.deltaperiod(0),3))
 position 246,30:v.write(v.inttostr2(tracker.currperiod(1)+tracker.deltaperiod(1),3))
 position 246,31:v.write(v.inttostr2(tracker.currperiod(2)+tracker.deltaperiod(2),3))
@@ -969,6 +979,79 @@ if tracker.currsamplenr(0)<=samples then position 184,29: v.write(sn$(tracker.cu
 if tracker.currsamplenr(1)<=samples then position 184,30: v.write(sn$(tracker.currsamplenr(1)))
 if tracker.currsamplenr(2)<=samples then position 184,31: v.write(sn$(tracker.currsamplenr(2)))
 if tracker.currsamplenr(3)<=samples then position 184,32: v.write(sn$(tracker.currsamplenr(3)))
+endif
+
+if dmpplaying then
+position 244,29:v.write(v.inttostr2(sidregs(0)/8718,4))
+position 244,30:v.write(v.inttostr2(sidregs(9)/8718,4))
+position 244,31:v.write(v.inttostr2(sidregs(18)/8718,4))
+
+position 184,29
+select case sidregs(2)
+case 1
+  print "Triangle       "
+case 2 
+  print "Saw            "
+case 3
+  print "Combined wave 3"
+case 4
+  print "Square         "
+case 5
+  print "Combined wave 5"
+case 6
+  print "Combined wave 6"
+case 7
+  print "Combined wave 7"
+case 8
+  print "Noise          "
+'case else
+ ' print "Error          "
+end select
+
+position 184,30
+select case sidregs(11)
+case 1
+  print "Triangle       "
+case 2 
+  print "Saw            "
+case 3
+  print "Combined wave 3"
+case 4
+  print "Square         "
+case 5
+  print "Combined wave 5"
+case 6
+  print "Combined wave 6"
+case 7
+  print "Combined wave 7"
+case 8
+  print "Noise          "
+'case else
+ ' print "Error          "
+end select
+
+position 184,31
+select case sidregs(20)
+case 1
+  print "Triangle       "
+case 2 
+  print "Saw            "
+case 3
+  print "Combined wave 3"
+case 4
+  print "Square         "
+case 5
+  print "Combined wave 5"
+case 6
+  print "Combined wave 6"
+case 7
+  print "Combined wave 7"
+case 8
+  print "Noise          "
+'case else
+'  print "Error          "
+end select
+endif
 
 end sub
 
@@ -1123,7 +1206,10 @@ sub decoderegs(regaddr,outaddr)
               add       filterCutoff, #16
               getnib    filterControl, sidRegs5, #6
               getnib    filterResonance, sidRegs5, #7
-              getnib    volume, sidRegs6, #0 
+              getnib    volume1, sidRegs6, #0 
+              mov volume2,volume1
+              mov volume3,volume1
+              
               getnib    filterMode, sidRegs6, #1
               jmp 	#p999				   '| Jump over the variable block
               
@@ -1148,6 +1234,7 @@ attack1			long 0
 decay1 			long 0
 sustain1		long 0
 release1 		long 0
+volume1			long 0
 
 frequency2 		long 0
 pulseWidth2		long 0
@@ -1157,6 +1244,7 @@ attack2			long 0
 decay2 			long 0
 sustain2		long 0
 release2 		long 0
+volume2			long 0
 
 frequency3 		long 0
 pulseWidth3		long 0
@@ -1166,12 +1254,12 @@ attack3			long 0
 decay3 			long 0
 sustain3		long 0
 release3 		long 0      
+volume3			long 0
 
 filterCutoff 		long 0
 filterControl 		long 0
 filterResonance 	long 0
 filterMode 		long 0
-volume 			long 0
 
 r1 long 0
 
@@ -1196,7 +1284,7 @@ ADSRTable         	long 3784819
 '  Now write results and go away
 '===========================================================                       	              
 
-p999		        setq #28
+p999		        setq #30
           		wrlong frequency1,outaddr
    			
    			end asm

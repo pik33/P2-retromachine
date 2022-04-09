@@ -38,12 +38,15 @@ CON  PAL = 985248.0, NTSC = 1022727.0, MAXF = 1031000.0, TRIANGLE = 16, SAW = 32
 
 var
 long combinedptr
-long regs[30]
+long samplesptr
+long regs[35]
 byte oldregs[28]
+long samples[3]
 
 pub start():cog
 
 combinedptr:=@cv2
+samplesptr:=@samples
 cog:=coginit(16,@SIDEMU,@combinedptr )
 return cog
 
@@ -61,19 +64,19 @@ SIDEMU        wrpin    smartConfigAudioDAC, #L_PIN   addpins 1        	' Config 
               wxpin    samplePeriod, #L_PIN  addpins 1                	' Sample period for left audio channel
               dirh     #L_PIN       addpins 1                        	' Enable smartpin DAC mode on left pin
               setse1   #%001_000000 | L_PIN                           	' Event triggered every new sample period (when "left in pin rises")
-              rdlong   combTableAddr,ptra                             	' Load combined waveforms
+              rdlong   combTableAddr,ptra++                             	' Load combined waveforms
               setq2    #256					        ' to the LUT
               rdlong   0, combTableAddr   
-              add      ptra,#4						' adjust PTRA
+              rdlong   samplesaddr,ptra++
+         '     add      ptra,#4						' adjust PTRA
 
 '----------------------------------------------------------------------------------------------------------------------
 ' Read decoded SID-registers from hub memory 
 '----------------------------------------------------------------------------------------------------------------------
 
-getRegisters  			sub cnt2,cnt1           ' DEBUG: get a loop time
-              			wrlong cnt2,#0
-	      			getct cnt1
-              setq      #28                             ' Number of longs, minus 1, to read
+getRegisters  			
+	      		'	getct cnt1
+              setq      #34                             ' Number of longs, minus 1, to read
               rdlong    frequency1, ptra                ' Read 29 decoded regs to cog 
 '-----------------------------------------------------------
               test      controlRegister1, #1            wc
@@ -180,89 +183,89 @@ Rel1 if_nc    shr      release1, decayDivide1
 '===========================================================
 'Calculate sample out1 = arg1 * arg2 (waveform * amplitude)    
 '=========================================================== 
-Amplitude1    shr      arg1, #14
-              sub      arg1, val15bit             
-              mov      arg2, envelopeLevel1     
-              shr      arg2, #24
-              getword  r1,arg1,#1
-              mul      r1, arg2
-              shl      r1, #16
-              mul      arg1, arg2
-              mov      out1, r1
+Amplitude1   	shr 	arg1,#16
+	   	bitnot 	arg1,#15
+             	mov 	arg2,envelopeLevel1
+             	shr 	arg2,#16
+             	mul     arg2,volume1
+             	shr     arg2,#7            
+                muls 	arg1,arg2
+             	mov 	out1,arg1
+
+
 '===========================================================
 '            Waveform shaping channel 2 -> arg1                           
 '===========================================================
-Saw2          cmp      selectedWaveform2, #2            wz
-              mov      arg1, phaseAccumulator2
-  if_z        jmp      #Envelope2   
+Saw2          	cmp      selectedWaveform2, #2            wz
+              	mov      arg1, phaseAccumulator2
+  if_z        	jmp      #Envelope2   
 '----------------------------------------------------------- 
-Triangle2     cmp      selectedWaveform2, #1            wcz
-  if_nz       jmp      #Square2
-              shl      arg1, #1                         wc
-  if_c        xor      arg1, mask32bit
-              test     controlRegister2, #4             wz '|
-  if_nz       test     phaseAccumulator1, val31bit      wz '| These 3 lines handles ring modulation
-  if_nz       xor      arg1, mask32bit                     '|
-              jmp      #Envelope2   
+Triangle2     	cmp      selectedWaveform2, #1            wcz
+  if_nz       	jmp      #Square2
+              	shl      arg1, #1                         wc
+  if_c        	xor      arg1, mask32bit
+              	test     controlRegister2, #4             wz '|
+  if_nz       	test     phaseAccumulator1, val31bit      wz '| These 3 lines handles ring modulation
+  if_nz       	xor      arg1, mask32bit                     '|
+              	jmp      #Envelope2   
 '-----------------------------------------------------------  
-Square2       cmp      selectedWaveform2, #4            wz
-  if_z        sub      pulseWidth2, phaseAccumulator2   wc ' C holds the pulse width modulated square wave  
-  if_z        muxc     arg1, mask32bit              
-  if_z        jmp      #Envelope2   
+Square2       	cmp      selectedWaveform2, #4            wz
+  if_z        	sub      pulseWidth2, phaseAccumulator2   wc ' C holds the pulse width modulated square wave  
+  if_z        	muxc     arg1, mask32bit              
+  if_z        	jmp      #Envelope2   
 '----------------------------------------------------------- 
-Noise2        cmp      selectedWaveform2, #8            wz
-  if_nz       jmp      #Combined2
-              and      arg1, mask28bit
-              sub      arg1, frequency2                 wc
-              mov      arg1, noiseValue2
-  if_c        getrnd   noiseValue2
-              jmp      #Envelope2
+Noise2        	cmp      selectedWaveform2, #8            wz
+  if_nz       	jmp      #Combined2
+              	and      arg1, mask28bit
+              	sub      arg1, frequency2                 wc
+              	mov      arg1, noiseValue2
+  if_c        	getrnd   noiseValue2
+              	jmp      #Envelope2
 '-----------------------------------------------------------                
-Combined2     sub      selectedWaveform2, #4
-              fges     selectedWaveform2, #0     
-              shl      selectedWaveform2, #3
-              shr      arg1,#24
-              rdlut    arg1,arg1
-              shr      arg1,selectedWaveform2
-              shl      arg1, #24                         
+Combined2     	sub      selectedWaveform2, #4
+              	fges     selectedWaveform2, #0     
+              	shl      selectedWaveform2, #3
+              	shr      arg1,#24
+              	rdlut    arg1,arg1
+              	shr      arg1,selectedWaveform2
+              	shl      arg1, #24                         
 '===========================================================
 '            Envelope shaping channel 2 -> arg2           
 '===========================================================
-Envelope2     mov      tempValue, decayDivideRef
-              shr      tempValue, decayDivide2
-              cmp      envelopeLevel2, tempValue        wc
-              tjnz     envelopeState2, #Env_Dec2
+Envelope2     	mov      tempValue, decayDivideRef
+              	shr      tempValue, decayDivide2
+              	cmp      envelopeLevel2, tempValue        wc
+              	tjnz     envelopeState2, #Env_Dec2
 '----------------------------------------------------------- 
-Env_At2 if_nc cmpsub   decayDivide2, #1                    
-              add      envelopeLevel2, attack2          wc
-  if_c        mov      envelopeLevel2, mask32bit         
-  if_c        mov      envelopeState2, #1
-              jmp      #Amplitude2
+Env_At2 if_nc 	cmpsub   decayDivide2, #1                    
+              	add      envelopeLevel2, attack2          wc
+  if_c       	mov      envelopeLevel2, mask32bit         
+  if_c        	mov      envelopeState2, #1
+              	jmp      #Amplitude2
 '----------------------------------------------------------- 
-Env_Dec2 if_c add      decayDivide2, #1    
-              cmp      startLogLevel,envelopeLevel2     wc   
-              cmp      envelopeState2, #1               wz
-  if_nz       jmp      #Rel2 
-  if_nc       shr      decay2, decayDivide2  
-              sub      envelopeLevel2, decay2
-              fge      envelopeLevel2, sustain2         wc
-              jmp      #Amplitude2
+Env_Dec2 if_c 	add      decayDivide2, #1    
+              	cmp      startLogLevel,envelopeLevel2     wc   
+              	cmp      envelopeState2, #1               wz
+  if_nz       	jmp      #Rel2 
+  if_nc       	shr      decay2, decayDivide2  
+              	sub      envelopeLevel2, decay2
+              	fge      envelopeLevel2, sustain2         wc
+              	jmp      #Amplitude2
 '-----------------------------------------------------------   
-Rel2 if_nc    shr      release2, decayDivide2  
-              cmpsub   envelopeLevel2, release2
+Rel2 if_nc    	shr      release2, decayDivide2  
+              	cmpsub   envelopeLevel2, release2
 '===========================================================
 'Calculate sample out2 = arg1 * arg2 (waveform * amplitude)     
 '===========================================================
-Amplitude2    shr      arg1, #14
-              sub      arg1, val17bit
-              mov      arg2, envelopeLevel2
-              shr      arg2, #24
-              getword  r1,arg1,#1
-              mul      r1, arg2
-              shl      r1, #16
-              mul      arg1, arg2
-              add      r1, arg1
-              mov      out2, r1
+Amplitude2   	shr 	arg1,#16
+	     	bitnot  arg1,#15
+             	mov 	arg2,envelopeLevel2
+             	shr 	arg2,#16
+             	mul     arg2,volume2
+             	shr     arg2,#7
+             	muls 	arg1,arg2
+             	mov 	out2,arg1
+
 '===========================================================            
 '            Waveform shaping channel 3 -> arg1                           
 '===========================================================
@@ -327,45 +330,34 @@ Rel3 if_nc    shr      release3, decayDivide3
 '===========================================================
 'Calculate sample out3 = arg1 * arg2 (waveform * amplitude)     
 '===========================================================
-Amplitude3    shr      arg1, #14
-              sub      arg1, val17bit            
-              mov      arg2, envelopeLevel3
-              shr      arg2, #24
-              getword  r1,arg1,#1
-              mul      r1, arg2
-              shl      r1, #16
-              mul      arg1, arg2
-              mov      out3, r1
+Amplitude3   	shr     arg1,#16
+	     	bitnot  arg1,#15
+                mov 	arg2,envelopeLevel3
+               	shr 	arg2,#16
+             	mul     arg2,volume3
+             	shr     arg2,#7
+                muls 	arg1,arg2
+                mov 	out3,arg1
               
 '===========================================================
 '              Handle multi-mode filtering 
 '===========================================================
-filter        mov      ordinaryOutput, #0                  '|
-              mov      highPassFilter, #0                  '|
-              test     filterControl, #1                wc '|
-  if_c        add      highPassFilter, out1                '|
-  if_nc       add      ordinaryOutput, out1                '|
-              test     filterControl, #2                wc '| Route channels trough the filter
-  if_c        add      highPassFilter, out2                '| or bypass them
-  if_nc       add      ordinaryOutput, out2                '|  
-              test     filterControl, #4                wc '|
-  if_c        add      highPassFilter, out3                '|
-  if_nc       add      ordinaryOutput, out3                '|  
+filter1       mov      highPassFilter1, out1               '|
 '-----------------------------------------------------------
               mov      arg2, filterResonance               '|
               add      arg2, #RESONANCE_OFFSET             '|
-              mov      arg1, bandPassFilter                '|  
+              mov      arg1, bandPassFilter1               '|  
               sar      arg1, #RESONANCE_FACTOR             '|
               getword  r1,arg1,#1
               mul      r1, arg2
               shl      r1, #16
               mul      arg1, arg2
               add      r1, arg1                            '| High pass filter
-              sub      highPassFilter, bandPassFilter      '|
-              add      highPassFilter, r1                  '| 
-              sub      highPassFilter, lowPassFilter       '|
+              sub      highPassFilter1, bandPassFilter1      '|
+              add      highPassFilter1, r1                  '| 
+              sub      highPassFilter1, lowPassFilter1      '|
 '----------------------------------------------------------- 
-              mov      arg1, highPassFilter                '|
+              mov      arg1, highPassFilter1                '|
               sar      arg1, #BP_MAX_CUTOFF                '|
               mov      arg2, filterCutoff                  '| Band pass filter
               getword  r1,arg1,#1
@@ -373,9 +365,9 @@ filter        mov      ordinaryOutput, #0                  '|
               shl      r1, #16
               mul      arg1, arg2
               add      r1, arg1                            '|
-              add      bandPassFilter, r1                  '|
+              add      bandPassFilter1, r1                  '|
 '----------------------------------------------------------- 
-              mov      arg1, bandPassFilter                '| 
+              mov      arg1, bandPassFilter1                '| 
               sar      arg1, #LP_MAX_CUTOFF                '| 
               mov      arg2, filterCutoff                  '| Low pass filter 
               getword  r1,arg1,#1
@@ -383,40 +375,184 @@ filter        mov      ordinaryOutput, #0                  '|
               shl      r1, #16
               mul      arg1, arg2
               add      r1, arg1 
-              add      lowPassFilter, r1                   '| 
+              add      lowPassFilter1, r1                   '| 
 '-----------------------------------------------------------  
-              mov      filterOutput, #0                    '|
+              mov      filterOutput1, #0                    '|
               test     filterMode, #1            wc        '|
-  if_c        add      filterOutput, lowPassFilter         '|
+  if_c        add      filterOutput1, lowPassFilter1         '|
               test     filterMode, #2            wc        '| Enable/Disable
-  if_c        add      filterOutput, bandPassFilter        '| Low/Band/High pass filtering
+  if_c        add      filterOutput1, bandPassFilter1        '| Low/Band/High pass filtering
               test     filterMode, #4            wc        '|
-  if_c        add      filterOutput, highPassFilter        '|
+  if_c        add      filterOutput1, highPassFilter1        '|
 
-'---------------------------------------------------------------------------------------------------------------------- 
-'      Mix channels and update FRQA/FRQB PWM-values
-'----------------------------------------------------------------------------------------------------------------------
 
-mixer         mov      arg1, filterOutput
-              add      arg1, ordinaryOutput
+
+'===========================================================
+'              Handle multi-mode filtering 
+'===========================================================
+filter2       mov      highPassFilter2, out2                '| or bypass them
 '-----------------------------------------------------------
-              fles     arg1, clipLevelHigh                 '|
-              fges     arg1, clipLevelLow                  '|
-              mov      arg2, volume
+              mov      arg2, filterResonance               '|
+              add      arg2, #RESONANCE_OFFSET             '|
+              mov      arg1, bandPassFilter2                '|  
+              sar      arg1, #RESONANCE_FACTOR             '|
               getword  r1,arg1,#1
               mul      r1, arg2
               shl      r1, #16
               mul      arg1, arg2
-              add      r1, arg1
-                      
-'-----------------------------------------------------------
-              add      r1, val31bit                        '  DC offset
+              add      r1, arg1                            '| High pass filter
+              sub      highPassFilter2, bandPassFilter2      '|
+              add      highPassFilter2, r1                  '| 
+              sub      highPassFilter2, lowPassFilter2       '|
+'----------------------------------------------------------- 
+              mov      arg1, highPassFilter2                '|
+              sar      arg1, #BP_MAX_CUTOFF                '|
+              mov      arg2, filterCutoff                  '| Band pass filter
+              getword  r1,arg1,#1
+              mul      r1, arg2
+              shl      r1, #16
+              mul      arg1, arg2
+              add      r1, arg1                            '|
+              add      bandPassFilter2, r1                  '|
+'----------------------------------------------------------- 
+              mov      arg1, bandPassFilter2                '| 
+              sar      arg1, #LP_MAX_CUTOFF                '| 
+              mov      arg2, filterCutoff                  '| Low pass filter 
+              getword  r1,arg1,#1
+              mul      r1, arg2
+              shl      r1, #16
+              mul      arg1, arg2
+              add      r1, arg1 
+              add      lowPassFilter2, r1                   '| 
 '-----------------------------------------------------------  
-              shr      r1, #16 
-              wypin    r1, #L_PIN                          ' Output sample on left channel
-              wypin    r1, #R_PIN                          ' Output sample on right channel
-              getct cnt2
-              waitse1
+              mov      filterOutput2, #0                    '|
+              test     filterMode, #1            wc        '|
+  if_c        add      filterOutput2, lowPassFilter2         '|
+              test     filterMode, #2            wc        '| Enable/Disable
+  if_c        add      filterOutput2, bandPassFilter2        '| Low/Band/High pass filtering
+              test     filterMode, #4            wc        '|
+  if_c        add      filterOutput2, highPassFilter2        '|
+
+
+
+'===========================================================
+'              Handle multi-mode filtering 
+'===========================================================
+filter3       mov      highPassFilter3, out3                '|
+'-----------------------------------------------------------
+              mov      arg2, filterResonance               '|
+              add      arg2, #RESONANCE_OFFSET             '|
+              mov      arg1, bandPassFilter3                '|  
+              sar      arg1, #RESONANCE_FACTOR             '|
+              getword  r1,arg1,#1
+              mul      r1, arg2
+              shl      r1, #16
+              mul      arg1, arg2
+              add      r1, arg1                            '| High pass filter
+              sub      highPassFilter3, bandPassFilter3      '|
+              add      highPassFilter3, r1                  '| 
+              sub      highPassFilter3, lowPassFilter3       '|
+'----------------------------------------------------------- 
+              mov      arg1, highPassFilter3                '|
+              sar      arg1, #BP_MAX_CUTOFF                '|
+              mov      arg2, filterCutoff                  '| Band pass filter
+              getword  r1,arg1,#1
+              mul      r1, arg2
+              shl      r1, #16
+              mul      arg1, arg2
+              add      r1, arg1                            '|
+              add      bandPassFilter3, r1                  '|
+'----------------------------------------------------------- 
+              mov      arg1, bandPassFilter3                '| 
+              sar      arg1, #LP_MAX_CUTOFF                '| 
+              mov      arg2, filterCutoff                  '| Low pass filter 
+              getword  r1,arg1,#1
+              mul      r1, arg2
+              shl      r1, #16
+              mul      arg1, arg2
+              add      r1, arg1 
+              add      lowPassFilter3, r1                   '| 
+'-----------------------------------------------------------  
+              mov      filterOutput3, #0                    '|
+              test     filterMode, #1            wc        '|
+  if_c        add      filterOutput3, lowPassFilter3         '|
+              test     filterMode, #2            wc        '| Enable/Disable
+  if_c        add      filterOutput3, bandPassFilter3        '| Low/Band/High pass filtering
+              test     filterMode, #4            wc        '|
+  if_c        add      filterOutput3, highPassFilter3        '|
+
+filtermix     test     filterControl, #1                wc '|
+  if_c        mov      out1,filterOutput1                  '|
+              test     filterControl, #2                wc '| Route channels trough the filter
+  if_c        mov      out2,filterOutput2 
+              test     filterControl, #4                wc '|
+  if_c        mov      out3,filterOutput3 
+'---------------------------------------------------------------------------------------------------------------------- 
+'      Mix channels and update DACs values
+'----------------------------------------------------------------------------------------------------------------------
+           
+mixer        sar out1,#16
+
+             scas out1, apan1
+             mov ls1,0-0
+             mov r1,a16384
+             sub r1,apan1
+             scas out1,r1
+             mov rs1,0-0
+             
+             sar out2,#16
+
+             scas out2, apan2
+             add ls1,0-0
+             mov r1,a16384
+             sub r1,apan2
+             scas out2,r1
+             add rs1,0-0
+             
+             sar out3,#16
+             
+
+             scas out3, apan3
+             add ls1,0-0
+             mov r1,a16384
+             sub r1,apan3
+             scas out3,r1
+             add rs1,0-0
+             
+             
+             scas rs1,mainvol
+             mov rs1,0-0
+             scas ls1,mainvol
+             mov ls1,0-0
+   
+   
+     waitse1
+   
+              bitnot   ls1, #15
+              wypin    ls1, #L_PIN                          ' Output sample on left channel
+  
+  
+              bitnot   rs1, #15
+               wypin    rs1, #R_PIN                          ' Output sample on right channel
+          
+            setword ls1,rs1,#1    
+            incmod  scope,#16 wc            ' save every 127th sample to the scope buffer
+    if_c    mov scptr2,scptr
+    if_c    shl scptr2,#2
+    if_c    add scptr2,scbase     
+            wrlong scptr2,#$60
+    if_c    wrlong ls1,scptr2
+    if_c    incmod scptr,##639           
+              
+              
+              
+    '          getct cnt2
+    '          sub cnt2,cnt1           ' DEBUG: get a loop time
+     
+     setq #2
+        	wrlong out1,samplesaddr
+              
+            
               jmp      #getRegisters
 
 
@@ -425,6 +561,10 @@ mixer         mov      arg1, filterOutput
 '    Variables, tables, masks and reference values
 '----------------------------------------------------------------------------------------------------------------------
       
+scptr long 0
+scptr2 long 0
+scope long 0
+scbase long $72238
 
 'Masks and reference values
 startLogLevel       long START_LOG_LEVEL
@@ -434,8 +574,9 @@ mask28bit           long $fffffff
 val31bit            long $80000000
 val17bit            long $20000
 val15bit            long $8000
-clipLevelHigh       long $8000000
-clipLevelLow        long-$8000000
+a16384 long 16384
+clipLevelHigh       long $55555500
+clipLevelLow        long-$55555500
 filterOffset        long FILTER_OFFSET
 decayDivideRef      long DECAY_DIVIDE_REF
 
@@ -467,6 +608,7 @@ attack1			long 0
 decay1 			long 0
 sustain1		long 0
 release1 		long 0
+volume1			long 0
 
 frequency2 		long 0
 pulseWidth2		long 0
@@ -476,6 +618,7 @@ attack2			long 0
 decay2 			long 0
 sustain2		long 0
 release2 		long 0
+volume2			long 0
 
 frequency3 		long 0
 pulseWidth3		long 0
@@ -485,16 +628,44 @@ attack3			long 0
 decay3 			long 0
 sustain3		long 0
 release3 		long 0
-
+volume3			long 0
 
 
 filterCutoff long 0
 filterControl long 0
 filterResonance long 0
-
 filterMode long 0
-volume long 0
+
+mainvol long 32768
+
+apan1 long 0
+apan2 long 8192
+apan3 long 16384
+
+out1              long 0
+out2               long 0
+out3                long 0
+cnt2 long 0
+
  
+highPassFilter1      long 0
+bandPassFilter1      long 0
+lowPassFilter1       long 0
+filterOutput1        long 0 
+
+highPassFilter2      long 0
+bandPassFilter2      long 0
+lowPassFilter2       long 0
+filterOutput2        long 0 
+
+highPassFilter3      long 0
+bandPassFilter3      long 0
+lowPassFilter3       long 0
+filterOutput3        long 0 
+  
+  
+samplesaddr long 0
+  
   
 envelopeLevel1      res  1 
 envelopeLevel2      res  1 
@@ -510,18 +681,17 @@ envelopeState1      res  1
 envelopeState2      res  1
 envelopeState3      res  1
 
-out1                res  1
-out2                res  1
-out3                res  1
 
-highPassFilter      res  1
-bandPassFilter      res  1 
-lowPassFilter       res  1
 
-filterOutput        res  1
+ls1 long 0
+ls2 long 0
+ls3 long 0
+rs1 long 0
+rs2 long 0
+rs3 long 0
 
 ordinaryOutput      res  1
 cnt1 long 0
-cnt2 long 0
+ 
 'Working variables
 tempValue           res  1

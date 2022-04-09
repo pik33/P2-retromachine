@@ -242,6 +242,8 @@ p301        alts    ptrb,#511                ' checking if the buffer is full - 
 		
 	    cmp     scbase,#0 wz
     if_z    jmp #p302	   
+ 
+ 
             incmod  scope,#63 wc            ' save every 127th sample to the scope buffer
     if_c    mov scptr2,scptr
     if_c    shl scptr2,#2
