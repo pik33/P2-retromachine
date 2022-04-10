@@ -781,34 +781,6 @@ pub outtextxycz(x,y,text,f,b,xz,yz) | iii,c
 repeat iii from 0 to strsize(text)-1
   putcharxycz(x+8*xz*iii,y,byte[text+iii],f,b,xz,yz)
 
-pub putchar48(buf,cpl,x,y,char,font,c) | q,i,b,r
-
-asm
-          mov i,#7
-       
-p101      mov b,char
-          shl b,#3
-          add b,font
-          add b,i
-          rdbyte b,b
-          mergeb b
-          getword q,b,#1
-          mul b,c
-          mul q,c
-          setword b,q,#1
-          mov q,y
-          add q,i
-          mul q,cpl
-          shl q,#2
-          add q,buf
-          mov r,x
-          shl r,#2
-          add q,r
-          wrlong b,q
-          djnf i,#p101
-endasm   
-
-
 
 
 '**********************************************************************r***
@@ -1300,7 +1272,7 @@ if colors==256
 '
 '**********************************************************************************
 dat
-vga_font       file "vgafont.def"
+vga_font       'file "vgafont.def"
 st_font        file "st4font.def"
 a8_font        file "atari8.fnt"
 twocolors      long  $00000000,$FFFFFF00

@@ -1,23 +1,28 @@
-
-'----------------  This is temporary experimental version of SIDCog for use in Prop2Play ---------------------------------------
-'---------------- 20220303 pik33@o2.pl -----------------------------------------------------------------------------------------
-
+'
+'				A SID chip emulator for Prop2Play - a heavy modified version of:
+'
 '################################################################################################################################
 '#                             SIDcog - SID/MOS8580 emulator v1.4  (C) 2020 Johannes Ahlebrand                                  #                                                            
 '################################################################################################################################
 '#                                    TERMS OF USE: Parallax Object Exchange License                                            #                                                            
 '################################################################################################################################
+'
+'	Changes (most important):
+'	SID registers decoder removed (moved to the player itself)
+'       SID channels are independent, each with its own filter, volume and stereo position
+'       independent 3 channel values and a scope buffer for the player added
+'       combined waveforms in LUT
+'       SID emulated at 490 kHz (original/2)
+'       
+'       v.0.08 - 20220410
+
 
 CON
-_clkfreq=354_689_500
-
-CON  PAL = 985248.0, NTSC = 1022727.0, MAXF = 1031000.0, TRIANGLE = 16, SAW = 32, SQUARE = 64, NOISE = 128   
+  TRIANGLE = 16, SAW = 32, SQUARE = 64, NOISE = 128   
 
   L_PIN = 8
   R_PIN = 9
 
-  SYSTEM_CLOCK         = 354_689_500
-  C64_CLOCK_FREQ       = PAL
   '                                           ___ 
   RESONANCE_OFFSET     = 7'                     |
   RESONANCE_FACTOR     = 5'                     |

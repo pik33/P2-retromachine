@@ -136,8 +136,7 @@ c_lightmagenta  =   75
 c_yellow        =  234
 c_white         =   15
 
-''---------- A constant to add to timing values for the streamer    if_nz       jmp     #p301                             ' if not, display the next line
-
+''---------- A constant to add to timing values for the streamer
 
 timingsxxt      =  $70810000   ' streamer imm->pins
 
