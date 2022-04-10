@@ -34,6 +34,8 @@ var
 'channel+28 long reserved
 '
 long mailboxaddr
+long scope_ptr
+long cache_ptr
 long channel1[8]
 long channel2[8]
 long channel3[8]
@@ -48,9 +50,15 @@ long channel8[8]
 '---------- Init the variables, start the cog. ----------------
 '--------------------------------------------------------------
 
-pub start(mbox) :cog,base | iii
+pub start(mbox,scope,cache) :cog,base | iii
+
+' mbox: PSRAM mailbox or 0 if no PSRAM
+' scope: a pointer to 640 long oscilloscope data in HUB wor visualization
+' cache: a pointer to 2 KB long HUB cache for PSRAM audio data
 
 mailboxaddr:=mbox 
+scope_ptr:=scope
+cache_ptr:=cache
 base:=@channel1[0]
 
 repeat iii from 0 to 7
@@ -77,6 +85,8 @@ dat
 audio       org     0
 
             rdlong  mailbox2, ptra++     ' get start address of all mailboxes
+            rdlong  scbase, ptra++       ' get start address of scope buffer
+            rdlong  hubptr, ptra++       ' get start address of PSRAM cache
 
             cogid   pa                   ' compute cogid
             mul     pa, #12              ' and mailbox spacing
@@ -225,64 +235,63 @@ p301        alts    ptrb,#511                ' checking if the buffer is full - 
             cmpr    front, #0-0 wcz
     if_e    jmp     #p301    
 		
-            incmod  scope,#127 wc
-            if_c    mov scptr2,scptr
-            if_c    shl scptr2,#2
-            if_c    add scptr2,##$72238      '' todo !!!!!!!!! get rid of this const!!!!
-            if_c    wrlong oldsample,scptr2
-            if_c    incmod scptr,##639
+	    cmp     scbase,#0 wz
+    if_z    jmp #p302	   
+            incmod  scope,#127 wc            ' save every 127th sample to the scope buffer
+    if_c    mov scptr2,scptr
+    if_c    shl scptr2,#2
+    if_c    add scptr2,scbase     
+    if_c    wrlong oldsample,scptr2
+    if_c    incmod scptr,##639
 			    
-            wrlut   oldsample, front        ' if there is a free slot, put the sample into the buffer
+p302        wrlut   oldsample, front        ' if there is a free slot, put the sample into the buffer
             incmod  front, ##511
             djnz    qq,#p301
             
             jmp     #loop            'loop
 
-'-------------------------------------------------------------------------
-'------------------ This is the end of the main loop ---------------------
-'-------------------------------------------------------------------------
+'----------------------------------------------------------------------------------
+'------------- This is the end of the main loop -----------------------------------
+'----------------------------------------------------------------------------------
 
-' read from psram using cache
-' if hi24bit=cache then goto getresult
-' if hi 24bit<>cache ptr then read 256 bytes from psram
-' change cache ptr
-' getreesult: read hubptr+lo8bit
-''hubptr=hubbuf+channel<<8
+'----------------------------------------------------------------------------------
+'------------- PSRAM cache ----------- --------------------------------------------
+'----------------------------------------------------------------------------------
+
+' There are 8 cache pointers for 8 channels
+' if 24 higher bits of address=cache, then ger a word from the cache
+' else load the cache from PSRAM, update the pointer, then read a sample
 
 
-
-cache_read  getbyte addrlo,qq,#0
+cache_read  getbyte addrlo,qq,#0 		' when this is called, qq is the addres of the sample			
             
-	    mov     addrhi,qq
-	    shr     addrhi,#8
-	    alts    cn,#cache1 
-	    cmp	    addrhi,0-0 wz
-    if_z    jmp     #p701	    		' if_nz, cache miss
+	    mov     addrhi,qq		
+	    shr     addrhi,#8		        ' get 24 upper bits
+	    alts    cn,#cache1            
+	    cmp	    addrhi,0-0 wz               ' and compare with the cache pointer for the channel
+    if_z    jmp     #p701	    		' if equal, cache hit, read the sample from it
 	
-p702	    altd    cn,#cache1
-	    mov     0-0,addrhi
-	    mov     cmd,addrhi
+p702	    altd    cn,#cache1			' cache miss. 
+	    mov     0-0,addrhi                  ' update the pointer
+	    mov     cmd,addrhi			' prepare the mailbox
 	    shl     cmd,#8
-            setnib  cmd, #%1011, #7              ' read a bytef rom external memory
-            mov     hubaddr,cn
-            shl     hubaddr,#8
-            add     hubaddr,hubptr
-            mov     count,#256
-            setq    #2                        ' write 3 longs
-            wrlong  cmd, mailbox               ' write command request to external mem driver mailbox
-poll1                              
-            rdlong  cmd, mailbox               ' poll mailbox for result
-'             debug(udec(cmd))
-            tjs     cmd, #poll1                 ' retry until valid (doesn't handle errors!)
+            setnib  cmd, #%1011, #7             ' read burst from the external memory
+            mov     hubaddr,cn                  ' to the channel cache
+            shl     hubaddr,#8                  '
+            add     hubaddr,hubptr 
+            mov     count,#256                  ' 256 bytes
+            setq    #2                          ' write 3 longs
+            wrlong  cmd, mailbox                ' run it
+poll1       rdlong  cmd, mailbox                ' poll mailbox for result
+            tjs     cmd, #poll1                 ' retry until valid 
             
 	
-p701	   
-            mov     qq,cn				' cache hit
-	    shl     qq,#8
+p701	    mov     qq,cn			' cache hit
+	    shl     qq,#8			' compute the cache start
 	    add     qq,hubptr
-	    add	    qq,addrlo
-	    rdword  spl,qq
-            ret
+	    add	    qq,addrlo			' add 8 lower bits to the cache addredd
+    _ret_   rdword  spl,qq                      ' read a word
+          
 
 '--------------------------------------------------------------------------
 '------ Interrupt service -------------------------------------------------
@@ -380,6 +389,7 @@ newsample   long 0
 nrsample    long 0
 nlsample    long 0
 
+scbase long 0
 scptr long 0
 scptr2 long 0
 scope long 0

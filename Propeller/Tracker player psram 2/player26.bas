@@ -329,7 +329,47 @@ do
     endif  
   ansibuf(3)=0  
   endif
+/'
+  if lcase$(right$(filename$,3))="spc" then  							' this is a wave file. Todo - read and use the header!
+    if cog>0 then cpustop(cog)	: cog=-1 :modplaying=0								' if module playing, stop it
+    if scog>0 then cpustop(scog): scog=-1
+    if scog2>0 then cpustop(scog2): scog2=-1
+    if waveplaying=1 then waveplaying= 0: waitms(100): close #8                                   ' if dmp file is playing, stop it
+    if audiocog>0 then stopaudio    
+   
+    hubset(hubset336)										 
+  
+   
+    filename3$=currentdir$+filename$								' get a filename with the path
+    close #8: open filename3$ for input as #8: pos=1
+    let psramptr=0 
+    do
+      get #8,pos,filebuf(0),512,r : pos+=r	
+      psram.write(addr(filebuf(0)),psramptr,512)	
+      position 4,24: print pos; " bytes loaded     "					        ' get 128 bytes and update file position
+      psramptr+=512 					' move the buffer to the RAM and update RAM position. Todo: this can be done all at once
+    loop until r<>512 '                          					' do until eof 
+    close #8
+    sidlen=psramptr
+    dmpplaying=1   	
+    sidpos=0
+    v.setwritecolors($ea,$e1)									' yellow
+    position 2*2,17:v.write(space$(38)): filename3$=right$(filename3$,38) 		 	' clear the place for a file name
+    position 2*2,17: v.write(filename3$)	
+					        ' display the 'now playing' filename 
+    siddelay=336956522/50 : sidfreq=50 :sidtime=0
+    for i=0 to 17: sid.regs(i)=0: next i
+    scog=sid.start()
+    scog2=cpu(sidloop,@mainstack)
+    v.box(725,428,1018,554,162)
+    v.box(529,428,719,554,16)
+    getdmpinfo
+    waitms(100)
 
+    endif  
+  ansibuf(3)=0  
+  endif
+'/
 '' ----------------------------------- User interface panels control : tab, arrows, pg up/down, w, s
  
   if (ansibuf(3)=9) orelse (ansibuf(3)=137) then 						                                           ' TAB changes panel
