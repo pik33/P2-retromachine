@@ -332,8 +332,24 @@ dsp_dosample
               mov pb,dsp_daccenter
               scas dsp_rsample,dsp_dacscas
               add pb,0-0
+              
+              
+              '''''' to do: oscilloscope here
+
+                      
+              
               wypin pa,dsp_lpin
               wypin pb,dsp_rpin
+              
+            			setword pa,pb,#1   
+            			mov scptr2,scptr
+            			shl scptr2,#2
+            			add scptr2,scbase     
+ 			        wrlong pa,scptr2
+          			incmod scptr,##639                
+              
+              
+              
 dsp_run_ptch  jmp #\0
 
 
@@ -708,7 +724,9 @@ dsp_write
               ret wcz
 
 
-
+scptr long 0
+scptr2 long 0
+scbase long $72238 
 
 sp_400h       long $400
 dsp_maxenv    ' alias
@@ -845,7 +863,7 @@ dsp_rates     res 1
 dsp_lecho     res 1
 dsp_recho     res 1
 dsp_modout    res 1
-
+                
 
 
               fit $1E0
@@ -2061,6 +2079,7 @@ sp_init
               jmp #\sp_nextop '' GO!
 
 patched       long 0
+
 
 DAT ' SPC700 firmware ROM
               orgh

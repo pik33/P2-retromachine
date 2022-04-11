@@ -83,7 +83,7 @@ samplerate=100
 let mmmm=0
 do
   waitvbl  
-  										' synchronize with vblanks
+  position 0,0: print lpeek(0)										' synchronize with vblanks
   if modplaying=0 then framenum+=1 : scrollstatus((framenum) mod (8*sl))                 	            ' if not playing module let main loop scroll the status line
   if dmpplaying or modplaying then displaysamples
   if modplaying=1 then scrollinfo
@@ -356,16 +356,15 @@ do
     v.setwritecolors($ea,$e1)									' yellow
     position 2*2,17:v.write(space$(38)): filename3$=right$(filename3$,38) 		 	' clear the place for a file name
     position 2*2,17: v.write(filename3$)	
-					        ' display the 'now playing' filename 
-'    siddelay=336956522/50 : sidfreq=50 :sidtime=0
-'    for i=0 to 17: sid.regs(i)=0: next i
+
     scog=spc.start_spcfile(14,15,addr(wavebuf))-1
 '    scog2=cpu(sidloop,@mainstack)
     v.box(725,428,1018,554,162)
     v.box(529,428,719,554,16)
+        v.box(725,60,1018,403,147)
 '    getdmpinfo
     waitms(100)
-
+   printmeta(addr(wavebuf))
     endif  
   ansibuf(3)=0  
   endif
@@ -1310,6 +1309,124 @@ p999		        setq #30
    			end asm
 end sub   
 
+
+dim xid6fields$(10) as string
+'1:song name
+'2 game title
+'3 artist name
+'4 dumper name
+'5 dumped date
+'6 emulator
+'7 comments
+'8 seconds to play
+'9 fade
+
+const XID6_FOURCC = $36646978
+
+'---- end of test 
+
+function getxidfield(f,a) as integer
+
+let id=peek(f+$10208+a)
+let t=peek(f+$10208+a+1)
+let l=dpeek(f+$10208+a+2)
+ 
+if (t=0) and (id=6) then 
+  xid6fields$(6)=""
+  if l=$30 then xid6fields$(6)="Unknown"
+  if l=$31 then xid6fields$(6)="ZSNES"
+  if l=$32 then xid6fields$(6)="Snes9x"
+endif
+if (t=1) and (((id>=1) and (id<=4)) or (id=7)) then
+  xid6fields$(id)="" : for i=0 to l-1 : xid6fields$(id)= xid6fields$(id)+chr$(peek(f+$1020C+a+i)) : next i   
+endif
+if (t=4) and (id=5) then 
+   xid6fields$(id)=decuns$(lpeek(f+$10208+a+4))
+endif
+if t=0 then return a+4
+if t=1 then return a+l+4
+if t=4 then return a+8
+return -1
+end function
+  
+
+function checkxid6(a) as integer
+if lpeek(a+$10200)=XID6_FOURCC then 
+  return 1
+else
+  return 0
+end if
+end function
+
+function getxid6length(a) as integer
+return lpeek(a+$10204) 
+end function
+
+sub printmeta(spcfile)
+
+
+v.box(725,60,1018,403,147)
+v.setwritecolors($93,$9a)
+position 184,4 : print "                                " 
+position 184,4: print " ";filename$ :v.setwritecolors($9a,$93)                      ' test: module file name will be here
+position 184,5 : print " SNES .spc file "
+
+for i=1 to 10: xid6fields$(i)="" : next i
+if checkxid6((spcfile))=1 then 
+  let ll=getxid6length((spcfile)) 
+'  print (" XID6 found, length ");ll
+  let r=0: do: let r=getxidfield((spcfile),r) :  loop until (r>=ll) or (r=-1)
+else
+'  print(" XID6 not found")
+endif
+
+
+if xid6fields$(1)="" then 'song
+  for i=0 to 31 : xid6fields$(1)=xid6fields$(1)+chr$(peek(spcfile+i+$2e)) : next i
+endif
+if xid6fields$(2)="" then 'game
+  for i=0 to 31 : xid6fields$(2)=xid6fields$(2)+chr$(peek(spcfile+i+$4e)) : next i
+endif
+if xid6fields$(3)="" then 'artist
+  for i=0 to 31 : xid6fields$(3)=xid6fields$(3)+chr$(peek(spcfile+i+$b1)) : next i
+endif
+if xid6fields$(4)="" then
+  for i=0 to 15 : xid6fields$(4)=xid6fields$(4)+chr$(peek(spcfile+i+$6e)) : next i
+endif
+if xid6fields$(5)="" then
+  for i=0 to 10 : xid6fields$(5)=xid6fields$(5)+chr$(peek(spcfile+i+$9e)) : next i
+endif
+if xid6fields$(6)="" then
+  l=peek(spcfile+$D2) 
+  xid6fields$(6)=""
+  if l=$30 then xid6fields$(6)="Unknown"
+  if l=$31 then xid6fields$(6)="ZSNES"
+  if l=$32 then xid6fields$(6)="Snes9x" 
+endif
+if xid6fields$(7)="" then
+  for i=0 to 31 : xid6fields$(7)=xid6fields$(7)+chr$(peek(spcfile+i+$7e)) : next i
+endif
+if xid6fields$(8)="" then
+  for i=0 to 2 : xid6fields$(8)=xid6fields$(8)+chr$(peek(spcfile+i+$a9)) : next i
+endif
+if xid6fields$(9)="" then
+  for i=0 to 4 : xid6fields$(9)=xid6fields$(9)+chr$(peek(spcfile+i+$ac)) : next i
+endif
+  
+let px=184 : let py=7
+v.setwritecolors(150,147) : if xid6fields$(1)<>"" then position px,py: print "Song title:       ": position px,py+1 :v.setwritecolors(154,147): print left$(xid6fields$(1),35) : py+=3
+v.setwritecolors(150,147) : if xid6fields$(2)<>"" then position px,py: print "Game title:       ": position px,py+1 :v.setwritecolors(154,147): print left$(xid6fields$(2),35) : py+=3
+v.setwritecolors(150,147) : if xid6fields$(3)<>"" then position px,py: print "Artist name:      ": position px,py+1 :v.setwritecolors(154,147): print left$(xid6fields$(3),35) : py+=3
+v.setwritecolors(150,147) : if xid6fields$(7)<>"" then position px,py: print "Comments:         ": position px,py+1 :v.setwritecolors(154,147): print left$(xid6fields$(7),35) : py+=3
+v.setwritecolors(150,147) : if xid6fields$(4)<>"" then position px,py: print "Dumper name:      ": position px+30,py :v.setwritecolors(154,147): print left$(xid6fields$(4),35) : py+=1
+v.setwritecolors(150,147) : if xid6fields$(5)<>"" then position px,py: print "Dumped at:        ": position px,30+py :v.setwritecolors(154,147): print left$(xid6fields$(5),35) : py+=1
+v.setwritecolors(150,147) : if xid6fields$(6)<>"" then position px,py: print "Emulator:         ": position px+30,py :v.setwritecolors(154,147): print left$(xid6fields$(6),35) : py+=1
+v.setwritecolors(150,147) : if xid6fields$(8)<>"" then position px,py: print "Time:             ": position px+30,py :v.setwritecolors(154,147): print left$(xid6fields$(8),35); " s" : py+=1
+v.setwritecolors(150,147) : if xid6fields$(9)<>"" then position px,py: print "Fade:             ": position px+30,py :v.setwritecolors(154,147): print left$(xid6fields$(9),35); " ms" : py+=1
+
+
+
+end sub
 
 '-----------------------------------------------------------------------------------------------------------------------
 '----------------------------- The file cog ----------------------------------------------------------------------------

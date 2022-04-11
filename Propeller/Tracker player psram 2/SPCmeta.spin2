@@ -17,21 +17,19 @@ repeat i from 0 to $1A
 return byte[spcptr][$24]
 
 
-PUB getSongTitle(spcptr) : ptr | len
+PUB getSongTitle(spcptr) : ptr,len
 
 ' Try xid6 first
 ptr,len := stripFixStr(getXid6(spcptr,$01))
-debug(udec(byte[spcptr][$23]))
 if len
   debug("took xid6 ",uhex_long(ptr,len))
-  return ptr
+  return
 ' Try ID666
 if byte[spcptr][$23] == 26
-
-  ptr,len:=stripFixStr(spcptr+$2E,32)
-  return ptr
+  return stripFixStr(spcptr+$2E,32)
 ' No luck
-return 0
+return 0,0
+
 
 PUB getGameTitle(spcptr) : ptr,len
 ' Try xid6 first
@@ -64,15 +62,14 @@ if byte[spcptr][$23] == 26
 ' No luck
 return 0,0
 
-PUB getArtist(spcptr) : ptr | len
+PUB getArtist(spcptr) : ptr,len
 ' Try xid6 first
 ptr,len := stripFixStr(getXid6(spcptr,$03))
 if len
-  return ptr
+  return
 ' Try ID666
 if byte[spcptr][$23] == 26
-  ptr,len:= stripFixStr(spcptr+(isBinaryFormat(spcptr) ? $B0 : $B1),32)
-  return ptr
+  return stripFixStr(spcptr+(isBinaryFormat(spcptr) ? $B0 : $B1),32)
 ' No luck
 return 0,0
 

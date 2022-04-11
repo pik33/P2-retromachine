@@ -2,11 +2,13 @@ const _CLKFREQ = 32*256*32_000
 const DEBUG_COGS = %01
 const leftpin = 8+6
 const rightpin = leftpin+1
+#include "retromachine.bi"
+
 
 dim a1$ as string
 
-
-dim spc as class using "SPCcog"
+startvideo
+ 
 spc.start_spcfile(leftpin,rightpin,@spcfile)
 
 

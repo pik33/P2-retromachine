@@ -541,6 +541,7 @@ mixer        sar out1,#16
                wypin    rs1, #R_PIN                          ' Output sample on right channel
           
             setword ls1,rs1,#1    
+            
             incmod  scope,#16 wc            ' save every 127th sample to the scope buffer
     if_c    mov scptr2,scptr
     if_c    shl scptr2,#2
