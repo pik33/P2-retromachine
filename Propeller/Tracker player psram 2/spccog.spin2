@@ -63,6 +63,12 @@ long cog,memptr
 byte inport[4],outport[4]
 long chanstate[8*CHANNEL_SIZE]
 
+'' Get current volume for channel (zero to $7FF00)
+PUB get_current_volume(channel) : v | chbase
+  chbase := @chanstate[channel*CHANNEL_SIZE]
+  return (abs(byte[chbase][14*4 + 1] signx 7) + abs(byte[chbase][14*4 + 3] signx 7))*long[chbase][10]
+
+
 PUB start_spcfile(left,right,fileptr) :r
 '' ┌──────────────────────────────────────────────────────────────┐
 '' │                 Starts SPCcog from SPC file                  │

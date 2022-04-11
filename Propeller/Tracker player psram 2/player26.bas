@@ -548,8 +548,12 @@ s31=sid.samples(2)+32768
 s41=32768
 endif
 
+if spcplaying=1 then
+s1=32768+spc.get_current_volume(0)/16  : lpoke 0,s1
+endif
 
-let bdiv=64: if waveplaying then let bdiv=96 
+let bdiv=64: if waveplaying then let bdiv=96  
+if spcplaying then let bdiv=96
 if dmpplaying then let bdiv=48
 
 s1=abs(s1-32768)				' compute the amplitude
