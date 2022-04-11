@@ -359,7 +359,7 @@ do
 					        ' display the 'now playing' filename 
 '    siddelay=336956522/50 : sidfreq=50 :sidtime=0
 '    for i=0 to 17: sid.regs(i)=0: next i
-    scog=spc.start_spcfile(14,15,addr(wavebuf))
+    scog=spc.start_spcfile(14,15,addr(wavebuf))-1
 '    scog2=cpu(sidloop,@mainstack)
     v.box(725,428,1018,554,162)
     v.box(529,428,719,554,16)
