@@ -86,7 +86,7 @@ do
   										' synchronize with vblanks
   if modplaying=0 then framenum+=1 : scrollstatus((framenum) mod (8*sl))                 	            ' if not playing module let main loop scroll the status line
   if dmpplaying or modplaying then displaysamples
-  if modplaying=0 then scrollinfo
+  if modplaying=1 then scrollinfo
   scope												' display scope
   bars												' display bars
 
