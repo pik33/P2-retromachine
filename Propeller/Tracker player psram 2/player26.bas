@@ -40,7 +40,7 @@ dim samplerate,wavepos,currentbuf as ulong
 declare wavebuf alias $50000 as ubyte($20000)
 dim newdl(32)
 
-dim modplaying,waveplaying,dmpplaying, needbuf,playnext as ubyte
+dim modplaying,waveplaying,dmpplaying, spcplaying, needbuf,playnext as ubyte
 dim scog as integer
 dim dmppos as ulong
 dim newcnt,bufptr,siddelay,scog2,sidfreq,sidtime as integer
@@ -62,7 +62,7 @@ framenum=0
 for i=0 to 3 : oldtrigs(i)=0 : next i
 pan(0)=8192-mainpan : pan(1)=8192+mainpan : pan(2)=8192+mainpan : pan(3)=8192-mainpan
 preparepanels
-waveplaying=0: modplaying=0 : dmpplaying=0
+waveplaying=0: modplaying=0 : dmpplaying=0 : spcplaying=0
 stop=0
 
 mount "/sd", _vfs_open_sdcard()
@@ -328,8 +328,8 @@ do
 
     endif  
   ansibuf(3)=0  
-  endif
-/'
+
+
   if lcase$(right$(filename$,3))="spc" then  							' this is a wave file. Todo - read and use the header!
     if cog>0 then cpustop(cog)	: cog=-1 :modplaying=0								' if module playing, stop it
     if scog>0 then cpustop(scog): scog=-1
@@ -344,32 +344,32 @@ do
     close #8: open filename3$ for input as #8: pos=1
     let psramptr=0 
     do
-      get #8,pos,filebuf(0),512,r : pos+=r	
-      psram.write(addr(filebuf(0)),psramptr,512)	
+      get #8,pos,wavebuf(pos-1),512,r : pos+=r	
+'      psram.write(addr(filebuf(0)),psramptr,512)	
       position 4,24: print pos; " bytes loaded     "					        ' get 128 bytes and update file position
-      psramptr+=512 					' move the buffer to the RAM and update RAM position. Todo: this can be done all at once
+ '     psramptr+=512 					' move the buffer to the RAM and update RAM position. Todo: this can be done all at once
     loop until r<>512 '                          					' do until eof 
     close #8
-    sidlen=psramptr
-    dmpplaying=1   	
-    sidpos=0
+
+    spcplaying=1   	
+'    sidpos=0
     v.setwritecolors($ea,$e1)									' yellow
     position 2*2,17:v.write(space$(38)): filename3$=right$(filename3$,38) 		 	' clear the place for a file name
     position 2*2,17: v.write(filename3$)	
 					        ' display the 'now playing' filename 
-    siddelay=336956522/50 : sidfreq=50 :sidtime=0
-    for i=0 to 17: sid.regs(i)=0: next i
-    scog=sid.start()
-    scog2=cpu(sidloop,@mainstack)
+'    siddelay=336956522/50 : sidfreq=50 :sidtime=0
+'    for i=0 to 17: sid.regs(i)=0: next i
+    scog=spc.start_spcfile(14,15,addr(wavebuf))
+'    scog2=cpu(sidloop,@mainstack)
     v.box(725,428,1018,554,162)
     v.box(529,428,719,554,16)
-    getdmpinfo
+'    getdmpinfo
     waitms(100)
 
     endif  
   ansibuf(3)=0  
   endif
-'/
+
 '' ----------------------------------- User interface panels control : tab, arrows, pg up/down, w, s
  
   if (ansibuf(3)=9) orelse (ansibuf(3)=137) then 						                                           ' TAB changes panel
@@ -680,7 +680,7 @@ do
   sidregs(17)*=channelvol(1)
   sidregs(26)*=channelvol(2)
   for i=0 to 30 :sid.regs(i)=sidregs(i) :next i
-  sid.regs(31)=192*mainvolume
+  sid.regs(31)=256*mainvolume
   sid.regs(32)=8192+mainpan
   sid.regs(33)=8192
   sid.regs(34)=8192-mainpan
