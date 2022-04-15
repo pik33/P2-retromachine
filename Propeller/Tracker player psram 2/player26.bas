@@ -47,6 +47,16 @@ dim newcnt,bufptr,siddelay,scog2,sidfreq,sidtime as integer
 dim sidpos,sidlen as ulong
 dim stop as ulong
 dim sidregs(34) as ulong
+dim sidnames(8) as string
+
+
+dim speed, r as ulong
+dim version,offset,load,startsong,flags, init, play, songs, song  as ushort
+dim dump as ushort
+dim il,b as ubyte
+dim ititle,iauthor,icopyright as ubyte(32)
+dim atitle,author,copyright as string
+
 ' ----------------------------Main program start ------------------------------------
 
 channelvol(0)=1 : channelvol(1)=1 : channelvol(2)=1 : channelvol(3)=1    
@@ -63,6 +73,20 @@ for i=0 to 3 : oldtrigs(i)=0 : next i
 pan(0)=8192-mainpan : pan(1)=8192+mainpan : pan(2)=8192+mainpan : pan(3)=8192-mainpan
 preparepanels
 waveplaying=0: modplaying=0 : dmpplaying=0 : spcplaying=0
+
+sidnames(0)="               "
+sidnames(1)="Triangle       "
+sidnames(2)="Saw            "
+sidnames(3)="Combined wave 3"
+sidnames(4)="Square         "
+sidnames(5)="Combined wave 5"
+sidnames(6)="Combined wave 6"
+sidnames(7)="Combined wave 7"
+sidnames(8)="Noise          "
+
+
+
+
 stop=0
 
 mount "/sd", _vfs_open_sdcard()
@@ -82,8 +106,9 @@ samplerate=100
 '' --------------------------------- THE MAIN LOOP --------------------------------------------------------------------------------------
 let mmmm=0
 do
-  waitvbl  
-  position 0,0: print lpeek(0)										' synchronize with vblanks
+'  let aaaa= getct()-aaaa: position 2,0: print aaaa/336;"     "
+  waitvbl       
+'  let aaaa=getct()               								       ' synchronize with vblanks
   if modplaying=0 then framenum+=1 : scrollstatus((framenum) mod (8*sl))                 	            ' if not playing module let main loop scroll the status line
   if dmpplaying or modplaying then displaysamples
   if modplaying=1 then scrollinfo
@@ -327,7 +352,51 @@ do
     waitms(100)
 
     endif  
-  ansibuf(3)=0  
+ 
+  if lcase$(right$(filename$,3))="sid" then  							' this is a wave file. Todo - read and use the header!
+    if cog>0 then cpustop(cog)	: cog=-1 :modplaying=0								' if module playing, stop it
+    if scog>0 then cpustop(scog): scog=-1
+    if scog2>0 then cpustop(scog2): scog2=-1
+    if waveplaying=1 then waveplaying= 0: waitms(100): close #8                                   ' if dmp file is playing, stop it
+    if audiocog>0 then stopaudio    
+   
+    hubset(hubset336)										 
+  
+   
+    filename3$=currentdir$+filename$								' get a filename with the path
+    close #8: open filename3$ for input as #8: pos=1
+'    let psramptr=0 
+'    do
+'      get #8,pos,filebuf(0),512,r : pos+=r	
+'      psram.write(addr(filebuf(0)),psramptr,512)	
+'      position 4,24: print pos; " bytes loaded     "					        ' get 128 bytes and update file position
+'      psramptr+=512 					' move the buffer to the RAM and update RAM position. Todo: this can be done all at once
+'    loop until r<>512 '                          					' do until eof 
+
+    sidopen
+    
+    close #8
+ '   sidlen=psramptr
+ '   dmpplaying=1   	
+ '   sidpos=0
+ '   v.setwritecolors($ea,$e1)									' yellow
+    position 2*2,17:v.write(space$(38)): filename3$=right$(filename3$,38) 		 	' clear the place for a file name
+    position 2*2,17: v.write(filename3$)	
+					        ' display the 'now playing' filename 
+'    siddelay=336956522/50 : sidfreq=50 :sidtime=0
+'    for i=0 to 17: sid.regs(i)=0: next i
+'    scog=sid.start()
+'    scog2=cpu(sidloop,@mainstack)
+'    v.box(725,428,1018,554,162)
+'    v.box(529,428,719,554,16)
+'    getdmpinfo
+'    waitms(100)
+
+    endif  
+ 
+
+
+
 
 
   if lcase$(right$(filename$,3))="spc" then  							' this is a wave file. Todo - read and use the header!
@@ -1022,33 +1091,6 @@ end sub
 
 '---------------- Display current samples and periods  using fast char output --- rev 20220205 ----------------------
 
-function getsidvavename$(wavenum) as string
-
-dim name$ as string
-
-select case (wavenum)
-case 1
-  return "Triangle       "
-case 2 
-  return "Saw            "
-case 3
-  return "Combined wave 3"
-case 4
-  return "Square         "
-case 5
-  return "Combined wave 5"
-case 6
-  return "Combined wave 6"
-case 7
-  return "Combined wave 7"
-case 8
-  return "Noise          "
-case else
-  return "               "
-end select
-end function
-
-
 sub displaysamples 
 
 v.setwritecolors(170,162)
@@ -1070,9 +1112,9 @@ position 244,29:v.write(v.inttostr2(sidregs(0)/8718,4))
 position 244,30:v.write(v.inttostr2(sidregs(9)/8718,4))
 position 244,31:v.write(v.inttostr2(sidregs(18)/8718,4))
 
-position 184,29 : print getsidvavename$(sidregs(2))
-position 184,30 : print getsidvavename$(sidregs(11))
-position 184,31 : print getsidvavename$(sidregs(20))
+if sidregs(2)<=8  then position 184,29 : v.write(sidnames(sidregs(2)))
+if sidregs(11)<=8 then position 184,30 : v.write(sidnames(sidregs(11)))
+if sidregs(20)<=8 then position 184,31 : v.write(sidnames(sidregs(20)))
 endif
 
 
@@ -1368,6 +1410,7 @@ end function
 
 sub printmeta(spcfile)
 
+dim r as integer
 
 v.box(725,60,1018,403,147)
 v.setwritecolors($93,$9a)
@@ -1379,7 +1422,8 @@ for i=1 to 10: xid6fields$(i)="" : next i
 if checkxid6((spcfile))=1 then 
   let ll=getxid6length((spcfile)) 
 '  print (" XID6 found, length ");ll
-  let r=0: do: let r=getxidfield((spcfile),r) :  loop until (r>=ll) or (r=-1)
+  let r=0 
+   do: let r=getxidfield((spcfile),r) :  loop until (r>=ll) or (r=-1)
 else
 '  print(" XID6 not found")
 endif
@@ -1432,6 +1476,79 @@ v.setwritecolors(150,147) : if xid6fields$(9)<>"" then position px,py: print "Fa
 
 end sub
 
+ 
+sub sidopen()
+
+dim i as integer
+'dim speed, r as ulong
+'dim version,offset,load,startsong,flags, init, play, songs, song  as ushort
+'dim dump as ushort
+'dim il,b as ubyte
+'dim ititle,iauthor,icopyright as ubyte(32)
+'dim atitle,author,copyright as string
+
+'reset6502;
+atitle=""'"                                "
+author=""'"                                "
+copyright=""'"                                "
+pos=5
+get #8,pos,version,2,r :  print pos : print r : print version :pos+=r : version=((version and 255) shl 8) or (version shr 8) ': print version 
+get #8,pos,offset,2,r    : pos+=r : offset=(offset shl 8) or (offset shr 8) 
+get #8,pos,load,2,r      : pos+=r : load=(load shl 8) or (load shr 8)
+get #8,pos,init,2,r      : pos+=r : init=(init shl 8) or (init shr 8) ': v.write(v.inttohex(version,4))
+get #8,pos,play,2,r      : pos+=r : play=(play shl 8) or (play shr 8) 
+get #8,pos,songs,2,r     : pos+=r : songs=(songs shl 8) or (songs shr 8)
+get #8,pos,startsong,2,r : pos+=r : startsong=(startsong shl 8) or (startsong shr 8) 
+get #8,pos,speed,4,r     : pos+=r 
+speed=speed shr 24+((speed shr 8) and $0000FF00) + ((speed shl 8) and $00FF0000) + (speed shl 24) 
+get #8,pos,ititle(0),32,r      : pos+=r
+get #8,pos,iauthor(0),32,r     : pos+=r 
+get #8,pos,icopyright(0),32,r   : pos+=r 
+
+if version>1 then 
+  get #8,pos,flags,2,r : pos+=r : pos+=4 : flags=(flags shl 8) or (flags shr 8)
+  b=0 : if load=0 then b=1 : get #8,pos,load,2,r  : pos+=r : print r
+endif
+for i=0 to 31 : atitle=atitle+chr$(ititle(i)): next i ' do pokeif byte(atitle[i])=$F1 then atitle[i]:=char(26);
+for i=0 to 31 : author=author+chr$(iauthor(i)) : next i ' do if byte(author[i])=$F1 then author[i]:=char(26);  
+v.box(725,60,1018,403,147) ' //fi.box(0,0,600,600,15);
+
+v.setwritecolors($93,$9a) 
+position 184,4 : print "                                " 
+position 184,4: print " ";filename$ :v.setwritecolors($9a,$93)                      ' test: module file name will be here
+
+position 184,5  : v.write ("C64 .sid PSID file ")                ',178);
+position 184,7  : v.write ("version:   "): v.write(v.inttohex(version,4))
+position 184,8  : v.write ("offset:    "): v.write(v.inttohex(offset,4))
+position 184,9  : v.write ("load:      "): v.write(v.inttohex(load,4))  '178-144*b);
+position 184,10 : v.write ("init:      "): v.write(v.inttohex(init,4))
+position 184,11 : v.write ("play:      "): v.write(v.inttohex(play,4))
+position 184,12 : v.write ("songs:     "): v.write(v.inttostr(songs))
+position 184,13 : v.write ("startsong: "): v.write(v.inttostr(startsong))
+position 184,14 : v.write ("speed:     "): v.write(v.inttohex(speed,8))
+position 184,15 : v.write ("title:     "): v.write(atitle)
+position 184,16 : v.write ("author:    "): v.write(author)
+position 184,17 : v.write ("copyright: "): v.write(copyright)
+position 184,18 : v.write ("flags:     "):  v.write(v.inttohex(flags,4))
+song=startsong-1
+
+
+'for i:=0 to 65535 do write6502(i,0);
+'repeat
+'  il:=fileread(fh,b,1);
+'  write6502(load,b);
+'  load+=1;
+'until il<>1;
+
+'fileseek(fh,0,fsfrombeginning);
+'CleanDataCacheRange(base,65536);
+'i:=lpeek(base+$60000);
+'repeat until lpeek(base+$60000)>(i+4);
+'jsr6502(song,init);
+'cia:=read6502($dc04)+256*read6502($dc05);
+' //fi.outtextxy (10,270,'cia:       '+inttohex(read6502($dc04)+256*read6502($dc05),4),178);
+end sub       
+ 
 '-----------------------------------------------------------------------------------------------------------------------
 '----------------------------- The file cog ----------------------------------------------------------------------------
 '-----------------------------------------------------------------------------------------------------------------------
