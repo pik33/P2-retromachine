@@ -40,7 +40,7 @@ dim samplerate,wavepos,currentbuf as ulong
 declare wavebuf alias $50000 as ubyte($20000)
 dim newdl(32)
 
-dim modplaying,waveplaying,dmpplaying, spcplaying, needbuf,playnext as ubyte
+dim modplaying,waveplaying,dmpplaying, spcplaying, sidplaying, needbuf,playnext as ubyte
 dim scog as integer
 dim dmppos as ulong
 dim newcnt,bufptr,siddelay,scog2,sidfreq,sidtime as integer
@@ -53,7 +53,7 @@ dim sidnames(8) as string
 dim speed, r as ulong
 dim version,offset,load,startsong,flags, init, play, songs, song  as ushort
 dim dump as ushort
-dim il,b as ubyte
+dim b as ubyte
 dim ititle,iauthor,icopyright as ubyte(32)
 dim atitle,author,copyright as string
 
@@ -65,6 +65,8 @@ startmachine
 startpsram
 startvideo
 startaudio
+a6502.init
+a6502.start
 'v.cursoroff
 makedl
 lpoke addr(sl),len(statusline$)  ' cannot assign to sl, but still can lpoke :) 
@@ -72,7 +74,7 @@ framenum=0
 for i=0 to 3 : oldtrigs(i)=0 : next i
 pan(0)=8192-mainpan : pan(1)=8192+mainpan : pan(2)=8192+mainpan : pan(3)=8192-mainpan
 preparepanels
-waveplaying=0: modplaying=0 : dmpplaying=0 : spcplaying=0
+waveplaying=0: modplaying=0 : dmpplaying=0 : spcplaying=0 : sidplaying=0
 
 sidnames(0)="               "
 sidnames(1)="Triangle       "
@@ -115,6 +117,8 @@ do
   scope												' display scope
   bars												' display bars
 
+
+   position 0,0: v.write(v.inttohex(a6502.ram6502($1000),2))
 '' --------------------------------  Getting the .wav file data in the main loop as no other cogs can acces the file system ------------
 
   if waveplaying=1 then
@@ -317,7 +321,7 @@ do
 
   if lcase$(right$(filename$,3))="dmp" then  							' this is a wave file. Todo - read and use the header!
     if cog>0 then cpustop(cog)	: cog=-1 :modplaying=0								' if module playing, stop it
-    if scog>0 then cpustop(scog): scog=-1
+    if scog>0 then cpustop(scog): scog=-1 : dmpplaying=0 : sidplaying=0
     if scog2>0 then cpustop(scog2): scog2=-1
     if waveplaying=1 then waveplaying= 0: waitms(100): close #8                                   ' if dmp file is playing, stop it
     if audiocog>0 then stopaudio    
@@ -343,7 +347,7 @@ do
     position 2*2,17: v.write(filename3$)	
 					        ' display the 'now playing' filename 
     siddelay=336956522/50 : sidfreq=50 :sidtime=0
-    for i=0 to 17: sid.regs(i)=0: next i
+    for i=0 to 34: sid.regs(i)=0: next i
     scog=sid.start()
     scog2=cpu(sidloop,@mainstack)
     v.box(725,428,1018,554,162)
@@ -355,7 +359,7 @@ do
  
   if lcase$(right$(filename$,3))="sid" then  							' this is a wave file. Todo - read and use the header!
     if cog>0 then cpustop(cog)	: cog=-1 :modplaying=0								' if module playing, stop it
-    if scog>0 then cpustop(scog): scog=-1
+    if scog>0 then cpustop(scog): scog=-1 : dmpplaying=0: sidplaying=0
     if scog2>0 then cpustop(scog2): scog2=-1
     if waveplaying=1 then waveplaying= 0: waitms(100): close #8                                   ' if dmp file is playing, stop it
     if audiocog>0 then stopaudio    
@@ -365,33 +369,19 @@ do
    
     filename3$=currentdir$+filename$								' get a filename with the path
     close #8: open filename3$ for input as #8: pos=1
-'    let psramptr=0 
-'    do
-'      get #8,pos,filebuf(0),512,r : pos+=r	
-'      psram.write(addr(filebuf(0)),psramptr,512)	
-'      position 4,24: print pos; " bytes loaded     "					        ' get 128 bytes and update file position
-'      psramptr+=512 					' move the buffer to the RAM and update RAM position. Todo: this can be done all at once
-'    loop until r<>512 '                          					' do until eof 
-
     sidopen
-    
+  
     close #8
- '   sidlen=psramptr
- '   dmpplaying=1   	
- '   sidpos=0
- '   v.setwritecolors($ea,$e1)									' yellow
+    sidplaying=1   	
+    v.setwritecolors($ea,$e1)									' yellow
     position 2*2,17:v.write(space$(38)): filename3$=right$(filename3$,38) 		 	' clear the place for a file name
     position 2*2,17: v.write(filename3$)	
-					        ' display the 'now playing' filename 
-'    siddelay=336956522/50 : sidfreq=50 :sidtime=0
-'    for i=0 to 17: sid.regs(i)=0: next i
-'    scog=sid.start()
-'    scog2=cpu(sidloop,@mainstack)
-'    v.box(725,428,1018,554,162)
-'    v.box(529,428,719,554,16)
-'    getdmpinfo
-'    waitms(100)
-
+    sidtime=0
+    for i=0 to 34: sid.regs(i)=0: next i
+    scog=sid.start()
+    scog2=cpu(sidloop,@mainstack)
+    v.box(529,428,719,554,16)
+    waitms(100)
     endif  
  
 
@@ -746,7 +736,15 @@ do
   waitcnt(newcnt)
   sidtime+=siddelay/(336_96) ' 100 us tick
   newcnt+=siddelay
-  psram.read1(addr(sid.oldregs(0)),sidpos,25)
+  if dmpplaying then
+    psram.read1(addr(sid.oldregs(0)),sidpos,25)
+  endif
+  if sidplaying then
+    a6502.jsr6502(0,play)
+    waitus(100)
+    for i=0 to 24: sid.oldregs(i)=a6502.ram6502($D400+i) : next i
+  endif
+    
   decoderegs(addr(sid.oldregs(0)),addr(sidregs(0)))
   sidregs(8)*=channelvol(0)
   sidregs(17)*=channelvol(1)
@@ -1480,6 +1478,8 @@ end sub
 sub sidopen()
 
 dim i as integer
+dim b as ubyte
+dim cia as ulong
 'dim speed, r as ulong
 'dim version,offset,load,startsong,flags, init, play, songs, song  as ushort
 'dim dump as ushort
@@ -1488,29 +1488,32 @@ dim i as integer
 'dim atitle,author,copyright as string
 
 'reset6502;
+
 atitle=""'"                                "
 author=""'"                                "
 copyright=""'"                                "
 pos=5
-get #8,pos,version,2,r :  print pos : print r : print version :pos+=r : version=((version and 255) shl 8) or (version shr 8) ': print version 
-get #8,pos,offset,2,r    : pos+=r : offset=(offset shl 8) or (offset shr 8) 
-get #8,pos,load,2,r      : pos+=r : load=(load shl 8) or (load shr 8)
-get #8,pos,init,2,r      : pos+=r : init=(init shl 8) or (init shr 8) ': v.write(v.inttohex(version,4))
-get #8,pos,play,2,r      : pos+=r : play=(play shl 8) or (play shr 8) 
-get #8,pos,songs,2,r     : pos+=r : songs=(songs shl 8) or (songs shr 8)
-get #8,pos,startsong,2,r : pos+=r : startsong=(startsong shl 8) or (startsong shr 8) 
-get #8,pos,speed,4,r     : pos+=r 
+get #8,5,version,1,r :    version=((version and 255) shl 8) or (version shr 8) : print version 
+get #8,7,offset,1,r  :    offset=(offset shl 8) or (offset shr 8) 
+get #8,9,load,1,r    :    load=(load shl 8) or (load shr 8)
+get #8,11,init,1,r   :    init=(init shl 8) or (init shr 8) 
+get #8,13,play,1,r   :    play=(play shl 8) or (play shr 8) 
+get #8,15,songs,1,r  :    songs=(songs shl 8) or (songs shr 8)
+get #8,17,startsong,1,r : startsong=(startsong shl 8) or (startsong shr 8) 
+get #8,19,speed,1,r     
 speed=speed shr 24+((speed shr 8) and $0000FF00) + ((speed shl 8) and $00FF0000) + (speed shl 24) 
-get #8,pos,ititle(0),32,r      : pos+=r
-get #8,pos,iauthor(0),32,r     : pos+=r 
-get #8,pos,icopyright(0),32,r   : pos+=r 
-
+get #8,23,ititle(0),32,r      
+get #8,55,iauthor(0),32,r      
+get #8,87,icopyright(0),32,r    
+let offset1=offset
 if version>1 then 
-  get #8,pos,flags,2,r : pos+=r : pos+=4 : flags=(flags shl 8) or (flags shr 8)
-  b=0 : if load=0 then b=1 : get #8,pos,load,2,r  : pos+=r : print r
+  get #8,119,flags,1,r : flags=(flags shl 8) or (flags shr 8)
+  b=0 : if load=0 then b=1 : get #8,125,load,1,r  : let offset1=$7E
 endif
+
 for i=0 to 31 : atitle=atitle+chr$(ititle(i)): next i ' do pokeif byte(atitle[i])=$F1 then atitle[i]:=char(26);
 for i=0 to 31 : author=author+chr$(iauthor(i)) : next i ' do if byte(author[i])=$F1 then author[i]:=char(26);  
+for i=0 to 31 : copyright=copyright+chr$(icopyright(i)) : next i ' do if byte(author[i])=$F1 then author[i]:=char(26);  
 v.box(725,60,1018,403,147) ' //fi.box(0,0,600,600,15);
 
 v.setwritecolors($93,$9a) 
@@ -1532,22 +1535,30 @@ position 184,17 : v.write ("copyright: "): v.write(copyright)
 position 184,18 : v.write ("flags:     "):  v.write(v.inttohex(flags,4))
 song=startsong-1
 
-
-'for i:=0 to 65535 do write6502(i,0);
-'repeat
-'  il:=fileread(fh,b,1);
-'  write6502(load,b);
-'  load+=1;
-'until il<>1;
-
-'fileseek(fh,0,fsfrombeginning);
-'CleanDataCacheRange(base,65536);
-'i:=lpeek(base+$60000);
-'repeat until lpeek(base+$60000)>(i+4);
-'jsr6502(song,init);
-'cia:=read6502($dc04)+256*read6502($dc05);
-' //fi.outtextxy (10,270,'cia:       '+inttohex(read6502($dc04)+256*read6502($dc05),4),178);
+pos=offset1+1
+position 0,1: print offset
+do
+  get #8,pos,b,1,r
+  poke addr(a6502.ram6502(0))+load,b
+   ' print hex$(a6502.ram6502(load)): print load:  waitms (1000)
+  pos+=1
+  load+=1
+loop until r<>1
+a6502.ram6502($DC04)=0: a6502.ram6502($dc05)=0 
+close #8
+'for i=$1000 to $1010: print a6502.ram6502(i) : next i
+a6502.jsr6502(song, init)
+waitms(1)
+cia=a6502.ram6502($DC04)+256*a6502.ram6502($DC05)
+position 184,19 : v.write ("cia:       "):  v.write(v.inttohex(cia,4))
+sidfreq=50
+siddelay=clkfreq/50  
+if cia>0 then siddelay=clkfreq/((50*19652)/cia) : sidfreq=(50*19652)/cia
+ 
 end sub       
+ 
+ 
+ 
  
 '-----------------------------------------------------------------------------------------------------------------------
 '----------------------------- The file cog ----------------------------------------------------------------------------
