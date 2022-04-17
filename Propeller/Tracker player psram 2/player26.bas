@@ -41,7 +41,7 @@ declare wavebuf alias $50000 as ubyte($20000)
 dim newdl(32)
 
 dim modplaying,waveplaying,dmpplaying, spcplaying, sidplaying, needbuf,playnext as ubyte
-dim scog as integer
+dim scog, a6502cog as integer
 dim dmppos as ulong
 dim newcnt,bufptr,siddelay,scog2,sidfreq,sidtime as integer
 dim sidpos,sidlen as ulong
@@ -66,7 +66,7 @@ startpsram
 startvideo
 startaudio
 a6502.init
-a6502.start
+a6502cog=a6502.start()
 'v.cursoroff
 makedl
 lpoke addr(sl),len(statusline$)  ' cannot assign to sl, but still can lpoke :) 
@@ -1488,7 +1488,7 @@ dim cia as ulong
 'dim atitle,author,copyright as string
 
 'reset6502;
-
+cpustop (a6502cog)
 atitle=""'"                                "
 author=""'"                                "
 copyright=""'"                                "
@@ -1536,7 +1536,11 @@ position 184,18 : v.write ("flags:     "):  v.write(v.inttohex(flags,4))
 song=startsong-1
 
 pos=offset1+1
-position 0,1: print offset
+
+a6502.init
+a6502cog=a6502.start()
+
+
 do
   get #8,pos,b,1,r
   poke addr(a6502.ram6502(0))+load,b
