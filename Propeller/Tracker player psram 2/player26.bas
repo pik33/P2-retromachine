@@ -143,6 +143,25 @@ do
   if lpeek($3c)<>0 then ansibuf(0)=ansibuf(1): ansibuf(1)=ansibuf(2) : ansibuf(2)=ansibuf(3) : ansibuf(3)=peek($3D): lpoke($3C,0) ' A serial interface at P62.63 from ANSI terminal
   if ansibuf(3)=asc(" ") then stop=not stop: ansibuf(3)=0 
   
+  if (ansibuf(3)=asc("z")) and (sidplaying=1) then
+    startsong+=1
+    if startsong>songs then startsong=songs
+    song=startsong-1
+    a6502.jsr6502(song, init)
+    waitms(1)
+    ansibuf(3)=0
+    endif
+    
+  if (ansibuf(3)=asc("x")) and (sidplaying=1) then
+    startsong-=1
+    if startsong<1 then startsong=1
+    song=startsong-1
+    a6502.jsr6502(song, init)
+    waitms(1)
+    ansibuf(3)=0
+    endif
+    
+  
 '' ---------------------------- Key 7,8,9 pressed - samplerate (period) change     
 
   if ansibuf(3)=asc("7") then 									' 7 - decrease the period
