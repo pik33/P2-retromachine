@@ -8,7 +8,7 @@ dim paula as class using "audio092a-8-sc.spin2"
 dim sid as class using "sidcog8.spin2"
 dim psram as class using "psram4.spin2"
 dim spc as class using "spccog.spin2"
-dim a6502 as class using "a6502.spin2"
+dim a6502 as class using "a6502-1.spin2"
 #include "dir.bi"
 
 dim audiocog,videocog as integer

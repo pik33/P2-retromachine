@@ -538,7 +538,7 @@ mixer        sar out1,#16
   
   
               bitnot   rs1, #15
-               wypin    rs1, #R_PIN                          ' Output sample on right channel
+              wypin    rs1, #R_PIN                          ' Output sample on right channel
           
             setword ls1,rs1,#1    
             

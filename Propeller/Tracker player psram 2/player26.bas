@@ -347,7 +347,7 @@ do
     position 2*2,17: v.write(filename3$)	
 					        ' display the 'now playing' filename 
     siddelay=336956522/50 : sidfreq=50 :sidtime=0
-    for i=0 to 34: sid.regs(i)=0: next i
+    for i=0 to 30: sid.regs(i)=0: next i
     scog=sid.start()
     scog2=cpu(sidloop,@mainstack)
     v.box(725,428,1018,554,162)
@@ -377,7 +377,7 @@ do
     position 2*2,17:v.write(space$(38)): filename3$=right$(filename3$,38) 		 	' clear the place for a file name
     position 2*2,17: v.write(filename3$)	
     sidtime=0
-    for i=0 to 34: sid.regs(i)=0: next i
+    for i=0 to 30: sid.regs(i)=0: next i
     scog=sid.start()
     scog2=cpu(sidloop,@mainstack)
     v.box(529,428,719,554,16)
@@ -1206,6 +1206,7 @@ sub decoderegs(regaddr,outaddr)
               alts      r1, #ADSRTable
               mov       release1, 0-0
               getnib    r1, sidRegs1, #5
+              mov        sustain1,#0
               setnib    sustain1, r1, #7
               setnib    sustain1, r1, #6
 
@@ -1233,6 +1234,7 @@ sub decoderegs(regaddr,outaddr)
               alts      r1, #ADSRTable
               mov       release2, 0-0
               getnib    r1, sidRegs3, #3
+              mov       sustain2,#0
               setnib    sustain2, r1, #7
               setnib    sustain2, r1, #6
 
@@ -1258,6 +1260,7 @@ sub decoderegs(regaddr,outaddr)
               alts      r1, #ADSRTable
               mov       release3, 0-0
               getnib    r1, sidRegs5, #1
+              mov       sustain3,#0
               setnib    sustain3, r1, #7
               setnib    sustain3, r1, #6
 
@@ -1270,8 +1273,8 @@ sub decoderegs(regaddr,outaddr)
               getnib    filterControl, sidRegs5, #6
               getnib    filterResonance, sidRegs5, #7
               getnib    volume1, sidRegs6, #0 
-              mov volume2,volume1
-              mov volume3,volume1
+              mov       volume2,volume1
+              mov       volume3,volume1
               
               getnib    filterMode, sidRegs6, #1
               jmp 	#p999				   '| Jump over the variable block
