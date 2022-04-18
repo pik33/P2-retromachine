@@ -112,7 +112,7 @@ do
   waitvbl       
 '  let aaaa=getct()               								       ' synchronize with vblanks
   if modplaying=0 then framenum+=1 : scrollstatus((framenum) mod (8*sl))                 	            ' if not playing module let main loop scroll the status line
-  if dmpplaying or modplaying then displaysamples
+  if dmpplaying or modplaying or sidplaying then displaysamples
   if modplaying=1 then scrollinfo
   scope												' display scope
   bars												' display bars
@@ -599,7 +599,7 @@ end asm
 
 endif
 
-if dmpplaying=1 then
+if (dmpplaying=1) or (sidplaying=1)then
 
 s1=sid.samples(0)+32768
 s21=sid.samples(1)+32768
@@ -664,12 +664,12 @@ if s41c>=32 then lpoke v.palette_ptr+4*$e,$FFFF0000-(s41c-32)*$00220000
 if s41c>=48 then lpoke v.palette_ptr+4*$e,$FF000000
 
 if waveplaying=1 then let add=46
-if dmpplaying=1 then let add=22
+if dmpplaying=1 or sidplaying=1 then let add=22
 if modplaying=1 then let add=0
 
 for ii=0 to s1b:  v.fastline(540+add,571+add,554-ii,$0b) : next ii: for ii=s1b+1 to 120 :v.fastline(540+add,571+add,554-ii,16): next ii 'cc=$bbbbbbbb : for jj=270 to 278 step 4: lpoke graphicbuf_ptr+448*(59-ii)+jj,cc : next jj: next ii ' now draw these bars
 for ii=0 to s21b: v.fastline(586+add,617+add,554-ii,$0c) : next ii: for ii=s21b+1 to 120:v.fastline(586+add,617+add,554-ii,16): next ii 'cc=$bbbbbbbb : for jj=270 to 278 step 4: lpoke graphicbuf_ptr+448*(59-ii)+jj,cc : next jj: next ii ' now draw these bars
-if (modplaying=1) or (dmpplaying=1) then for ii=0 to s31b: v.fastline(632+add,663+add,554-ii,$0d) : next ii: for ii=s31b+1 to 120:v.fastline(632+add,663+add,554-ii,16): next ii 'cc=$bbbbbbbb : for jj=270 to 278 step 4: lpoke graphicbuf_ptr+448*(59-ii)+jj,cc : next jj: next ii ' now draw these bars
+if (modplaying=1) or (dmpplaying=1) or (sidplaying=1) then for ii=0 to s31b: v.fastline(632+add,663+add,554-ii,$0d) : next ii: for ii=s31b+1 to 120:v.fastline(632+add,663+add,554-ii,16): next ii 'cc=$bbbbbbbb : for jj=270 to 278 step 4: lpoke graphicbuf_ptr+448*(59-ii)+jj,cc : next jj: next ii ' now draw these bars
 if modplaying=1 then for ii=0 to s41b: v.fastline(678,709,554-ii,$0e) : next ii: for ii=s41b+1 to 120:v.fastline(678,709,554-ii,16): next ii 'cc=$bbbbbbbb : for jj=270 to 278 step 4: lpoke graphicbuf_ptr+448*(59-ii)+jj,cc : next jj: next ii ' now draw these bars
 end sub
 
@@ -1105,7 +1105,7 @@ if tracker.currsamplenr(2)<=samples then position 184,31: v.write(sn$(tracker.cu
 if tracker.currsamplenr(3)<=samples then position 184,32: v.write(sn$(tracker.currsamplenr(3)))
 endif
 
-if dmpplaying then
+if (dmpplaying=1) or (sidplaying=1) then
 position 244,29:v.write(v.inttostr2(sidregs(0)/8718,4))
 position 244,30:v.write(v.inttostr2(sidregs(9)/8718,4))
 position 244,31:v.write(v.inttostr2(sidregs(18)/8718,4))
