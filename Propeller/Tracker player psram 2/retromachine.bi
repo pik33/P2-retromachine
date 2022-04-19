@@ -21,7 +21,7 @@ mbox=psram.getMailbox(0)
 end sub
 
 sub startaudio
-audiocog,base=paula.start(mbox,$72238,$71800)
+audiocog,base=paula.start(mbox,$75A00,$7A400)
 end sub 
 
 sub stopaudio

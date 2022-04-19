@@ -21,8 +21,6 @@ var
 long ramptr 
 long lutptr 
 
-byte ram6502[65536]  
-
 pub write6502(addr,value)
 ram6502[addr]:=value
 debug(uhex(addr))
@@ -30,92 +28,16 @@ debug(uhex(value))
 debug(uhex(ram6502[addr]))
 waitms(1000)
 
-pub init()
-
-{{ram6502[$fffc]:= $80
-ram6502[$fffd]:= $FF
-
-ram6502[$FF00]:= $AD  ' lda $FF07
-ram6502[$FF01]:= $07  '
-ram6502[$FF02]:= $FF  
-ram6502[$FF03]:= $20  ' jsr $FF09, address will be replaced
-ram6502[$FF04]:= $09  '
-ram6502[$FF05]:= $FF  '
-ram6502[$FF06]:= $60  ' rts
-ram6502[$FF07]:= 0
-ram6502[$FF08]:= 0
-ram6502[$FF09]:= $60  ' rts
-
-ram6502[$FF80]:= $AD  ' lda $FF08
-ram6502[$FF81]:= $08
-ram6502[$FF82]:= $FF
-ram6502[$FF83]:= $C9  ' cmp #$01
-ram6502[$FF84]:= $01
-ram6502[$FF85]:= $D0  ' bne $FF8F
-ram6502[$FF86]:= $08
-ram6502[$FF87]:= $A9  ' lda #$00
-ram6502[$FF88]:= $00
-ram6502[$FF89]:= $8D  ' sta $FF05
-ram6502[$FF8A]:= $08
-ram6502[$FF8B]:= $FF  
-ram6502[$FF8C]:= $20  ' jsr $FF00
-ram6502[$FF8D]:= $00
-ram6502[$FF8E]:= $FF
-ram6502[$FF8F]:= $4C  ' jmp $FF80
-ram6502[$FF90]:= $80
-ram6502[$FF91]:= $FF
-}}
-
-ram6502[$fffc]:= $80
-ram6502[$fffd]:= $02
-
-ram6502[$0200]:= $AD  ' lda $FF07
-ram6502[$0201]:= $07  '
-ram6502[$0202]:= $02  
-ram6502[$0203]:= $20  ' jsr $0209, address will be replaced
-ram6502[$0204]:= $09  '
-ram6502[$0205]:= $02  '
-ram6502[$0206]:= $60  ' rts
-ram6502[$0207]:= 0
-ram6502[$0208]:= 0
-ram6502[$0209]:= $60  ' rts
-
-ram6502[$0280]:= $AD  ' lda $0208
-ram6502[$0281]:= $08
-ram6502[$0282]:= $02
-ram6502[$0283]:= $C9  ' cmp #$01
-ram6502[$0284]:= $01
-ram6502[$0285]:= $D0  ' bne $028F
-ram6502[$0286]:= $08
-ram6502[$0287]:= $A9  ' lda #$00
-ram6502[$0288]:= $00
-ram6502[$0289]:= $8D  ' sta $0208
-ram6502[$028A]:= $08
-ram6502[$028B]:= $02  
-ram6502[$028C]:= $20  ' jsr $0200
-ram6502[$028D]:= $00
-ram6502[$028E]:= $02
-ram6502[$028F]:= $4C  ' jmp $0280
-ram6502[$0290]:= $80
-ram6502[$0291]:= $02
 
 
-pub start() : cog
-ramptr:=@ram6502
+pub start(bufaddr) : cog
+ramptr:=bufaddr
 lutptr:=@lut_6502
 cog:=coginit(16,@cog_6502,@ramptr)
 return cog
 
 
-pub jsr6502(acc,addr)
 
-' the 6502 loop should read a location and if not 0, load acc and jsr to addr
-' the procedure will poke cmd, acc and addr to the needed places
-debug(uhex(ram6502[$1000]))
-ram6502[$0204]:= (addr & $FF)
-ram6502[$0205]:= addr >> 8
-ram6502[$0207]:= acc
-ram6502[$0208]:= 1
 
 dat  ''' todo pass ram addr
 
@@ -153,7 +75,7 @@ loop            nop
 
                 mul     _I, _I_CLK          ' clock throttling   ' ____ todo rewrite this
 
- '               addct1  ts, ##400000000 '_I              ' |
+'              addct1  ts, ##4000000'00 '_I              ' |
 'p001            jnct1   #p001               ' |
 
                 mov test1, ptrb
@@ -161,8 +83,8 @@ loop            nop
 
                 rdbyte  t1, ptrb++          ' fetch instruction
 
-         '       debug(uhex(test1))
-         '        debug(uhex(t1))
+     '           debug(uhex(test1))
+      '           debug(uhex(t1))
 
         '        debug(uhex(ptrb))
   
@@ -777,7 +699,7 @@ t5              res     1
 ts              res     1
 test1 long 0
 
-                fit     $1F0
+          '      fit     $1F0
  
 
 ''---------------------------------------- LUT

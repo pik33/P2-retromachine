@@ -1,21 +1,62 @@
+'-------------------------------------------------------------------------------------------------------------
+'
+' Prop2play - a multiformat player for the P2
+' v. 0.27 - 20220419
+' pik33@o2.pl
+' with a lot of code and help from the P2 community
+' MIT license
+'
+'-------------------------------------------------------------------------------------------------------------
 
-#include "retromachine.bi"
+'memory map:
+
+' 7C000 - 7FFFF - reserved for debugger
+' 7B000 - 7BFFF - 4k   HUB buffers for the video driver
+' 7AC00 - 7AFFF - 1k   HUB buffers for the video blitting
+' 7A400 - 7ABFF - 2k   HUB buffers for the audio driver
+' 76400 - 7A3FF - 16k  HUB buffer for audio and other files loading
+' 75A00 - 763FF - 2560 bytes oscilloscope buffer
+' 75000 - 759FF - 2560 bytes stack space for cogs
+' 64000 - 74FFF - 68k  HUB buffer for .spc and 6502
+' 64000 - top of the program RAM available - 409600 bytes 
+
+'cogs needed
+
+' - main cog, always
+' - video cog, always
+' - psram cog, always
+' - keyboard and mouse cog, always
+' - module playing cog, switchable 
+' - audio driver cog, switchable, plays wav and mod files
+' - SIDCog based SID chip emulator cog, switchable, for .sid and .dmp
+' - 6502 cog, switchable, for .sid
+' - SPCcog, Super Nintendo sound chip emulator, for .spc
+
+'cogs usage:
+
+' - wav: main, video, kbm, audio, psram	   		= 5 cogs
+' - mod: main, video, kbm, audio, psram, module       	= 6 cogs
+' - spc: main, video, kbm, psram, spc                 	= 5 cogs
+' - sid: main, video, kbm, psram, sid, sid-loop, 6502 	= 7 cogs
+' - dmp: main, video, kbm, psram, sid, sid-loop       	= 6 cogs
+
+'--------------------------------------------------------------------------------------------------------------
+
+#include "retromachine.bi"                     ' initialization, classes and auxilliary stuff
+
+' ------------------------ Constant and addresses -------------------------------------------------------------
 
 const HEAPSIZE = 8192
 const version$="Prop2play v.0.27"
-const statusline$=" Propeller2 wav/sid/mod player v. 0.27 --- 2022.04.19 --- pik33@o2.pl --- use a serial terminal or a RPi KBM interface to control --- arrows up,down move - pgup/pgdn or w/s move 10 positions - enter selects - tab switches panels - +,- controls volume - 1..4 switch channels on/off - 5,6 stereo separation - 7,8,9 sample rate - a,d SID speed - x,z SID subtune - R rescans current directory ------"
-
-const hubset350=%1_000001__00_0010_0010__1111_1011 '350_000_000 =31*44100
-const hubset354=%1_110000__11_0110_1100__1111_1011 '354_693_878
-const hubset356=%1_001010__00_1100_0011__1111_1011 '356_352_000 =29*256*48001,5673491
+const statusline$=" Propeller2 multiformat player v. 0.27 --- 2022.04.19 --- pik33@o2.pl --- use a serial terminal or a RPi KBM interface to control --- arrows up,down move - pgup/pgdn or w/s move 10 positions - enter selects - tab switches panels - +,- controls volume - 1..4 switch channels on/off - 5,6 stereo separation - 7,8,9 sample rate - a,d SID speed - x,z SID subtune - R rescans current directory ------"
 const hubset338=%1_111011__11_1111_0111__1111_1011 '338_666_667 =30*44100 
 const hubset336=%1_101101__11_0000_0110__1111_1011 '336_956_522 =paula*95
-
-' Place graphics buffers at the top of memory so they will not move while editing the program
-
-const scope_ptr=$72238
-
-' global vars
+const scope_ptr=$75A00
+declare a6502buf alias $64000 as ubyte($10FFF) '64000 doesnt work, why?
+'declare wavebuf alias $76400 as ubyte($3FFF)
+declare mainstack alias $75000 as ubyte(2559)
+declare filebuf alias $76400 as ubyte(16383)
+' ----------------------- Global vars -------------------------------------------------------------------------
 
 dim displayname(39) as ubyte
 dim displayname_ptr as ulong
@@ -23,13 +64,12 @@ dim oldtrigs(4) as ulong
 dim pan(4)
 dim sn$(32)
 dim sl as ulong
-dim filebuf(511) as ubyte
 dim r as ulong
 dim i,j,k,l,m,qqq as integer
 dim ansibuf(3) as ubyte
-declare mainstack alias $720B8 as ulong
+
 dim filename$,filename2$,filename3$ as string
-dim s1a,s1b,s21a,s21b,s31a,s31b,s41a,s41b,cog as integer
+dim s1a,s1b,s21a,s21b,s31a,s31b,s41a,s41b as integer
 dim cc,qq1,qq2,framenum,e as ulong
 dim dirnum1,dirnum2,dirnum3,filenum1,filenum2,filenum3,olddirnum1,oldfilenum1,filemove,modtime,time2 as integer
 dim samples,panel,c,ma,mb,pos as ulong
@@ -37,13 +77,12 @@ dim currentdir$ as string
 dim channelvol(4), channelpan(4) as integer
 dim mainvolume, mainpan as integer
 dim samplerate,wavepos,currentbuf as ulong
-declare wavebuf alias $50000 as ubyte($20000)
 dim newdl(32)
 
 dim modplaying,waveplaying,dmpplaying, spcplaying, sidplaying, needbuf,playnext as ubyte
-dim scog, a6502cog as integer
+dim modcog,scog,a6502cog,scog2 as integer
 dim dmppos as ulong
-dim newcnt,bufptr,siddelay,scog2,sidfreq,sidtime as integer
+dim newcnt,bufptr,siddelay,sidfreq,sidtime as integer
 dim sidpos,sidlen as ulong
 dim stop as ulong
 dim sidregs(34) as ulong
@@ -65,8 +104,7 @@ startmachine
 startpsram
 startvideo
 startaudio
-a6502.init
-a6502cog=a6502.start()
+
 'v.cursoroff
 makedl
 lpoke addr(sl),len(statusline$)  ' cannot assign to sl, but still can lpoke :) 
@@ -86,9 +124,6 @@ sidnames(6)="Combined wave 6"
 sidnames(7)="Combined wave 7"
 sidnames(8)="Noise          "
 
-
-
-
 stop=0
 
 mount "/sd", _vfs_open_sdcard()
@@ -100,7 +135,7 @@ getlists(0)
 ma=lomem()+1024 :  mb=ma 
 pos=1
 
-cog=-1
+modcog=-1 : a6502cog=-1 : scog=-1 : scog2=-1
 panel=0
 s1a=0
 samplerate=100   
@@ -117,8 +152,6 @@ do
   scope												' display scope
   bars												' display bars
 
-
-   position 0,0: v.write(v.inttohex(a6502.ram6502($1000),2))
 '' --------------------------------  Getting the .wav file data in the main loop as no other cogs can acces the file system ------------
 
   if waveplaying=1 then
@@ -128,7 +161,7 @@ do
 '' ------------------------------- Display the playing time ----- TODO: correct the proper .wav time
   
   v.setwritecolors($e9,$e1)
-  if cog>(-1) then time2=framenum-modtime
+  if modcog>(-1) then time2=framenum-modtime
   if waveplaying=1 then time2=(wavepos)/3528
   if dmpplaying=1 then time2=sidtime/200
   position 2*15,19: v.write(v.inttostr2(time2/180000,2)): v.write(":"):v.write(v.inttostr2((time2 mod 180000)/3000,2)):v.write(":"):v.write(v.inttostr2((time2 mod 3000)/50,2)):v.write(":"):v.write(v.inttostr2((time2 mod 50),2))
@@ -147,7 +180,7 @@ do
     startsong+=1
     if startsong>songs then startsong=songs
     song=startsong-1
-    a6502.jsr6502(song, init)
+    jsr6502(song, init)
     waitms(1)
     ansibuf(3)=0
     endif
@@ -156,12 +189,11 @@ do
     startsong-=1
     if startsong<1 then startsong=1
     song=startsong-1
-    a6502.jsr6502(song, init)
+    jsr6502(song, init)
     waitms(1)
     ansibuf(3)=0
     endif
     
-  
 '' ---------------------------- Key 7,8,9 pressed - samplerate (period) change     
 
   if ansibuf(3)=asc("7") then 									' 7 - decrease the period
@@ -257,60 +289,65 @@ do
     input #7,filename$ 				
     filename$=rtrim$(filename$)									' clean trailing spaces
     close #7
-
-    if lcase$(right$(filename$,3))="mod" then							' module file will be read into the hub ram
-      if cog>0 then cpustop(cog): cog=-1								' stop playing the module
-      if waveplaying=1 then waveplaying= 0: waitms(1000): close #8			        ' if wav file is playing, stop it
-      if dmpplaying=1 then 
-         dmpplaying= 0: waitms(20): close #8 : cpustop(scog) :cpustop(scog2) :scog=(-1):scog2=(-1)                  ' if wav file is playing, stop it
-      endif
-      if audiocog<1 then startaudio   
-      for i=0 to 7 : lpoke base+32*i+20,0 : next i 						' mute the sound
-      for i=ma to addr(mainstack)-4 step 4: lpoke i,0: next i  					' clean the RAM
-      filename2$=currentdir$+filename$								' get a full filename with path
-      mb=ma											' ma is approximate low mem address available
-      open filename2$ for input as #4 : pos=1							' open the module
-      do
-        get #4,pos,filebuf(0),512,r : pos+=r	
-        psram.write(addr(filebuf(0)),mb,512)	
-        position 4,24: print pos; " bytes loaded     "					        ' get 128 bytes and update file position
-        if mb<addr(mainstack) then for i=0 to r-1 : poke mb+i,filebuf(i) : next i 
-        mb+=512					' move the buffer to the RAM and update RAM position. Todo: this can be done all at once
-
-      loop until r<>512 ' orelse mb>=addr(mainstack)						' do until eof or end of available RAM
-      close #4
-      tracker.initmodule(ma,0)									' init the tracker player
-      samples=15: if peek(ma+1080)=asc("M") and peek(ma+1082)=asc("K") then samples=31          ' get sample count
+    let ext$=lcase$(right$(filename$,3))
+    if ext$="mod" or ext$="dmp" or ext$="sid" or ext$="spc" or ext$="wav" then                  ' if the file is playable, stop playing the previous one
+      if a6502cog>0 then cpustop(a6502cog) : a6502cog=-1
+      if modcog>0 then cpustop(modcog)	: modcog=-1 :modplaying=0								
+      if scog>0 then cpustop(scog): scog=-1 : dmpplaying=0 : sidplaying=0
+      if scog2>0 then cpustop(scog2): scog2=-1   
+      if audiocog>0 then stopaudio : audiocog=-1        
+      waveplaying=0: modplaying=0 : spcplaying=0 : sidplaying=0: dmpplaying=0                   ' clear playing indicator variables
+      close #8											' close an audio file channel
+      v.box(529,428,719,554,16)									' clear the info panels
+      v.box(725,428,1018,554,162)
       v.box(725,60,1018,403,147)
-      getinfo(ma,samples)									' and information
+      waitms(1)											'
+    endif  
+
+    if ext$="mod" then							                        ' module file will be read into the PSRAM
+      if audiocog<1 then startaudio   								' start the audio driver
+      for i=0 to 7 : lpoke base+32*i+20,0 : next i 						' mute the sound
+      filename2$=currentdir$+filename$								' get a full filename with path
+      open filename2$ for input as #8 : pos=1							' open the module
+      mb=addr(a6502buf)
+      do
+        get #8,pos,filebuf(0),4096,r : pos+=r 	
+        psram.write(addr(filebuf(0)),mb,4096)	
+        position 4,24: print pos-1; " bytes loaded     "				        ' get 4KB and update file position
+        if mb<scope_ptr-4096 then for i=0 to r-1 : poke mb+i,filebuf(i) : next i                ' we have 68k 6502/spc/mod buffer to keep the mod header
+        mb+=4096				                                               
+      loop until r<>4096 									' do until eof 
+      close #8
+      tracker.initmodule(addr(a6502buf),0)							' init the tracker player
+      samples=15: 
+      if peek(addr(a6502buf)+1080)=asc("M") and peek(addr(a6502buf)+1082)=asc("K") then samples=31          ' get sample count
+      getinfo(addr(a6502buf),samples)								' and information
       hubset(hubset336)										' set the main clock to Paula (PAL) * 100       
       samplerate=100 : lpoke base+28,$8000_005F: waitms(2): lpoke base+28,0   	   	        ' set the sample rate to standard Paula
       lpoke base+28+32,0 									' switch channel #1 to PSRAM after wav playing
-      cog=cpu (mainloop, @mainstack) 								' start the playing
+      modcog=cpu (mainloop, @mainstack) 							' start the playing
       modtime=framenum										' get the current frame # for displaying module time
       v.setwritecolors($ea,$e1)									' yellow
       position 2*2,17:v.write(space$(38)): filename2$=right$(filename2$,38) 			' clear the place for a file name
-      position 2*2,17: v.write(filename2$)
-      v.box(725,428,1018,554,162) 'clear the channels panel
-      v.box(529,428,719,554,16)
-      modplaying=1							' display the 'now playing' filename 
+      position 2*2,17: v.write(filename2$)							' display the 'now playing' filename 
+      modplaying=1							
     endif
     
-  if lcase$(right$(filename$,3))="wav" then  							' this is a wave file. Todo - read and use the header!
-    if cog>0 then cpustop(cog)	: cog=-1	:modplaying=0							' if module playing, stop it
+  if ext$="wav" then  										' this is a wave file. Todo - read and use the header!
+    if modcog>0 then cpustop(modcog)	: modcog=-1	:modplaying=0			        ' if module playing, stop it
     if dmpplaying=1 then dmpplaying= 0: waitms(20): close #8 : cpustop(scog)                    ' if dmp file is playing, stop it
     if audiocog<1 then startaudio   
-    for i=0 to 7 : lpoke base+32*i+20,0 : next i 						' mute the sound
-    samplerate=256 : lpoke base+28,$80000100 : waitms(2) : lpoke base+28,$00000000             ' samplerate=clock/256 allows for HQ DAC
+    for i=0 to 7 : lpoke base+32*i+20,0 : next i 					        ' mute the sound
+    samplerate=256 : lpoke base+28,$80000100 : waitms(2) : lpoke base+28,$00000000              ' samplerate=clock/256 allows for HQ DAC
     hubset(hubset338)										' main clock=350 MHz, sample rate 1367187.5 Hz=31*44102.8 Hz - Todo: get a sample rate from a header and set it properly     
     filename3$=currentdir$+filename$								' get a filename with the path
-    close #8: open filename3$ for input as #8: get #8,1,wavebuf(0),$4000 
-    psram.write(addr(wavebuf(0)),0,$4000)          						' open the file and preload the buffer
+    close #8: open filename3$ for input as #8: get #8,1,filebuf(0),$4000 
+    psram.write(addr(filebuf(0)),0,$4000)          						' open the file and preload the buffer
     needbuf=1: currentbuf=0 :wavepos=$4001 : waveplaying=1   					' init buffering variables
     										                ' now init the driver. Todo: exact synchronization of stereo channels !!!!!
     lpoke base+12,0               								' loop start   
     lpoke base+16,$40000                                      					' loop end, we will use $50000 bytes as $50 4k buffers
-    dpoke base+20,16384                                                                       ' set volume 
+    dpoke base+20,16384                                                                         ' set volume 
     dpoke base+22,16384                                                              		' set pan
     dpoke base+24,30 					                			' set period
     dpoke base+26, 4    									' set skip, 1 stereo sample=4 bytes
@@ -324,72 +361,45 @@ do
     dpoke base+32+26, 4    									' skip
     lpoke base+32+28,$0000_0000
     
-'    lpoke base+8, addr(wavebuf(0)) or $c0000000  								' sample ptr, 16 bit, restart from 0 
-'    lpoke base+32+8, addr(wavebuf(0))+2 or $c0000000							' sample ptr+2 (=another channel), synchronize #1 to #2
-    lpoke base+8, $c0000000  								' sample ptr, 16 bit, restart from 0 
-    lpoke base+32+8, $e0000002							         ' sample ptr+2 (=another channel), synchronize #1 to #2
+    lpoke base+8, $c0000000  							  	        ' sample ptr, 16 bit, restart from 0 
+    lpoke base+32+8, $e0000002							                ' sample ptr+2 (=another channel), synchronize #1 to #2
   
-
     v.setwritecolors($ea,$e1)									' yellow
     position 2*2,17:v.write(space$(38)): filename3$=right$(filename3$,38) 		 	' clear the place for a file name
-    position 2*2,17: v.write(filename3$)							        ' display the 'now playing' filename 
-    v.box(725,428,1018,554,162) ' clear the channel panel
-    v.box(725,60,1018,403,147)
-    v.box(529,428,719,554,16)
+    position 2*2,17: v.write(filename3$)						        ' display the 'now playing' filename 
     endif  
 
-  if lcase$(right$(filename$,3))="dmp" then  							' this is a wave file. Todo - read and use the header!
-    if cog>0 then cpustop(cog)	: cog=-1 :modplaying=0								' if module playing, stop it
-    if scog>0 then cpustop(scog): scog=-1 : dmpplaying=0 : sidplaying=0
-    if scog2>0 then cpustop(scog2): scog2=-1
-    if waveplaying=1 then waveplaying= 0: waitms(100): close #8                                   ' if dmp file is playing, stop it
-    if audiocog>0 then stopaudio    
-   
+  if ext$="dmp" then  										' this is a sid dump file. 
     hubset(hubset336)										 
-  
-   
     filename3$=currentdir$+filename$								' get a filename with the path
     close #8: open filename3$ for input as #8: pos=1
     let psramptr=0 
     do
       get #8,pos,filebuf(0),512,r : pos+=r	
       psram.write(addr(filebuf(0)),psramptr,512)	
-      position 4,24: print pos; " bytes loaded     "					        ' get 128 bytes and update file position
-      psramptr+=512 					' move the buffer to the RAM and update RAM position. Todo: this can be done all at once
-    loop until r<>512 '                          					' do until eof 
+      position 4,24: print pos; " bytes loaded     "					         ' get 128 bytes and update file position
+      psramptr+=512 					                                         ' move the buffer to the RAM and update RAM position. Todo: this can be done all at once
+    loop until r<>512 '                          					         ' do until eof 
     close #8
     sidlen=psramptr
     dmpplaying=1   	
     sidpos=0
     v.setwritecolors($ea,$e1)									' yellow
     position 2*2,17:v.write(space$(38)): filename3$=right$(filename3$,38) 		 	' clear the place for a file name
-    position 2*2,17: v.write(filename3$)	
-					        ' display the 'now playing' filename 
+    position 2*2,17: v.write(filename3$)						 	' display the 'now playing' filename 
     siddelay=336956522/50 : sidfreq=50 :sidtime=0
     for i=0 to 30: sid.regs(i)=0: next i
     scog=sid.start()
     scog2=cpu(sidloop,@mainstack)
-    v.box(725,428,1018,554,162)
-    v.box(529,428,719,554,16)
     getdmpinfo
     waitms(100)
-
     endif  
  
-  if lcase$(right$(filename$,3))="sid" then  							' this is a wave file. Todo - read and use the header!
-    if cog>0 then cpustop(cog)	: cog=-1 :modplaying=0								' if module playing, stop it
-    if scog>0 then cpustop(scog): scog=-1 : dmpplaying=0: sidplaying=0
-    if scog2>0 then cpustop(scog2): scog2=-1
-    if waveplaying=1 then waveplaying= 0: waitms(100): close #8                                   ' if dmp file is playing, stop it
-    if audiocog>0 then stopaudio    
-   
+  if ext$="sid" then  										' this is a sid file to execute by a 6502 CPU
     hubset(hubset336)										 
-  
-   
     filename3$=currentdir$+filename$								' get a filename with the path
     close #8: open filename3$ for input as #8: pos=1
     sidopen
-  
     close #8
     sidplaying=1   	
     v.setwritecolors($ea,$e1)									' yellow
@@ -399,50 +409,25 @@ do
     for i=0 to 30: sid.regs(i)=0: next i
     scog=sid.start()
     scog2=cpu(sidloop,@mainstack)
-    v.box(529,428,719,554,16)
     waitms(100)
     endif  
- 
 
-
-
-
-
-  if lcase$(right$(filename$,3))="spc" then  							' this is a wave file. Todo - read and use the header!
-    if cog>0 then cpustop(cog)	: cog=-1 :modplaying=0								' if module playing, stop it
-    if scog>0 then cpustop(scog): scog=-1
-    if scog2>0 then cpustop(scog2): scog2=-1
-    if waveplaying=1 then waveplaying= 0: waitms(100): close #8                                   ' if dmp file is playing, stop it
-    if audiocog>0 then stopaudio    
-   
+  if ext$="spc" then  										' this is a spc file. 
     hubset(hubset336)										 
-  
-   
     filename3$=currentdir$+filename$								' get a filename with the path
     close #8: open filename3$ for input as #8: pos=1
-    let psramptr=0 
     do
-      get #8,pos,wavebuf(pos-1),512,r : pos+=r	
-'      psram.write(addr(filebuf(0)),psramptr,512)	
-      position 4,24: print pos; " bytes loaded     "					        ' get 128 bytes and update file position
- '     psramptr+=512 					' move the buffer to the RAM and update RAM position. Todo: this can be done all at once
-    loop until r<>512 '                          					' do until eof 
+      get #8,pos,a6502buf(pos-1),2048,r : pos+=r	
+      position 4,24: print pos-1; " bytes loaded     "					        ' get 128 bytes and update file position
+    loop until r<>2048 '                          					      ' do until eof 
     close #8
-
     spcplaying=1   	
-'    sidpos=0
     v.setwritecolors($ea,$e1)									' yellow
     position 2*2,17:v.write(space$(38)): filename3$=right$(filename3$,38) 		 	' clear the place for a file name
     position 2*2,17: v.write(filename3$)	
-
-    scog=spc.start_spcfile(14,15,addr(wavebuf))-1
-'    scog2=cpu(sidloop,@mainstack)
-    v.box(725,428,1018,554,162)
-    v.box(529,428,719,554,16)
-        v.box(725,60,1018,403,147)
-'    getdmpinfo
+    scog=spc.start_spcfile(14,15,addr(a6502buf(0)))-1
     waitms(100)
-   printmeta(addr(wavebuf))
+    printmeta(addr(a6502buf(0)))
     endif  
   ansibuf(3)=0  
   endif
@@ -626,8 +611,12 @@ s31=sid.samples(2)+32768
 s41=32768
 endif
 
-if spcplaying=1 then
-s1=32768+spc.get_current_volume(0)/16  : lpoke 0,s1
+if spcplaying=1 then ' todo: add bars to .spc
+s1=32768
+s21=32768
+s31=32768
+s41=32768
+
 endif
 
 let bdiv=64: if waveplaying then let bdiv=96  
@@ -735,12 +724,9 @@ do
   tracker.tick							 ' let the player compute new values
   do : loop while v.vblank=1                                                       ' wait vor vblank
   do : loop while v.vblank=0                                                       ' wait vor vblank
-  
   for mi=0 to 3 : setchannel(mi,oldtrigs(mi)) : next mi          ' this line has to be vblk syynchronized as much as possible - set new values in audio driver
   framenum+=1							 ' frame number to track time					
-					
   scrollstatus((framenum) mod (8*sl))				 ' horizontal fine scroll the help/status line
- 				 ' display current playing samples information
 loop
 end sub
 
@@ -757,13 +743,14 @@ do
   newcnt+=siddelay
   if dmpplaying then
     psram.read1(addr(sid.oldregs(0)),sidpos,25)
+    sidpos+=25
+    if sidpos>=sidlen then sidpos=0
   endif
   if sidplaying then
-    a6502.jsr6502(0,play)
+    jsr6502(0,play)
     waitus(100)
-    for i=0 to 24: sid.oldregs(i)=a6502.ram6502($D400+i) : next i
+    for i=0 to 24: sid.oldregs(i)=a6502buf($D400+i) : next i
   endif
-    
   decoderegs(addr(sid.oldregs(0)),addr(sidregs(0)))
   sidregs(8)*=channelvol(0)
   sidregs(17)*=channelvol(1)
@@ -773,8 +760,7 @@ do
   sid.regs(32)=8192+mainpan
   sid.regs(33)=8192
   sid.regs(34)=8192-mainpan
-    sidpos+=25
-  if sidpos>=sidlen then sidpos=0
+
 loop 
 end sub
 
@@ -1156,9 +1142,9 @@ sub getwave
 '      get #8,wavepos,wavebuf(needbuf shl 14),$4000,qqq 		'
    
    let aaaa=getct()
-      get #8,wavepos,wavebuf(0),$4000,qqq 		'
+      get #8,wavepos,filebuf(0),$4000,qqq 		'
 '   aaaa=getct()-aaaa: position 20,1: print aaaa /336  
-      psram.write(addr(wavebuf(0)), needbuf shl 14 ,$4000)
+      psram.write(addr(filebuf(0)), needbuf shl 14 ,$4000)
       needbuf=(needbuf+1) mod 16								' we can have any count of 4k buffers, now 2 used
       wavepos+=$4000      									' file position
       endif
@@ -1559,23 +1545,23 @@ song=startsong-1
 
 pos=offset1+1
 
-a6502.init
-a6502cog=a6502.start()
+
+a6502init
+a6502cog=a6502.start(a6502buf)
 
 
 do
   get #8,pos,b,1,r
-  poke addr(a6502.ram6502(0))+load,b
-   ' print hex$(a6502.ram6502(load)): print load:  waitms (1000)
+  poke addr(a6502buf(0))+load,b
   pos+=1
   load+=1
 loop until r<>1
-a6502.ram6502($DC04)=0: a6502.ram6502($dc05)=0 
+
+a6502buf($DC04)=0: a6502buf($dc05)=0 
+
 close #8
-'for i=$1000 to $1010: print a6502.ram6502(i) : next i
-a6502.jsr6502(song, init)
-waitms(1)
-cia=a6502.ram6502($DC04)+256*a6502.ram6502($DC05)
+jsr6502(song, init)
+cia=a6502buf($DC04)+256*a6502buf($DC05)
 position 184,19 : v.write ("cia:       "):  v.write(v.inttohex(cia,4))
 sidfreq=50
 siddelay=clkfreq/50  
@@ -1583,8 +1569,54 @@ if cia>0 then siddelay=clkfreq/((50*19652)/cia) : sidfreq=(50*19652)/cia
  
 end sub       
  
+sub a6502init()
+
+for i=0 to 65535 : a6502buf(i)=0 : next i
+
+a6502buf($fffc)= $80
+a6502buf($fffd)= $02
+
+a6502buf($0200)= $AD  ' lda $FF07
+a6502buf($0201)= $07  '
+a6502buf($0202)= $02  
+a6502buf($0203)= $20  ' jsr $0209, address will be replaced
+a6502buf($0204)= $09  '
+a6502buf($0205)= $02  '
+a6502buf($0206)= $60  ' rts
+a6502buf($0207)= 0
+a6502buf($0208)= 0
+a6502buf($0209)= $60  ' rts
+
+a6502buf($0280)= $AD  ' lda $0208
+a6502buf($0281)= $08
+a6502buf($0282)= $02
+a6502buf($0283)= $C9  ' cmp #$01
+a6502buf($0284)= $01
+a6502buf($0285)= $D0  ' bne $028F
+a6502buf($0286)= $08
+a6502buf($0287)= $A9  ' lda #$00
+a6502buf($0288)= $00
+a6502buf($0289)= $8D  ' sta $0208
+a6502buf($028A)= $08
+a6502buf($028B)= $02  
+a6502buf($028C)= $20  ' jsr $0200
+a6502buf($028D)= $00
+a6502buf($028E)= $02
+a6502buf($028F)= $4C  ' jmp $0280
+a6502buf($0290)= $80
+a6502buf($0291)= $02
+end sub
  
- 
+sub jsr6502(acc,addr)
+
+' the 6502 loop should read a location and if not 0, load acc and jsr to addr
+' the procedure will poke cmd, acc and addr to the needed places
+
+a6502buf($0204)= (addr and $FF)
+a6502buf($0205)= addr >> 8
+a6502buf($0207)= acc
+a6502buf($0208)= 1 
+end sub 
  
 '-----------------------------------------------------------------------------------------------------------------------
 '----------------------------- The file cog ----------------------------------------------------------------------------

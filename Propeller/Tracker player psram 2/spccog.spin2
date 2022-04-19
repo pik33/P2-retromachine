@@ -732,7 +732,7 @@ dsp_write
 
 scptr long 0
 scptr2 long 0
-scbase long $72238 
+scbase long $75A00 
 
 sp_400h       long $400
 dsp_maxenv    ' alias
