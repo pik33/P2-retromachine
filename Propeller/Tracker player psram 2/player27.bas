@@ -53,9 +53,9 @@ const hubset338=%1_111011__11_1111_0111__1111_1011 '338_666_667 =30*44100
 const hubset336=%1_101101__11_0000_0110__1111_1011 '336_956_522 =paula*95
 const scope_ptr=$75A00
 declare a6502buf alias $64000 as ubyte($10FFF) '64000 doesnt work, why?
-'declare wavebuf alias $76400 as ubyte($3FFF)
 declare mainstack alias $75000 as ubyte(2559)
 declare filebuf alias $76400 as ubyte(16383)
+
 ' ----------------------- Global vars -------------------------------------------------------------------------
 
 dim displayname(39) as ubyte
