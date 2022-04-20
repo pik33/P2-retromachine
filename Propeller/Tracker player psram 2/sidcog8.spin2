@@ -24,7 +24,7 @@ CON
   R_PIN = 15
 
   '                                           ___ 
-  RESONANCE_OFFSET     = 7'                     |
+  RESONANCE_OFFSET     = 7'           7          |
   RESONANCE_FACTOR     = 5'                     |
   'CUTOFF_LIMIT        = 1100'                  |
   LP_MAX_CUTOFF        = 14'                    | Don't alter these constants unless you know what you are doing! 

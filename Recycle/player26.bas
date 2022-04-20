@@ -1502,19 +1502,11 @@ sub sidopen()
 dim i as integer
 dim b as ubyte
 dim cia as ulong
-'dim speed, r as ulong
-'dim version,offset,load,startsong,flags, init, play, songs, song  as ushort
-'dim dump as ushort
-'dim il,b as ubyte
-'dim ititle,iauthor,icopyright as ubyte(32)
-'dim atitle,author,copyright as string
 
-'reset6502;
 cpustop (a6502cog)
 atitle=""'"                                "
 author=""'"                                "
 copyright=""'"                                "
-pos=5
 get #8,5,version,1,r :    version=((version and 255) shl 8) or (version shr 8) : print version 
 get #8,7,offset,1,r  :    offset=(offset shl 8) or (offset shr 8) 
 get #8,9,load,1,r    :    load=(load shl 8) or (load shr 8)
@@ -1533,28 +1525,35 @@ if version>1 then
   b=0 : if load=0 then b=1 : get #8,125,load,1,r  : let offset1=$7E
 endif
 
-for i=0 to 31 : atitle=atitle+chr$(ititle(i)): next i ' do pokeif byte(atitle[i])=$F1 then atitle[i]:=char(26);
-for i=0 to 31 : author=author+chr$(iauthor(i)) : next i ' do if byte(author[i])=$F1 then author[i]:=char(26);  
-for i=0 to 31 : copyright=copyright+chr$(icopyright(i)) : next i ' do if byte(author[i])=$F1 then author[i]:=char(26);  
-v.box(725,60,1018,403,147) ' //fi.box(0,0,600,600,15);
+for i=0 to 31 : atitle=atitle+chr$(ititle(i)): next i 
+for i=0 to 31 : author=author+chr$(iauthor(i)) : next i   
+for i=0 to 31 : copyright=copyright+chr$(icopyright(i)) next i   
+v.box(725,60,1018,403,147)
 
 v.setwritecolors($93,$9a) 
 position 184,4 : print "                                " 
 position 184,4: print " ";filename$ :v.setwritecolors($9a,$93)                      ' test: module file name will be here
 
 position 184,5  : v.write ("C64 .sid PSID file ")                ',178);
-position 184,7  : v.write ("version:   "): v.write(v.inttohex(version,4))
-position 184,8  : v.write ("offset:    "): v.write(v.inttohex(offset,4))
-position 184,9  : v.write ("load:      "): v.write(v.inttohex(load,4))  '178-144*b);
-position 184,10 : v.write ("init:      "): v.write(v.inttohex(init,4))
-position 184,11 : v.write ("play:      "): v.write(v.inttohex(play,4))
-position 184,12 : v.write ("songs:     "): v.write(v.inttostr(songs))
-position 184,13 : v.write ("startsong: "): v.write(v.inttostr(startsong))
-position 184,14 : v.write ("speed:     "): v.write(v.inttohex(speed,8))
-position 184,15 : v.write ("title:     "): v.write(atitle)
-position 184,16 : v.write ("author:    "): v.write(author)
-position 184,17 : v.write ("copyright: "): v.write(copyright)
-position 184,18 : v.write ("flags:     "):  v.write(v.inttohex(flags,4))
+
+v.setwritecolor(150,147) : position 184,7 : v.write ("title:")
+v.setwritecolor(154,147) : position 184,8:  v.write(atitle)
+v.setwritecolor(150,147) : position 184,9 : v.write ("author:")
+v.setwritecolor(154,147) : position 184,10:  v.write(author)
+v.setwritecolor(150,147) : position 184,11 : v.write ("copyright:")
+v.setwritecolor(154,147) : position 184,12:  v.write(copyright)
+
+
+
+position 184,13  : v.write ("version:   "): v.write(v.inttohex(version,4))
+position 184,14  : v.write ("offset:    "): v.write(v.inttohex(offset,4))
+position 184,15  : v.write ("load:      "): v.write(v.inttohex(load,4))  '178-144*b);
+position 184,16 : v.write ("init:      "): v.write(v.inttohex(init,4))
+position 184,17 : v.write ("play:      "): v.write(v.inttohex(play,4))
+position 184,18 : v.write ("songs:     "): v.write(v.inttostr(songs))
+position 184,19 : v.write ("startsong: "): v.write(v.inttostr(startsong))
+position 184,20 : v.write ("speed:     "): v.write(v.inttohex(speed,8))
+position 184,21 : v.write ("flags:     "):  v.write(v.inttohex(flags,4))
 song=startsong-1
 
 pos=offset1+1
@@ -1576,10 +1575,11 @@ close #8
 a6502.jsr6502(song, init)
 waitms(1)
 cia=a6502.ram6502($DC04)+256*a6502.ram6502($DC05)
-position 184,19 : v.write ("cia:       "):  v.write(v.inttohex(cia,4))
+position 184,22 : v.write ("cia:       "):  v.write(v.inttohex(cia,4))
 sidfreq=50
 siddelay=clkfreq/50  
 if cia>0 then siddelay=clkfreq/((50*19652)/cia) : sidfreq=(50*19652)/cia
+position 184,23 : v.write ("Frequency:       "):  v.write(v.inttostr(cia,4)): v.write (" Hz")
  
 end sub       
  

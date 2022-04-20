@@ -211,13 +211,18 @@ do
    endif
    
   if ansibuf(3)=asc("d") then 									' 7 - decrease the period
-    sidfreq=sidfreq+50: if sidfreq>400 then sidfreq=400
+    if sidfreq>=50 then sidfreq=sidfreq+50: if sidfreq>400 then sidfreq=400
+    if sidfreq<50 then sidfreq=sidfreq+10
+    if sidfreq=1 then sidfreq=10
+
     siddelay=clkfreq/sidfreq
     ansibuf(3)=0
   endif  
   
   if ansibuf(3)=asc("a") then 									' 7 - decrease the period
-    sidfreq=sidfreq-50: if sidfreq<50 then sidfreq=50
+    if sidfreq<=50 then sidfreq=sidfreq-5: if sidfreq=0 then sidfreq=1
+    if sidfreq>50 then sidfreq=sidfreq-50: if sidfreq<50 then sidfreq=50
+
     siddelay=clkfreq/sidfreq
     ansibuf(3)=0
   endif  

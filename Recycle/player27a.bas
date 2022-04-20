@@ -161,7 +161,7 @@ do
   v.setwritecolors($e9,$e1)
   if modcog>(-1) then time2=framenum-modtime
   if waveplaying=1 then time2=(wavepos)/3528
-  if (dmpplaying=1) or (sidplaying=1) then time2=sidtime/200
+  if dmpplaying=1 then time2=sidtime/200
   position 2*15,19: v.write(v.inttostr2(time2/180000,2)): v.write(":"):v.write(v.inttostr2((time2 mod 180000)/3000,2)):v.write(":"):v.write(v.inttostr2((time2 mod 3000)/50,2)):v.write(":"):v.write(v.inttostr2((time2 mod 50),2))
 
 '' ----------------------------- Get data from the keyboard
@@ -465,7 +465,7 @@ do
       dirnum1=9	: v.setwritecolors($c9,$c1)    							        ' if we are still here, the highlight is at the bottom of the panel
       close #9 : open currentdir$+"dirlist.txt" for input as #9   					' and the new entry has to be read from the file, so open it
       for ii=dirnum2-9 to dirnum2
-       get #9,1+39*ii,displayname(0),38									' get the name
+       get #9,1+39*ii,displayname(0),38								' get the name
         j=38 : do : j-=1 : loop until displayname(j)>32:  k=j 		     			        ' find the end of the nam
         v.box(8,(ii+4-dirnum2+9)*16,352,(ii+4-dirnum2+9)*16+15,193)
         position ((360-8*k-8)/8, ii+4-dirnum2+9)
@@ -485,7 +485,7 @@ do
       filenum1=20 : v.setwritecolors($28,$22)  								' we are at the bottom now
       close #9 : open currentdir$+"filelist.txt" for input as #9                                        ' so do the same as in dir panel
       for ii=filenum2-20 to filenum2
-       get #9,1+39*ii,displayname(0),38									' get the name
+       get #9,1+39*ii,displayname(0),38								' get the name
         j=38 : do : j-=1 : loop until displayname(j)>32:  k=j 		     			        ' find the end of the nam
         v.box(368,(ii+4-filenum2+20)*16,712,(ii+4-filenum2+20)*16+15,34)
         position ((720+360-8*k-8)/8, ii+4-filenum2+20)
@@ -509,7 +509,7 @@ do
       dirnum1=0 : v.setwritecolors($c9,$c1)  							        ' dirnum1 negative, read data from the file
       close #9 : open currentdir$+"dirlist.txt" for input as #9     				        ' do the same stuff as in dir panel down			
       for ii=dirnum2 to dirnum2+9
-       get #9,1+39*ii,displayname(0),38									' get the name
+       get #9,1+39*ii,displayname(0),38								' get the name
         j=38 : do : j-=1 : loop until displayname(j)>32:  k=j 		     			        ' find the end of the nam
         v.box(8,(ii+4-dirnum2)*16,352,(ii+4-dirnum2)*16+15,193)
         position ((360-8*k-8)/8, ii+4-dirnum2)
@@ -530,7 +530,7 @@ do
       close #9 : open currentdir$+"filelist.txt" for input as #9   
       
       for ii=filenum2 to filenum2+20
-       get #9,1+39*ii,displayname(0),38									' get the name
+       get #9,1+39*ii,displayname(0),38								' get the name
         j=38 : do : j-=1 : loop until displayname(j)>32:  k=j 		     			        ' find the end of the nam
         v.box(368,(ii+4-filenum2)*16,712,(ii+4-filenum2)*16+15,34)
         position ((720+360-8*k-8)/8, ii+4-filenum2)

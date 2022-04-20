@@ -1,6 +1,6 @@
 '********************************************************************************************
 ' Displaylisted PSRAM HDMI for P2 Retromachine
-' Version 0.02 alpha - 20220328
+' Version 0.07 alpha - 20220328
 ' 1 cog graphics with or without border, with sprites
 ' (c) 2012-2021 Piotr Kardasz pik33@o2.pl
 ' MIT license
