@@ -1,7 +1,7 @@
 '-------------------------------------------------------------------------------------------------------------
 '
 ' Prop2play - a multiformat player for the P2
-' v. 0.27 - 20220419
+' v. 0.28 - 20220421
 ' pik33@o2.pl
 ' with a lot of code and help from the P2 community
 ' MIT license
@@ -47,8 +47,8 @@
 ' ------------------------ Constant and addresses -------------------------------------------------------------
 
 const HEAPSIZE = 8192
-const version$="Prop2play v.0.27"
-const statusline$=" Propeller2 multiformat player v. 0.27 --- 2022.04.19 --- pik33@o2.pl --- use a serial terminal or a RPi KBM interface to control --- arrows up,down move - pgup/pgdn or w/s move 10 positions - enter selects - tab switches panels - +,- controls volume - 1..4 switch channels on/off - 5,6 stereo separation - 7,8,9 sample rate - a,d SID speed - x,z SID subtune - R rescans current directory ------"
+const version$="Prop2play v.0.28"
+const statusline$=" Propeller2 multiformat player v. 0.28 --- 2022.04.21 --- pik33@o2.pl --- use a serial terminal or a RPi KBM interface to control --- arrows up,down move - pgup/pgdn or w/s move 10 positions - enter selects - tab switches panels - +,- controls volume - 1..4 switch channels on/off - 5,6 stereo separation - 7,8,9 sample rate - a,d SID speed - x,z SID subtune - R rescans current directory ------"
 const hubset338=%1_111011__11_1111_0111__1111_1011 '338_666_667 =30*44100 
 const hubset336=%1_101101__11_0000_0110__1111_1011 '336_956_522 =paula*95
 const scope_ptr=$75A00
@@ -114,7 +114,7 @@ pan(0)=8192-mainpan : pan(1)=8192+mainpan : pan(2)=8192+mainpan : pan(3)=8192-ma
 preparepanels
 waveplaying=0: modplaying=0 : dmpplaying=0 : spcplaying=0 : sidplaying=0
 
-sidnames(0)="0              "
+sidnames(0)="               "
 sidnames(1)="Triangle       "
 sidnames(2)="Saw            "
 sidnames(3)="Combined wave 3"
@@ -211,17 +211,21 @@ do
    endif
    
   if ansibuf(3)=asc("d") then 									' 7 - decrease the period
-    if sidfreq>=50 then sidfreq=sidfreq+50: if sidfreq>400 then sidfreq=400
-    if sidfreq<50 then sidfreq=sidfreq+10
-    if sidfreq=1 then sidfreq=10
+    if sidfreq>=100 then sidfreq=sidfreq+50: if sidfreq>400 then sidfreq=400
+    if sidfreq=60 then sidfreq=100
+    if sidfreq=50 then sidfreq=60
+    if sidfreq<50 then sidfreq=sidfreq+5
+    if sidfreq=6 then sidfreq=5
 
     siddelay=clkfreq/sidfreq
     ansibuf(3)=0
   endif  
   
   if ansibuf(3)=asc("a") then 									' 7 - decrease the period
-    if sidfreq<=50 then sidfreq=sidfreq-5: if sidfreq=0 then sidfreq=1
-    if sidfreq>50 then sidfreq=sidfreq-50: if sidfreq<50 then sidfreq=50
+    if sidfreq<=50 then sidfreq=sidfreq-5: if sidfreq<1 then sidfreq=1
+    if sidfreq=60 then sidfreq=50
+    if sidfreq=100 then sidfreq=60
+    if sidfreq>100 then sidfreq=sidfreq-50
 
     siddelay=clkfreq/sidfreq
     ansibuf(3)=0
@@ -255,8 +259,14 @@ do
   if (waveplaying=1) then position 2*30,22 :v.write(" ")  
   if (sidplaying=1) then 
     position 2*33,22: v.write("song: ") : v.write(v.inttostr2(song+1,2))
+
   else
     position 2*33,22: v.write("        ") 
+   endif
+  if (dmpplaying=1) orelse (sidplaying=1) then 
+    position 2*30,24: v.write("speed: ") : v.write(v.inttostr(sidfreq)) : v.write(" Hz ")
+  else
+    position 2*30,24: v.write("             ") 
   endif
   
 '' -------------------------- R - rescan the directory 
@@ -1163,8 +1173,7 @@ sub getwave
       do: currentbuf=lpeek(base) shr 14 : waitvbl: scope : bars : loop until currentbuf=(needbuf-1) mod 16				' wait until all buffers played					
       close #8 : waveplaying=0									' close the file, stop playing
       for i=0 to 7 : lpoke base+32*i+20,0 : next i 						' mute the sound
-      for i=$28000 to $70FFC step 4: lpoke i,$00000000: next i                                  ' clear the ram
-      filemove=1 : playnext=1										' experimental
+      filemove=1 : playnext=1							        	' experimental
     endif
 end sub    
 
