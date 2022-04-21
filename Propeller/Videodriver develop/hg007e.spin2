@@ -1360,17 +1360,19 @@ p802            mov     t2,linenum
                 mov     t4,0-0
                 mov t6,sprite_w
                 add t6,#1
-                shl t6,#2
+
                 mul     t2,t6
                 add     t4,t2
 '                mov     t2,frames                         ' this animates the sprite. To do: animate them from PSRAM as every animated sprite is 64 kB long...
 '                and     t2,#15
 '                shl     t2,#12
 '                add     t4,t2
-                setq2   sprite_w
-                rdlong  496,t4
-                setq2   sprite_w
-                wmlong  496,t3
+		mov t6,sprite_w
+		shr t6,#2
+                setq2   t6
+                rdlong  384,t4
+                setq2   t6
+                wmlong  384,t3
                 
 p801            djnf spritenum,#p802
                 incmod spriteline,#3
