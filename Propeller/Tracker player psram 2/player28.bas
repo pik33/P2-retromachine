@@ -330,6 +330,7 @@ do
       if scog2>0 then cpustop(scog2): scog2=-1   
       if audiocog>0 then stopaudio : audiocog=-1        
       waveplaying=0: modplaying=0 : spcplaying=0 : sidplaying=0: dmpplaying=0                   ' clear playing indicator variables
+      v.spr1y=600: v.spr2y=600: v.spr3y=600: v.spr4y=600					' hide sprites
       close #8											' close an audio file channel
       v.box(529,428,719,554,16)									' clear the info panels
       v.box(725,428,1018,554,162)
@@ -764,23 +765,23 @@ do
   v.spr1ptr=@balls1+1024*(framenum mod 16)
   v.spr1x=1024-dpeek(base+24)
   if channelvol(0)=0 then v.spr1y=600
-  if channelvol(0)>0 then v.spr1y=528-(dpeek(base+20)/32)
+  if channelvol(0)>0 then v.spr1y=528-(dpeek(base+20)/24)
 
   v.spr2ptr=@balls2+1024*(framenum mod 16)
   v.spr2x=1024-dpeek(base+32+24)
   if channelvol(1)=0 then v.spr2y=600
-  if channelvol(1)>0 then v.spr2y=528-(dpeek(base+32+20)/32)
+  if channelvol(1)>0 then v.spr2y=528-(dpeek(base+32+20)/24)
 
   v.spr3ptr=@balls3+1024*(framenum mod 16)
   v.spr3x=1024-dpeek(base+64+24)
   if channelvol(2)=0 then v.spr3y=600
-  if channelvol(2)>0 then v.spr3y=528-(dpeek(base+64+20)/32)
+  if channelvol(2)>0 then v.spr3y=528-(dpeek(base+64+20)/24)
 
   
   v.spr4ptr=@balls4+1024*(framenum mod 16)
   v.spr4x=1024-dpeek(base+96+24)
   if channelvol(3)=0 then v.spr4y=600
-  if channelvol(3)>0 then v.spr4y=528-(dpeek(base+96+20)/32)
+  if channelvol(3)>0 then v.spr4y=528-(dpeek(base+96+20)/24)
   
   
 loop
