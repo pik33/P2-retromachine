@@ -19,7 +19,7 @@ do
     ccc=getrnd() and 255
     x1=getrnd() mod 128 
     y1=getrnd() mod 35                                
-    position x1,y1: v.setwritecolors(ccc,0): v.write("Testing PSRAM 8bpp 1024x576 HDMI mode 00")
+    position 2*x1,y1: v.setwritecolors(ccc,0): v.write("Testing PSRAM 8bpp 1024x576 HDMI mode 00")
   next i
 
   for i=0 to 1000
@@ -92,6 +92,40 @@ v.spr14ptr=@balls2
 v.spr15ptr=@balls3
 v.spr16ptr=@balls4
 
+v.spr1h=63
+v.spr1w=15
+v.spr2h=63
+v.spr2w=15
+v.spr3h=63
+v.spr3w=15
+v.spr4h=63
+v.spr4w=15
+v.spr5h=63
+v.spr5w=15
+v.spr6h=63
+v.spr6w=15
+v.spr7h=63
+v.spr7w=15
+v.spr8h=63
+v.spr8w=15
+v.spr9h=63
+v.spr9w=15
+v.spr10h=63
+v.spr10w=15
+v.spr11h=63
+v.spr11w=15
+v.spr12h=63
+v.spr12w=15
+v.spr13h=63
+v.spr13w=15
+v.spr14h=63
+v.spr14w=15
+v.spr15h=63
+v.spr15w=15
+v.spr16h=63
+v.spr16w=15
+
+
 var xpos1=10
 var ypos1=10
 var xpos2=61
@@ -158,11 +192,32 @@ var xdelta10=-7
 var ydelta10=-7
 var xdelta9=-8
 var ydelta9=-8
-
+let frames=0
 
 do
 
 do:loop until v.vblank=1
+let frames=(frames+1) mod 16
+
+v.spr1ptr=@balls+4096*frames
+v.spr2ptr=@balls2+4096*frames
+v.spr3ptr=@balls3+4096*frames
+v.spr4ptr=@balls4+4096*frames
+v.spr5ptr=@balls+4096*frames
+v.spr6ptr=@balls2+4096*frames
+v.spr7ptr=@balls3+4096*frames
+v.spr8ptr=@balls4+4096*frames
+v.spr9ptr=@balls+4096*frames
+v.spr10ptr=@balls2+4096*frames
+v.spr11ptr=@balls3+4096*frames
+v.spr12ptr=@balls4+4096*frames
+v.spr13ptr=@balls+4096*frames
+v.spr14ptr=@balls2+4096*frames
+v.spr15ptr=@balls3+4096*frames
+v.spr16ptr=@balls4+4096*frames 
+
+
+
 xpos1+=xdelta1
 ypos1+=ydelta1
 xpos2+=xdelta2

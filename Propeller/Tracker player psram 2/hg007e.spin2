@@ -326,7 +326,7 @@ pub start(base,mb):result
 '--------------------------- initialize pointers and variables
 
 border_ptr:=@bordercolor					' Initial border color pointer, can be changed via DL
-font_ptr:=@amiga_font						' Initial 8x16 font definition
+'font_ptr:=@amiga_font						' Initial 8x16 font definition
 hdmibase:=base							' HDMI base pin, 8*n
 mailbox_ptr:=mb		
 mailbox0:=mb				' PSRAM mailbox pointer
@@ -724,8 +724,8 @@ repeat iii from 0 to strsize(text)-1
 pub setfontfamily(afontnum)
 
 font_family:=afontnum
-if afontnum==8
-  font_ptr:=@amiga_font
+'if afontnum==8
+'  font_ptr:=@amiga_font
 
 if afontnum==4
   font_ptr:=@st_font
@@ -1106,7 +1106,7 @@ dat
 vga_font       file "vgafont.def"
 'vga_font       file "vgafont.def"
 st_font        file "st4font.def"
-amiga_font     file "amigafont.def"
+'amiga_font     file "amigafont.def"
 a8_font        file "atari8.fnt"
 vga16          long  $00000000,$00008000,$00800000,$00808000,$80000000,$80008000,$80400000,$AAAAAA00,$55555500,$0000FF00,$00FF0000,$00FFFF00,$FF000000,$FF00FF00,$FFFF0000,$FFFFFF00
 ataripalette   file "ataripalettep2.def"
@@ -1340,16 +1340,16 @@ p802            mov     t2,linenum
                 alts    t5,#sprite1xy
                 getword sprite_x,0-0,#0                    ' and x
                 alts    t5,#sprite1wh
-                getword sprite_w,0-0,#1		           ' get a sprite y
+                getword sprite_h,0-0,#1		           ' get a sprite y
                 alts    t5,#sprite1wh
-                getword sprite_h,0-0,#0                    ' and x
+                getword sprite_w,0-0,#0                    ' and x
            
            
           '      debug(udec(sprite_y))
 		subs    t2,sprite_y wcz                    ' check if the sprite has to be displayed
 		
       if_c      jmp     #p801				   ' if not, go out
-                cmp     t2,#63 wcz			   ' we have now the sprite line #, check, if not >=63 (64 lines for sprite)
+                cmp     t2,sprite_h wcz			   ' we have now the sprite line #, check, if not >=63 (64 lines for sprite)
       if_gt     jmp     #p801
                 mov     t3,spriteline			   ' compute the line buffer addres where to put the sprite line
                 shl     t3,#10
@@ -1358,15 +1358,18 @@ p802            mov     t2,linenum
 
                 alts    t5,#sprite1pointer
                 mov     t4,0-0
-                shl     t2,#6
+                mov t6,sprite_w
+                add t6,#1
+                shl t6,#2
+                mul     t2,t6
                 add     t4,t2
-                mov     t2,frames                         ' this animates the sprite. To do: animate them from PSRAM as every animated sprite is 64 kB long...
-                and     t2,#15
-                shl     t2,#12
-                add     t4,t2
-                setq2   #15
+'                mov     t2,frames                         ' this animates the sprite. To do: animate them from PSRAM as every animated sprite is 64 kB long...
+'                and     t2,#15
+'                shl     t2,#12
+'                add     t4,t2
+                setq2   sprite_w
                 rdlong  496,t4
-                setq2   #15
+                setq2   sprite_w
                 wmlong  496,t3
                 
 p801            djnf spritenum,#p802
@@ -1497,6 +1500,7 @@ sprite_w long 16
 sprite_h long 64
 
 t5 long 0
+t6 long 0
 preloadaddr long 0
 preloadlineaddr long 0
 a1024 long 1024

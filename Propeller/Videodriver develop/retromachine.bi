@@ -1,6 +1,6 @@
 const _clkfreq = 336956522
 
-dim v as class using "hg007a.spin2"
+dim v as class using "hg007e.spin2"
 dim psram as class using "psram4.spin2"
 
 dim videocog as integer
