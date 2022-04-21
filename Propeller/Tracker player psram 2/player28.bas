@@ -114,7 +114,7 @@ pan(0)=8192-mainpan : pan(1)=8192+mainpan : pan(2)=8192+mainpan : pan(3)=8192-ma
 preparepanels
 waveplaying=0: modplaying=0 : dmpplaying=0 : spcplaying=0 : sidplaying=0
 
-sidnames(0)="               "
+sidnames(0)="0              "
 sidnames(1)="Triangle       "
 sidnames(2)="Saw            "
 sidnames(3)="Combined wave 3"
@@ -760,6 +760,9 @@ do
     for i=0 to 24: sid.oldregs(i)=a6502buf($D400+i) : next i
   endif
   decoderegs(addr(sid.oldregs(0)),addr(sidregs(0)))
+  if sidregs(2)<1 orelse sidregs(2)>8 then sidregs(8)=0
+  if sidregs(11)<1 orelse sidregs(11)>8 then sidregs(17)=0
+  if sidregs(20)<1 orelse sidregs(20)>8 then sidregs(26)=0
   sidregs(8)*=channelvol(0)
   sidregs(17)*=channelvol(1)
   sidregs(26)*=channelvol(2)

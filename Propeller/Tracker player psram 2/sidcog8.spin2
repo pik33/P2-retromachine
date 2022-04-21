@@ -20,8 +20,8 @@
 CON
   TRIANGLE = 16, SAW = 32, SQUARE = 64, NOISE = 128   
 
-  L_PIN = 8
-  R_PIN = 9
+  L_PIN = 14
+  R_PIN = 15
 
   '                                           ___ 
   RESONANCE_OFFSET     = 7'           7          |
