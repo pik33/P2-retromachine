@@ -92,38 +92,38 @@ v.spr14ptr=@balls2
 v.spr15ptr=@balls3
 v.spr16ptr=@balls4
 
-v.spr1h=63
-v.spr1w=127
-v.spr2h=63
-v.spr2w=63
-v.spr3h=63
-v.spr3w=63
-v.spr4h=63
-v.spr4w=63
-v.spr5h=63
-v.spr5w=63
-v.spr6h=63
-v.spr6w=63
-v.spr7h=63
-v.spr7w=63
-v.spr8h=63
-v.spr8w=63
-v.spr9h=63
-v.spr9w=63
-v.spr10h=63
-v.spr10w=63
-v.spr11h=63
-v.spr11w=63
-v.spr12h=63
-v.spr12w=63
-v.spr13h=63
-v.spr13w=63
-v.spr14h=63
-v.spr14w=63
-v.spr15h=63
-v.spr15w=63
-v.spr16h=63
-v.spr16w=63
+v.spr1h=31
+v.spr1w=31
+v.spr2h=31
+v.spr2w=31
+v.spr3h=31
+v.spr3w=31
+v.spr4h=31
+v.spr4w=31
+v.spr5h=31
+v.spr5w=31
+v.spr6h=31
+v.spr6w=31
+v.spr7h=31
+v.spr7w=31
+v.spr8h=31
+v.spr8w=31
+v.spr9h=31
+v.spr9w=31
+v.spr10h=31
+v.spr10w=31
+v.spr11h=31
+v.spr11w=31
+v.spr12h=31
+v.spr12w=31
+v.spr13h=31
+v.spr13w=31
+v.spr14h=31
+v.spr14w=31
+v.spr15h=31
+v.spr15w=31
+v.spr16h=31
+v.spr16w=31
 
 
 var xpos1=10
@@ -199,22 +199,22 @@ do
 do:loop until v.vblank=1
 let frames=(frames+1) mod 16
 
-v.spr1ptr=@balls+4096*frames
-v.spr2ptr=@balls2+4096*frames
-v.spr3ptr=@balls3+4096*frames
-v.spr4ptr=@balls4+4096*frames
-v.spr5ptr=@balls+4096*frames
-v.spr6ptr=@balls2+4096*frames
-v.spr7ptr=@balls3+4096*frames
-v.spr8ptr=@balls4+4096*frames
-v.spr9ptr=@balls+4096*frames
-v.spr10ptr=@balls2+4096*frames
-v.spr11ptr=@balls3+4096*frames
-v.spr12ptr=@balls4+4096*frames
-v.spr13ptr=@balls+4096*frames
-v.spr14ptr=@balls2+4096*frames
-v.spr15ptr=@balls3+4096*frames
-v.spr16ptr=@balls4+4096*frames 
+v.spr1ptr=@balls+1024*frames
+v.spr2ptr=@balls2+1024*frames
+v.spr3ptr=@balls3+1024*frames
+v.spr4ptr=@balls4+1024*frames
+v.spr5ptr=@balls+1024*frames
+v.spr6ptr=@balls2+1024*frames
+v.spr7ptr=@balls3+1024*frames
+v.spr8ptr=@balls4+1024*frames
+v.spr9ptr=@balls+1024*frames
+v.spr10ptr=@balls2+1024*frames
+v.spr11ptr=@balls3+1024*frames
+v.spr12ptr=@balls4+1024*frames
+v.spr13ptr=@balls+1024*frames
+v.spr14ptr=@balls2+1024*frames
+v.spr15ptr=@balls3+1024*frames
+v.spr16ptr=@balls4+1024*frames 
 
 
 
@@ -383,10 +383,10 @@ end sub
 
 asm shared
 
-balls file "balls.def"
-balls2 file "balls3.def"
-balls3 file "balls6.def"
-balls4 file "balls7.def"
+balls file "balls02def"
+balls2 file "balls06def"
+balls3 file "balls0Bdef"
+balls4 file "balls0Edef"
 'balls5 file "balls5.def"
 'balls6 file "balls6.def"
 'balls7 file "balls7.def"

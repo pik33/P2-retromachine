@@ -140,10 +140,25 @@ panel=0
 s1a=0
 samplerate=100   
 
+v.spr1ptr=@balls1
+v.spr2ptr=@balls2
+v.spr3ptr=@balls3
+v.spr4ptr=@balls4
+
+v.spr1h=31
+v.spr1w=31
+v.spr2h=31
+v.spr2w=31
+v.spr3h=31
+v.spr3w=31
+v.spr4h=31
+v.spr4w=31
+
 '' --------------------------------- THE MAIN LOOP --------------------------------------------------------------------------------------
 
 do
-  waitvbl     											' synchronize with vblanks
+  waitvbl  
+      											' synchronize with vblanks
   if modplaying=0 then framenum+=1 : scrollstatus((framenum) mod (8*sl))                        ' if not playing module let main loop scroll the status line
   if dmpplaying or modplaying or sidplaying then displaysamples
   if modplaying=1 then scrollinfo
@@ -666,37 +681,37 @@ s41b=s41a/bdiv :if s41b<0 then s41b=0
 if s41b>120 then s41b=120
 
 let s1c=s1b>>1
-if s1c<16 then lpoke v.palette_ptr+4*$b,$00110000*((s1c+16)/2)             ' green
-if s1c>=16 then lpoke v.palette_ptr+4*$b,$00FF0000+(s1c-16)*$11000000	   ' green to yellow
-if s1c>=32 then lpoke v.palette_ptr+4*$b,$FFFF0000-(s1c-32)*$00220000	   ' yellow to red
-if s1c>=48 then lpoke v.palette_ptr+4*$b,$FF000000		           ' red
+if s1c<16 then lpoke v.palette_ptr+4*$1,$00110000*((s1c+16)/2)             ' green
+if s1c>=16 then lpoke v.palette_ptr+4*$1,$00FF0000+(s1c-16)*$11000000	   ' green to yellow
+if s1c>=32 then lpoke v.palette_ptr+4*$1,$FFFF0000-(s1c-32)*$00220000	   ' yellow to red
+if s1c>=48 then lpoke v.palette_ptr+4*$1,$FF000000		           ' red
 
 let s21c=s21b>>1
-if s21c<16 then lpoke v.palette_ptr+4*$c,$00110000*((s21c+16)/2)           ' the same for the rest of channels
-if s21c>=16 then lpoke v.palette_ptr+4*$c,$00FF0000+(s21c-16)*$11000000    ' using colors b,c,d,e from the palette
-if s21c>=32 then lpoke v.palette_ptr+4*$c,$FFFF0000-(s21c-32)*$00220000
-if s21c>=48 then lpoke v.palette_ptr+4*$c,$FF000000
+if s21c<16 then lpoke v.palette_ptr+4*$2,$00110000*((s21c+16)/2)           ' the same for the rest of channels
+if s21c>=16 then lpoke v.palette_ptr+4*$2,$00FF0000+(s21c-16)*$11000000    ' using colors b,c,d,e from the palette
+if s21c>=32 then lpoke v.palette_ptr+4*$2,$FFFF0000-(s21c-32)*$00220000
+if s21c>=48 then lpoke v.palette_ptr+4*$2,$FF000000
 
 let s31c=s31b>>1
-if s31c<16 then lpoke v.palette_ptr+4*$d,$00110000*((s31c+16)/2)
-if s31c>=16 then lpoke v.palette_ptr+4*$d,$00FF0000+(s31c-16)*$11000000
-if s31c>=32 then lpoke v.palette_ptr+4*$d,$FFFF0000-(s31c-32)*$00220000
-if s31c>=48 then lpoke v.palette_ptr+4*$d,$FF000000
+if s31c<16 then lpoke v.palette_ptr+4*$3,$00110000*((s31c+16)/2)
+if s31c>=16 then lpoke v.palette_ptr+4*$3,$00FF0000+(s31c-16)*$11000000
+if s31c>=32 then lpoke v.palette_ptr+4*$3,$FFFF0000-(s31c-32)*$00220000
+if s31c>=48 then lpoke v.palette_ptr+4*$3,$FF000000
 
 let s41c=s41b>>1
-if s41c<16 then lpoke v.palette_ptr+4*$e,$00110000*((s41c+16)/2)
-if s41c>=16 then lpoke v.palette_ptr+4*$e,$00FF0000+(s41c-16)*$11000000
-if s41c>=32 then lpoke v.palette_ptr+4*$e,$FFFF0000-(s41c-32)*$00220000
-if s41c>=48 then lpoke v.palette_ptr+4*$e,$FF000000
+if s41c<16 then lpoke v.palette_ptr+4*$4,$00110000*((s41c+16)/2)
+if s41c>=16 then lpoke v.palette_ptr+4*$4,$00FF0000+(s41c-16)*$11000000
+if s41c>=32 then lpoke v.palette_ptr+4*$4,$FFFF0000-(s41c-32)*$00220000
+if s41c>=48 then lpoke v.palette_ptr+4*$4,$FF000000
 
 if waveplaying=1 then let add=46
 if dmpplaying=1 or sidplaying=1 then let add=22
 if modplaying=1 then let add=0
 
-for ii=0 to s1b:  v.fastline(540+add,571+add,554-ii,$0b) : next ii: for ii=s1b+1 to 120 :v.fastline(540+add,571+add,554-ii,16): next ii 'cc=$bbbbbbbb : for jj=270 to 278 step 4: lpoke graphicbuf_ptr+448*(59-ii)+jj,cc : next jj: next ii ' now draw these bars
-for ii=0 to s21b: v.fastline(586+add,617+add,554-ii,$0c) : next ii: for ii=s21b+1 to 120:v.fastline(586+add,617+add,554-ii,16): next ii 'cc=$bbbbbbbb : for jj=270 to 278 step 4: lpoke graphicbuf_ptr+448*(59-ii)+jj,cc : next jj: next ii ' now draw these bars
-if (modplaying=1) or (dmpplaying=1) or (sidplaying=1) then for ii=0 to s31b: v.fastline(632+add,663+add,554-ii,$0d) : next ii: for ii=s31b+1 to 120:v.fastline(632+add,663+add,554-ii,16): next ii 'cc=$bbbbbbbb : for jj=270 to 278 step 4: lpoke graphicbuf_ptr+448*(59-ii)+jj,cc : next jj: next ii ' now draw these bars
-if modplaying=1 then for ii=0 to s41b: v.fastline(678,709,554-ii,$0e) : next ii: for ii=s41b+1 to 120:v.fastline(678,709,554-ii,16): next ii 'cc=$bbbbbbbb : for jj=270 to 278 step 4: lpoke graphicbuf_ptr+448*(59-ii)+jj,cc : next jj: next ii ' now draw these bars
+for ii=0 to s1b:  v.fastline(540+add,571+add,554-ii,$01) : next ii: for ii=s1b+1 to 120 :v.fastline(540+add,571+add,554-ii,16): next ii 'cc=$bbbbbbbb : for jj=270 to 278 step 4: lpoke graphicbuf_ptr+448*(59-ii)+jj,cc : next jj: next ii ' now draw these bars
+for ii=0 to s21b: v.fastline(586+add,617+add,554-ii,$02) : next ii: for ii=s21b+1 to 120:v.fastline(586+add,617+add,554-ii,16): next ii 'cc=$bbbbbbbb : for jj=270 to 278 step 4: lpoke graphicbuf_ptr+448*(59-ii)+jj,cc : next jj: next ii ' now draw these bars
+if (modplaying=1) or (dmpplaying=1) or (sidplaying=1) then for ii=0 to s31b: v.fastline(632+add,663+add,554-ii,$03) : next ii: for ii=s31b+1 to 120:v.fastline(632+add,663+add,554-ii,16): next ii 'cc=$bbbbbbbb : for jj=270 to 278 step 4: lpoke graphicbuf_ptr+448*(59-ii)+jj,cc : next jj: next ii ' now draw these bars
+if modplaying=1 then for ii=0 to s41b: v.fastline(678,709,554-ii,$04) : next ii: for ii=s41b+1 to 120:v.fastline(678,709,554-ii,16): next ii 'cc=$bbbbbbbb : for jj=270 to 278 step 4: lpoke graphicbuf_ptr+448*(59-ii)+jj,cc : next jj: next ii ' now draw these bars
 end sub
 
 '' ---------------------------------------- Oscilloscope ----------------------------------------------------------------------------------------------
@@ -745,6 +760,29 @@ do
   for mi=0 to 3 : setchannel(mi,oldtrigs(mi)) : next mi          ' this line has to be vblk syynchronized as much as possible - set new values in audio driver
   framenum+=1							 ' frame number to track time					
   scrollstatus((framenum) mod (8*sl))				 ' horizontal fine scroll the help/status line
+
+  v.spr1ptr=@balls1+1024*(framenum mod 16)
+  v.spr1x=1024-dpeek(base+24)
+  if channelvol(0)=0 then v.spr1y=600
+  if channelvol(0)>0 then v.spr1y=528-(dpeek(base+20)/32)
+
+  v.spr2ptr=@balls2+1024*(framenum mod 16)
+  v.spr2x=1024-dpeek(base+32+24)
+  if channelvol(1)=0 then v.spr2y=600
+  if channelvol(1)>0 then v.spr2y=528-(dpeek(base+32+20)/32)
+
+  v.spr3ptr=@balls3+1024*(framenum mod 16)
+  v.spr3x=1024-dpeek(base+64+24)
+  if channelvol(2)=0 then v.spr3y=600
+  if channelvol(2)>0 then v.spr3y=528-(dpeek(base+64+20)/32)
+
+  
+  v.spr4ptr=@balls4+1024*(framenum mod 16)
+  v.spr4x=1024-dpeek(base+96+24)
+  if channelvol(3)=0 then v.spr4y=600
+  if channelvol(3)>0 then v.spr4y=528-(dpeek(base+96+20)/32)
+  
+  
 loop
 end sub
 
@@ -781,7 +819,24 @@ do
   sid.regs(32)=8192+mainpan
   sid.regs(33)=8192
   sid.regs(34)=8192-mainpan
+ 
+  v.spr1ptr=@balls1+1024*(framenum mod 16)
+  v.spr1x=sidregs(0) /34000
+  if channelvol(0)>0 then  v.spr1y=528-((sidregs(6) shr 28)*34)
+  if channelvol(0)=0 then  v.spr1y=600
+  
+  v.spr2ptr=@balls2+1024*(framenum mod 16)
+  v.spr2x=sidregs(9) /34000
+  if channelvol(1)=0 then v.spr2y=600
+  if channelvol(1)>0 then v.spr2y=528-((sidregs(15) shr 28)*34) 
 
+  v.spr3ptr=@balls3+1024*(framenum mod 16)
+  v.spr3x=sidregs(18) /34000
+  if channelvol(2)=0 then v.spr3y=600
+  if channelvol(2)>0 then v.spr3y=528-((sidregs(24) shr 28)*34)
+
+   v.spr4y=600
+   
 loop 
 end sub
 
@@ -1639,3 +1694,10 @@ end sub
 
 ' Semigraphic characters codes
 ' 3 hline 4 vline 5 T 6 up T 7 -| 8 |- 9rup 10 lup 11 rdown 12 ldown 13 cross
+
+asm shared
+balls1 file  "balls02.def"
+balls2 file "balls06.def"
+balls3 file "balls11.def"
+balls4 file "balls14.def"
+end asm

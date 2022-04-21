@@ -1370,9 +1370,9 @@ p802            mov     t2,linenum
 		mov t6,sprite_w
 		shr t6,#2
                 setq2   t6
-                rdlong  496,t4
+                rdlong  384,t4
                 setq2   t6
-                wmlong  496,t3
+                wmlong  384,t3
                 
 p801            djnf spritenum,#p802
                 incmod spriteline,#3
