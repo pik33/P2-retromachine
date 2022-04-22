@@ -323,7 +323,7 @@ do
     filename$=rtrim$(filename$)									' clean trailing spaces
     close #7
     let ext$=lcase$(right$(filename$,3))
-    if ext$="mod" or ext$="dmp" or ext$="sid" or ext$="spc" or ext$="wav" then                  ' if the file is playable, stop playing the previous one
+    if ext$="mod" or ext$="dmp" or ext$="sid" or ext$="spc" or ext$="wav" or ext$="lac" then                  ' if the file is playable, stop playing the previous one
       if a6502cog>0 then cpustop(a6502cog) : a6502cog=-1
       if modcog>0 then cpustop(modcog)	: modcog=-1 :modplaying=0								
       if scog>0 then cpustop(scog): scog=-1 : dmpplaying=0 : sidplaying=0
@@ -337,6 +337,13 @@ do
       v.box(725,60,1018,403,147)
       waitms(1)											'
     endif  
+    
+    if ext$="lac" then 
+      filename2$=currentdir$+filename$								' get a full filename with path
+      open filename2$ for input as #8 : pos=1	
+      flacopen
+      close #8
+    endif
 
     if ext$="mod" then							                        ' module file will be read into the PSRAM
       if audiocog<1 then startaudio   								' start the audio driver
@@ -763,25 +770,25 @@ do
   scrollstatus((framenum) mod (8*sl))				 ' horizontal fine scroll the help/status line
 
   v.spr1ptr=@balls1+1024*(framenum mod 16)
-  v.spr1x=1024-dpeek(base+24)
+  v.spr1x=1024-(1024*dpeek(base+0+24))/856
   if channelvol(0)=0 then v.spr1y=600
-  if channelvol(0)>0 then v.spr1y=528-(dpeek(base+20)/24)
+  if channelvol(0)>0 then v.spr1y=528-(dpeek(base+20)/17)
 
   v.spr2ptr=@balls2+1024*(framenum mod 16)
-  v.spr2x=1024-dpeek(base+32+24)
+  v.spr2x=1024-(1024*dpeek(base+32+24))/856
   if channelvol(1)=0 then v.spr2y=600
-  if channelvol(1)>0 then v.spr2y=528-(dpeek(base+32+20)/24)
+  if channelvol(1)>0 then v.spr2y=528-(dpeek(base+32+20)/17)
 
   v.spr3ptr=@balls3+1024*(framenum mod 16)
-  v.spr3x=1024-dpeek(base+64+24)
+  v.spr3x=1024-(1024*dpeek(base+64+24))/856
   if channelvol(2)=0 then v.spr3y=600
-  if channelvol(2)>0 then v.spr3y=528-(dpeek(base+64+20)/24)
+  if channelvol(2)>0 then v.spr3y=528-(dpeek(base+64+20)/17)
 
   
   v.spr4ptr=@balls4+1024*(framenum mod 16)
-  v.spr4x=1024-dpeek(base+96+24)
+  v.spr4x=1024-(1024*dpeek(base+96+24))/856
   if channelvol(3)=0 then v.spr4y=600
-  if channelvol(3)>0 then v.spr4y=528-(dpeek(base+96+20)/24)
+  if channelvol(3)>0 then v.spr4y=528-(dpeek(base+96+20)/17)
   
   
 loop
@@ -1692,6 +1699,159 @@ a6502buf($0208)= 1 												' tell the main 6502 loop to call the procedure
 end sub 
 
 '---------------------------------- THE END OF THE CODE ----------------------------------------------------------------
+
+
+sub flacopen
+
+
+dim samplerate as ulong
+dim numchannels as ulong
+dim sampledepth as ulong
+dim numsamples as ulong
+dim magic as ulong
+dim r as ulong
+dim metahead as ulong
+dim metalength,metatype,lastmeta,long1,long2 as ulong
+dim flacsamplerate, flacchannels, flacdepth as ulong
+dim meta as ulong
+dim framehead as ushort
+dim framecode as ubyte 
+
+bitbuffer=0: bitbufferlen=0
+meta=0
+pos=1
+position 184,15
+magic=readuint(32) : position 184,4 : print hex$(magic)
+if magic<>$664C6143 then goto 9999
+
+
+do
+  lastmeta=readuint(1)
+  metatype=readuint(7)
+  metalength=readuint(24)
+  if metatype<>0 then
+    for i=0 to metalength-1: readuint(8) : next i
+  else
+    readuint(16)
+    readuint(16)
+    readuint(24)
+    readuint(24)
+    flacsamplerate=readuint(20)
+    flacchannels=readuint(3)+1
+    flacdepth=readuint(5)+1
+    readuint(4)
+    long2=readuint(32)
+       position 184,9:  print "samples:",long2;"   "
+       position 184,10: print "samplerate:",flacsamplerate
+       position 184,11: print "channels:",flacchannels
+       position 184,12: print "depth:",flacdepth
+    for i=0 to 15: let q=readuint(8) : print hex$(q), : next i
+  endif
+  meta+=1
+loop until lastmeta=1
+
+9999 end sub
+
+
+function decodeframe(channels,depth as ulong) as integer
+
+dim temp,sync as integer
+
+temp = readuint(8)
+if r<>1 then return 0
+sync = temp << 6 + readUint(6)
+if (sync <> $3FFE) then return -1
+
+readuint(1)
+readuint(1)
+let blockSizeCode = readuint(4)
+let sampleRateCode = readuint(4)
+let chanAsgn = readUint(4)
+readUint(3)
+readUint(1)
+temp = readuint(8)
+do while temp >= %11000000:
+  readuint(8)
+  temp = (temp shl 1) and 0xFF
+loop  
+
+if (blockSizeCode == 1) then
+  let blockSize = 192
+else if (blockSizeCode>=2 andalso blockSizeCode <= 5) then
+  blockSize = 576 << (blockSizeCode - 2)
+else if (blockSizeCode = 6) then
+  blockSize = readUint(8) + 1
+else if (blockSizeCode = 7) then
+  blockSize = readUint(16) + 1
+else if (blockSizeCode>=8 andalso blockSizeCode <= 15) then
+  blockSize = 256 << (blockSizeCode - 8)
+else
+  return -2
+endif
+		
+if (sampleRateCode = 12) then
+  readUint(8)
+else if (sampleRateCode == 13 orelse sampleRateCode == 14) then
+  readUint(16)
+endif
+readUint(8)
+		
+ ' decodeSubframes(in, sampleDepth, chanAsgn, samples); 'TODO
+		
+alignToByte 
+readUint(16)
+		
+
+'		for (int i = 0; i < blockSize; i++) {
+'			for (int j = 0; j < numChannels; j++) {
+'				int val = samples[j][i];
+'				if (sampleDepth == 8)
+'					val += 128;
+'				writeLittleInt(sampleDepth / 8, val, out);
+'			}
+'		}
+'		return true;
+'	}
+	
+
+return 0
+
+end function
+
+
+
+
+
+
+dim bitbuffer,bitbufferlen as ulong 
+dim temp as ubyte
+dim result as ulong
+
+
+function readuint(n as ulong) as ulong
+
+do while bitbufferlen<n
+  get #8,pos,temp,1,r: pos+=1
+  bitbuffer=(bitbuffer shl 8) + temp
+  bitbufferlen+=8
+loop
+bitbufferlen-=n
+if n<32 then 
+  result=(bitbuffer shr bitbufferlen) and ((1 shl n)-1) 
+  bitbuffer=bitbuffer and ((1 shl bitbufferlen)-1)
+else
+  result=bitbuffer
+  bitbuffer=0
+endif  
+
+return result
+end function
+  
+	
+sub alignToByte 
+bitBufferLen -= bitBufferLen mod 8
+end sub
+
 
 ' Semigraphic characters codes
 ' 3 hline 4 vline 5 T 6 up T 7 -| 8 |- 9rup 10 lup 11 rdown 12 ldown 13 cross
