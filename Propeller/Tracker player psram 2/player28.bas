@@ -391,7 +391,7 @@ do
     dpoke base+20,16384                                                                         ' set volume 
     dpoke base+22,16384                                                              		' set pan
     dpoke base+24,30 					                			' set period
-    dpoke base+26, 4    									' set skip, 1 stereo sample=4 bytes
+    dpoke base+26,1024    									' set skip, 1 stereo sample=4 bytes
     lpoke base+28,$0000_0000
 
     lpoke base+32+12,0                 								' loop start   
@@ -399,7 +399,7 @@ do
     dpoke base+32+20,16384                                                                      ' volume
     dpoke base+32+22,0     	                                                                ' pan
     dpoke base+32+24, 30                                                                        ' period
-    dpoke base+32+26, 4    									' skip
+    dpoke base+32+26, 1024   									' skip
     lpoke base+32+28,$0000_0000
     
     lpoke base+8, $c0000000  							  	        ' sample ptr, 16 bit, restart from 0 
@@ -466,7 +466,7 @@ do
     v.setwritecolors($ea,$e1)									' yellow
     position 2*2,17:v.write(space$(38)): filename3$=right$(filename3$,38) 		 	' clear the place for a file name
     position 2*2,17: v.write(filename3$)	
-    scog=spc.start_spcfile(14,15,addr(a6502buf(0)))-1
+    scog=spc.start_spcfile(8,9,addr(a6502buf(0)))-1
     waitms(100)
     printmeta(addr(a6502buf(0)))
     endif  
@@ -1122,7 +1122,7 @@ endif
 dpoke base+20+32*channel, (tracker.currVolume(channel)+tracker.deltavolume(channel))*mainvolume*channelvol(channel)      ' set volume - this and the rest doesn't depend on trigger
 dpoke base+22+32*channel, pan(channel)                                                              ' set pan
 dpoke base+24+32*channel, tracker.currPeriod(channel)+tracker.deltaperiod(channel)                  ' set period
-dpoke base+26+32*channel, 1                                                                         ' set skip, always 1 here
+dpoke base+26+32*channel, 256                                                                         ' set skip, always 1 here
 end sub
 
 
@@ -1220,7 +1220,7 @@ end sub
 
 sub getwave
     qqq=$4000											' one wave chunk to load, 4kB=27 ms
-    currentbuf=lpeek(base) shr 14								' get a current playing 4k buffer# from the driver
+    currentbuf=lpeek(base) shr 22								' get a current playing 4k buffer# from the driver
     if needbuf<>currentbuf then									' if there is a buffer to load
 '      get #8,wavepos,wavebuf(needbuf shl 14),$4000,qqq 		'
 '      get #8,wavepos,wavebuf(needbuf shl 14),$4000,qqq 		'
@@ -1233,7 +1233,7 @@ sub getwave
       wavepos+=$4000      									' file position
       endif
     if qqq<>$4000 then 										' end of file
-      do: currentbuf=lpeek(base) shr 14 : waitvbl: scope : bars : loop until currentbuf=(needbuf-1) mod 16				' wait until all buffers played					
+      do: currentbuf=lpeek(base) shr 22 : waitvbl: scope : bars : loop until currentbuf=(needbuf-1) mod 16				' wait until all buffers played					
       close #8 : waveplaying=0									' close the file, stop playing
       for i=0 to 7 : lpoke base+32*i+20,0 : next i 						' mute the sound
       filemove=1 : playnext=1							        	' experimental
@@ -1700,7 +1700,7 @@ end sub
 
 '---------------------------------- THE END OF THE CODE ----------------------------------------------------------------
 
-
+''-----------------------------------Trying to port the simple flac decoder ---------------------------------------------
 sub flacopen
 
 
@@ -1717,7 +1717,7 @@ dim meta as ulong
 dim framehead as ushort
 dim framecode as ubyte 
 
-bitbuffer=0: bitbufferlen=0
+bitbuffer=0: bitbufferlen=0			
 meta=0
 pos=1
 position 184,15
@@ -1795,7 +1795,7 @@ else if (sampleRateCode == 13 orelse sampleRateCode == 14) then
   readUint(16)
 endif
 readUint(8)
-		
+  ' make 'samples array[numchannels][blocksize]		
  ' decodeSubframes(in, sampleDepth, chanAsgn, samples); 'TODO
 		
 alignToByte 
@@ -1818,10 +1818,59 @@ return 0
 
 end function
 
+/'
+
+function decode_subframes(inp, blocksize, sampledepth, chanasgn) as integer
+
+if chanasgn>=0 andalso chanasgn <= 7 then
+  for ch = 0; ch < result.length; ch++)
+				decodeSubframe(in, sampleDepth, subframes[ch]);
 
 
+		return [decode_subframe(inp, blocksize, sampledepth) for _ in range(chanasgn + 1)]
+	elif 8 <= chanasgn <= 10:
+		temp0 = decode_subframe(inp, blocksize, sampledepth + (1 if (chanasgn == 9) else 0))
+		temp1 = decode_subframe(inp, blocksize, sampledepth + (0 if (chanasgn == 9) else 1))
+		if chanasgn == 8:
+			for i in range(blocksize):
+				temp1[i] = temp0[i] - temp1[i]
+		elif chanasgn == 9:
+			for i in range(blocksize):
+				temp0[i] += temp1[i]
+		elif chanasgn == 10:
+			for i in range(blocksize):
+				side = temp1[i]
+				right = temp0[i] - (side >> 1)
+				temp1[i] = right
+				temp0[i] = right + side
+		return [temp0, temp1]
+	else:
+		raise ValueError("Reserved channel assignment")
 
 
+def decode_subframe(inp, blocksize, sampledepth):
+
+	inp.read_uint(1)
+	type = inp.read_uint(6)
+	shift = inp.read_uint(1)
+	if shift == 1:
+		while inp.read_uint(1) == 0:
+			shift += 1
+	sampledepth -= shift
+	
+	if type == 0:  # Constant coding
+		result = [inp.read_signed_int(sampledepth)] * blocksize
+	elif type == 1:  # Verbatim coding
+		result = [inp.read_signed_int(sampledepth) for _ in range(blocksize)]
+	elif 8 <= type <= 12:
+		result = decode_fixed_prediction_subframe(inp, type - 8, blocksize, sampledepth)
+	elif 32 <= type <= 63:
+		result = decode_linear_predictive_coding_subframe(inp, type - 31, blocksize, sampledepth)
+	else:
+		raise ValueError("Reserved subframe type")
+	return [(v << shift) for v in result]
+
+'/
 
 dim bitbuffer,bitbufferlen as ulong 
 dim temp as ubyte
@@ -1852,6 +1901,7 @@ sub alignToByte
 bitBufferLen -= bitBufferLen mod 8
 end sub
 
+''--------FLAC end 
 
 ' Semigraphic characters codes
 ' 3 hline 4 vline 5 T 6 up T 7 -| 8 |- 9rup 10 lup 11 rdown 12 ldown 13 cross
