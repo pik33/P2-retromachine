@@ -37,7 +37,7 @@ To use:
 long #0: the sample phase accumulator: use it as read only although you -can- change this while playing (not recommended, the driver cog writes there at every sample)
 long #1: the current sample generated, 2 words, right:left
 long #2: the sample pointer.
-         Set bit #31 to 1 if the sample is 8 bit, 0 for 16 bit. 
+         Set bit #31 to 1 if the sample is 16 bit, 0 for 8 bit. 
          Set bit #30 to 1 to start playing the sample from the beginning
          Set bit #29 to 1 to synchronize channels 0 and 1 for playing stereo without the phase error
 long #3: sample loop start point

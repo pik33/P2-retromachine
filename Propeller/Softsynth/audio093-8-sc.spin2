@@ -22,16 +22,29 @@ h4=494
 
 var
 
-'channel+0  long current spl pointer
-'channel+4  long sample
-'channel+8  long sample start 
-'channel+12 long loop start
-'channel+16 long loop end
-'channel+20 word volume
-'channel+22 word pan
-'channel+24 word synthfreq
-'channel+26 word skip
-'channel+28 long reserved
+{{
+Channel registers:
+long #0: the sample phase accumulator: use it as read only although you -can- change this while playing (not recommended, the driver cog writes there at every sample)
+long #1: the current sample generated, 2 words, right:left
+long #2: the sample pointer.
+         Set bit #31 to 0 if the sample is 8 bit, 1 for 16 bit. 
+         Set bit #30 to 1 to start playing the sample from the beginning
+         Set bit #29 to 1 to synchronize channels 0 and 1 for playing stereo without the phase error
+long #3: sample loop start point
+long #4: sample loop end point. 
+         If the sample has to no loop and stop at the end, set loop start=end of sample, loop end=loop start +1 or 2 (for 16 bit)
+long #5: volume and pan
+         word #10: volume, 0..16384(=1). Values more than 16384 could cause clipping if sample is normalized
+         word #11: pan. 16384: full left, 8192: center, 0: full right
+long #6  period and skip
+         word #11: period. This is the number of Paula cycles between two samples. 
+         word #12: skip 
+         From version 0.93 it is 8.8 fixed point, so set it to 256 for 8 bit or 512 for 16-bit samples. (was: 1 and 2) 
+         Setting higher skip value skips the samples while playing, allows for higher frequencies for the same period
+long #7  was: (reserved, unused. The planned usage is ADSR stuff.)
+         Command, bit 31=set sample rate, bit 30 - set sample source (1=hub,0=psram)
+}}
+
 '
 long mailboxaddr
 long scope_ptr
@@ -175,6 +188,9 @@ p405        getword oldls,sample0,#0          ' extract old sample value
             add     pointer0,askip0           ' compute the pointer to the next sample       
             setbyte pointer00,pointer0,#0
             shr     pointer0,#8
+         
+            testb   sstart0,#31 wz            
+    if_z    shl     pointer0,#1        
             
             cmp     pointer0,lend0 wcz
     if_ge   sub     pointer0,lend0	      ' and loop if needed     
@@ -183,15 +199,21 @@ p405        getword oldls,sample0,#0          ' extract old sample value
             mov     qq,pointer0               ' compute place in the memory from where the sample will be loaded
             add     qq,sstart0            
 
-	    shl    pointer0,#8
-	    setbyte pointer0,pointer00,#0
+
 
             cmps    mailbox,#$1FF wcz            ' the mailbox has to point somewhere not at the start of HUB RAM
     if_le   rdword  spl,qq                     ' if not, use HUB RAM for samples
     if_gt   call    #cache_read
          
+         
+ 
+         
             testb   sstart0,#31 wz 
     if_nz   shl     spl,#8
+    if_nz   shl    pointer0,#8
+    if_z    shl pointer0,#7
+	    setbyte pointer0,pointer00,#0       
+    
 
 p406        scas    spl,avol0                 ' apply volume
             mov     spl,0-0

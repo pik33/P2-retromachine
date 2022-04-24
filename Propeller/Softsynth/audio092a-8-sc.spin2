@@ -9,8 +9,8 @@ con
 '_clkfreq = 354693878  ' This is 100x Amiga PAL 3546895, 360 x SID (PAL) 
 
 
-left= 8
-right=9
+left= 14
+right=15
 
 c4=262
 d4=294
@@ -153,12 +153,11 @@ p401        mov     channeladd,cn             ' compute the pointer to channel p
     if_z    wrpin   dac2,#left addpins 1      ' if yes, set PWM DAC mode
     if_nz   wrpin   dac,#left addpins 1       ' else set noise DAC mode
             
-p404        bitl    command0,#30 wcz             ' bit #30: select PSRAM/HUB
-    if_nz   mov     mailbox,mailbox2             ' if not set, use PSRAM
-    if_z    mov     mailbox,#0                   ' if set, use HUB : TODO: this can be done at a channel level!
+p404        bitl command0,#30 wcz             ' bit #30: select PSRAM/HUB
+    if_nz   mov mailbox,mailbox2              ' if not set, use PSRAM
+    if_z    mov mailbox,#0                    ' if set, use HUB : TODO: this can be done at a channel level!
 
-
-p405        getword oldls,sample0,#0          ' extract old sample value
+            getword oldls,sample0,#0          ' extract old sample value
             getword oldrs,sample0,#1
      	    getword apan0,volpan0,#1          ' extract vol,pan,skip and freq from longs 
     	    getword avol0,volpan0,#0
@@ -173,22 +172,15 @@ p405        getword oldls,sample0,#0          ' extract old sample value
             add     0-0,afreq0  	
 
             add     pointer0,askip0           ' compute the pointer to the next sample       
-            setbyte pointer00,pointer0,#0
-            shr     pointer0,#8
-            
             cmp     pointer0,lend0 wcz
     if_ge   sub     pointer0,lend0	      ' and loop if needed     
     if_ge   add     pointer0,lstart0       
-            
             mov     qq,pointer0               ' compute place in the memory from where the sample will be loaded
-            add     qq,sstart0            
+            add     qq,sstart0
 
-	    shl    pointer0,#8
-	    setbyte pointer0,pointer00,#0
-
-            cmps    mailbox,#$1FF wcz            ' the mailbox has to point somewhere not at the start of HUB RAM
-    if_le   rdword  spl,qq                     ' if not, use HUB RAM for samples
-    if_gt   call    #cache_read
+            cmps mailbox,#$1FF wcz            ' the mailbox has to point somewhere not at the start of HUB RAM
+    if_le   rdword spl,qq                     ' if not, use HUB RAM for samples
+    if_gt   call #cache_read
          
             testb   sstart0,#31 wz 
     if_nz   shl     spl,#8
@@ -211,14 +203,10 @@ p406        scas    spl,avol0                 ' apply volume
             setword sample0,rs0,#1           ' pack samples into long
             setword sample0,ls0,#0
             
-            bitl    sstart0, #30 wcz          ' if bit #30 of start pointer is set, the current pointer needs resetting  
-    if_z    mov     pointer0, #0  
-    if_z    wrlong  sstart0, ptra[2]          ' reset bit #30 in hub
-            bitl    sstart0, #29 wcz	      ' if bit #29 is set, synchronize stereo at channels 1 and 2
-    if_z    add     time1,##2048
-    if_z    mov     time2,time1
-    if_z    wrlong  sstart0,ptra[2]
-            
+            bitl   sstart0, #30 wcz          ' if bit #30 of start pointer is set, the current pointer needs resetting  
+    if_z    mov    pointer0, #0  
+    if_z    wrlong sstart0, ptra[2]          ' reset bit #30 in hub
+
 p403        setq #1                          ' write new pointer and sample value to the hub
             wrlong  pointer0,ptra
             sub     ptra, channeladd         ' reset the pointer to channel parameters
@@ -249,13 +237,10 @@ p301        alts    ptrb,#511                ' checking if the buffer is full - 
 		
 	    cmp     scbase,#0 wz
     if_z    jmp #p302	   
- 
- 
-            incmod  scope,#63 wc            ' save every 127th sample to the scope buffer
+            incmod  scope,#127 wc            ' save every 127th sample to the scope buffer
     if_c    mov scptr2,scptr
     if_c    shl scptr2,#2
     if_c    add scptr2,scbase     
-             wrlong scptr2,#$60
     if_c    wrlong oldsample,scptr2
     if_c    incmod scptr,##639
 			    
@@ -428,7 +413,7 @@ hubaddr     long 0
 count       long 256
 addrlo long 0
 addrhi long 0
-pointer00 long 0
+
 
 '-----------------------------------------------------------------------------------------
 '------ PASM driver ends here ------------------------------------------------------------
