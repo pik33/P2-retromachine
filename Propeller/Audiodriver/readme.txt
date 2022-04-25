@@ -1,7 +1,8 @@
 20220423: 0.93  
-Word 12 - #skip - is now 8.8 fixed point instead of 16bit integer. This means you have use 256 instead of 1 for 8bit samples and 512 instead of 2 for 16 bit
+Word 12 - #skip - is now 8.8 fixed point instead of 16bit integer. This means you have to use 256 instead of 1 
 This allows finer tuning for synthesis and mind machine purpose, where Amiga Paula's period is much too coarse.
-Bit 29 of start pointer causes synchronizing of channels 0 and 1 for correct stereo 
+Bit 29 of the start pointer causes synchronizing of channels 0 and 1 for correct stereo 
+Bit 28 of the start pointer enables playing interleaved samples with the fractional skip
 
 20220401: 0.92a
 Oscilloscope can be switched off and its buffer can be set at the start
@@ -40,6 +41,7 @@ long #2: the sample pointer.
          Set bit #31 to 1 if the sample is 16 bit, 0 for 8 bit. 
          Set bit #30 to 1 to start playing the sample from the beginning
          Set bit #29 to 1 to synchronize channels 0 and 1 for playing stereo without the phase error
+	 Set bit #28 to 1 to eneble fractional skip for interleaved stereo samples (= wav files) 
 long #3: sample loop start point
 long #4: sample loop end point. 
          If the sample has to no loop and stop at the end, set loop start=end of sample, loop end=loop start +1 or 2 (for 16 bit)

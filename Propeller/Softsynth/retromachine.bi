@@ -3,7 +3,7 @@ const _clkfreq = 336956522
 dim v as class using "hg007e.spin2"
 dim rm as class using "retrocog.spin2"
 'dim tracker as class using "trackerplayer.spin2"
-dim paula as class using "audio093a-8-sc.spin2"
+dim paula as class using "audio093c-8-sc.spin2"
 'dim sid as class using "sidcog8.spin2"
 dim psram as class using "psram4.spin2"
 'dim spc as class using "spccog.spin2"

@@ -1,0 +1,15 @@
+PC Softsynth Module
+10 set 2,sinus,default,15,200,200
+20 set 1,sinus,default,15,200,200
+25 vib 1,sinus,4,50
+30 int 2,1,4.000
+40 play 1,'400.000
+45 wait 100
+46 play 1,'400.000,>'1400.000,200
+47 wait 100
+50 play 2,'1500.000
+55 wait 100
+60 play 1,'600.000
+65 wait 100
+70 vib 1,off
+80 play 1,'1700.000

@@ -391,7 +391,7 @@ do
     dpoke base+20,16384                                                                         ' set volume 
     dpoke base+22,16384                                                              		' set pan
     dpoke base+24,30 					                			' set period
-    dpoke base+26,1024    									' set skip, 1 stereo sample=4 bytes
+    dpoke base+26,256  									' set skip, 1 stereo sample=4 bytes
     lpoke base+28,$0000_0000
 
     lpoke base+32+12,0                 								' loop start   
@@ -399,11 +399,11 @@ do
     dpoke base+32+20,16384                                                                      ' volume
     dpoke base+32+22,0     	                                                                ' pan
     dpoke base+32+24, 30                                                                        ' period
-    dpoke base+32+26, 1024   									' skip
+    dpoke base+32+26, 256									' skip
     lpoke base+32+28,$0000_0000
     
-    lpoke base+8, $c0000000  							  	        ' sample ptr, 16 bit, restart from 0 
-    lpoke base+32+8, $e0000002							                ' sample ptr+2 (=another channel), synchronize #1 to #2
+    lpoke base+8, $d0000000  							  	        ' sample ptr, 16 bit, restart from 0 
+    lpoke base+32+8, $f0000002							                ' sample ptr+2 (=another channel), synchronize #1 to #2
   
     v.setwritecolors($ea,$e1)									' yellow
     position 2*2,17:v.write(space$(38)): filename3$=right$(filename3$,38) 		 	' clear the place for a file name
@@ -466,7 +466,7 @@ do
     v.setwritecolors($ea,$e1)									' yellow
     position 2*2,17:v.write(space$(38)): filename3$=right$(filename3$,38) 		 	' clear the place for a file name
     position 2*2,17: v.write(filename3$)	
-    scog=spc.start_spcfile(8,9,addr(a6502buf(0)))-1
+    scog=spc.start_spcfile(14,15,addr(a6502buf(0)))-1
     waitms(100)
     printmeta(addr(a6502buf(0)))
     endif  
@@ -1220,7 +1220,7 @@ end sub
 
 sub getwave
     qqq=$4000											' one wave chunk to load, 4kB=27 ms
-    currentbuf=lpeek(base) shr 22								' get a current playing 4k buffer# from the driver
+    currentbuf=lpeek(base) shr 20								' get a current playing 4k buffer# from the driver
     if needbuf<>currentbuf then									' if there is a buffer to load
 '      get #8,wavepos,wavebuf(needbuf shl 14),$4000,qqq 		'
 '      get #8,wavepos,wavebuf(needbuf shl 14),$4000,qqq 		'
@@ -1233,7 +1233,7 @@ sub getwave
       wavepos+=$4000      									' file position
       endif
     if qqq<>$4000 then 										' end of file
-      do: currentbuf=lpeek(base) shr 22 : waitvbl: scope : bars : loop until currentbuf=(needbuf-1) mod 16				' wait until all buffers played					
+      do: currentbuf=lpeek(base) shr 20 : waitvbl: scope : bars : loop until currentbuf=(needbuf-1) mod 16				' wait until all buffers played					
       close #8 : waveplaying=0									' close the file, stop playing
       for i=0 to 7 : lpoke base+32*i+20,0 : next i 						' mute the sound
       filemove=1 : playnext=1							        	' experimental

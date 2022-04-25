@@ -1,0 +1,11 @@
+PC Softsynth Module
+10 set 1,sinus,default,5,200,200
+20 set 2,glocke,percus,15,200,200
+30 echo 2,1,10
+40 play 1,c1
+50 play 1,d1
+60 play 1,e1
+70 echo ,off
+80 play 1,f1
+90 play 1,g1
+100 play 1,a1

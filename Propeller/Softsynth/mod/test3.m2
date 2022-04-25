@@ -1,0 +1,12 @@
+10 set 1,glocke,percus,32767,300,300
+20 play 1,g1
+30 play 1,c2,900
+40 play 1,h1
+50 play 1,d2
+60 play 1,c2
+70 play 1,g1
+80 play 1,e1
+90 play 1,a1,1200
+100 play 1,f1,900
+110 play 1,a1
+120 play 1,d2
