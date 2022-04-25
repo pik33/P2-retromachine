@@ -37,7 +37,7 @@ waitms(500)
 dpoke base+26,1000
 
 do
-for i=0 to 7: let skip=round(notes(oct(i))*skipv): print skip: dpoke base+26,skip: waitms(500) : next i
+for i=0 to 7: let skip=round(notes(oct(i))*skipv): dpoke base+26,skip: waitms(500) : next i
 
 
 'if lpeek($30)<>0 then position 2,1 : print hex$(lpeek($30),8) : lpoke $30,0
