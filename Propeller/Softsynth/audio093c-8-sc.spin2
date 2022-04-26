@@ -9,8 +9,8 @@ con
 '_clkfreq = 354693878  ' This is 100x Amiga PAL 3546895, 360 x SID (PAL) 
 
 
-left= 14
-right=15
+left= 8
+right=9
 
 c4=262
 d4=294
@@ -169,18 +169,9 @@ p401        mov     channeladd,cn             ' compute the pointer to channel p
             
             
             
-            testb   command0,#31 wz	      ' bit #31 command - set the DAC sample rate
-    if_nz   jmp     #p404                     ' if not set, proceed
-            getword qq,command0,#0            ' get the new rate
-            wxpin   qq,#left addpins 1        ' and program the pins
-            getbyte qq,qq,#0 		      ' check if the rate is n*256
-            cmp     qq,#0 wz                         
-    if_z    wrpin   dac2,#left addpins 1      ' if yes, set PWM DAC mode
-    if_nz   wrpin   dac,#left addpins 1       ' else set noise DAC mode
+
             
-p404        bitl    command0,#30 wcz             ' bit #30: select PSRAM/HUB
-    if_nz   mov     mailbox,mailbox2             ' if not set, use PSRAM
-    if_z    mov     mailbox,#0                   ' if set, use HUB : TODO: this can be done at a channel level!
+
 
 
 p405        getword oldls,sample0,#0          ' extract old sample value

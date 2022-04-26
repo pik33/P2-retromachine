@@ -1,3 +1,10 @@
+'-----------------------------------------------------------------------
+' Atari Softsynth samples based sound toy
+' v. 0.02 - 20220426 
+' pik33@o2.pl
+'-----------------------------------------------------------------------
+
+
 #include "retromachine.bi"
 startmachine
 startpsram
@@ -22,24 +29,41 @@ oct(0)=60: oct(1)=62 : oct(2)=64: oct(3)=65 : oct(4)=67 : oct(5)=69: oct(6)=71: 
 
 'position 2,10: print hex$(addr(sinus)), dpeek(addr(sinus)+16), dpeek(addr(sinus)+18), dpeek(addr(sinus)+20)
 
-lpoke base+00,0
-lpoke base+04,0
-lpoke base+4+08,addr(geige)+16+$C000_0000
-lpoke base+4+12,0
-lpoke base+4+16,2048
-dpoke base+4+20,16384
-dpoke base+4+22,8192
-dpoke base+4+24,37
-dpoke base+4+26,1203
-lpoke base+4+28,$4000_0000
-lpoke base+36, addr(echo)+16
-lpoke base+40,2000
-waitms(500)
-dpoke base+4+26,510
+for i=0 to 7
+lpoke 64*i+base+00,0
+lpoke 64*i+base+04,0
+lpoke 64*i+base+4+08,addr(geige)+16+$C000_0000
+lpoke 64*i+base+4+12,0
+lpoke 64*i+base+4+16,2048
+dpoke 64*i+base+4+20,0
+dpoke 64*i+base+4+22,8192
+dpoke 64*i+base+4+24,74
+dpoke 64*i+base+4+26,1203
+lpoke 64*i+base+4+28,$4000_0000
+lpoke 64*i+base+36, addr(percus)+16
+lpoke 64*i+base+40,1000
+dpoke 64*i+base+4+26,510
+next i
 
+dim channelassign(8)
+for i=0 to 7: channelassign(i)=0 : next i
+let kbdpressed=1
 do
-'for i=0 to 7:let skip=round(notes(oct(i))*skipv):lpoke base+4+08,addr(geige)+16+$C000_0000:  dpoke base+4+26,skip: for j=0 to 500:  position 2,15 : print hex$(lpeek(base+8),8) : waitms(1) : next j:  next i
 
+if lpeek($38)<>0 then
+  if peek($3b)=$90 then
+  ' find a channel
+  let min=$7FFFFFFF: let minc=0
+  for i=0 to 7
+    if channelassign(i)<min then min=channelassign(i): minc=i
+  next i
+  
+  let skip=round(notes(peek($39))*2*skipv):lpoke base+64*minc+4+08,addr(geige)+16+$C000_0000:  dpoke base+64*minc+4+26,skip :dpoke base+64*minc+4+20,peek($38)*64
+  channelassign(minc)=kbdpressed: kbdpressed+=1
+   print kbdpressed ,minc,channelassign(0)
+  endif
+ lpoke $38,0
+endif
 
 if lpeek($30)<>0 orelse lpeek($3c)<>0 then 
    
@@ -64,8 +88,8 @@ a=0
 endif
 
 'if lpeek($34)<>0 then position 2,2 : print hex$(lpeek($34),8) : lpoke $34,0
-'if lpeek($38)<>0 then position 2,3 : print hex$(lpeek($38),8) : lpoke $38,0
-if lpeek($3c)<>0 then position 2,4 : print hex$(lpeek($3c),8) : lpoke $3c,0
+if lpeek($38)<>0 then position 2,13 : print hex$(lpeek($38),8) : lpoke $38,0
+'if lpeek($3c)<>0 then position 2,4 : print hex$(lpeek($3c),8) : lpoke $3c,0
 position 2,15: print hex$(lpeek(base+8),8)
 loop
 
@@ -105,7 +129,7 @@ geige		file "s/geige.s2"
 'groehl
 'harmon
 'hat2
-'lauta
+lauta		file "s/lauta.s2"
 'laute
 'lauti
 'lauto
