@@ -24,27 +24,49 @@ oct(0)=60: oct(1)=62 : oct(2)=64: oct(3)=65 : oct(4)=67 : oct(5)=69: oct(6)=71: 
 
 lpoke base+00,0
 lpoke base+04,0
-lpoke base+08,addr(charly)+16+$C000_0000
-lpoke base+12,0
-lpoke base+16,2048
-dpoke base+20,16384
-dpoke base+22,8192
-dpoke base+24,37
-dpoke base+26,1203
-lpoke base+28,$4000_0000
-
+lpoke base+4+08,addr(geige)+16+$C000_0000
+lpoke base+4+12,0
+lpoke base+4+16,2048
+dpoke base+4+20,16384
+dpoke base+4+22,8192
+dpoke base+4+24,37
+dpoke base+4+26,1203
+lpoke base+4+28,$4000_0000
+lpoke base+36, addr(echo)+16
+lpoke base+40,2000
 waitms(500)
-dpoke base+26,1000
+dpoke base+4+26,510
 
 do
-for i=0 to 7: let skip=round(notes(oct(i))*skipv): dpoke base+26,skip: waitms(500) : next i
+'for i=0 to 7:let skip=round(notes(oct(i))*skipv):lpoke base+4+08,addr(geige)+16+$C000_0000:  dpoke base+4+26,skip: for j=0 to 500:  position 2,15 : print hex$(lpeek(base+8),8) : waitms(1) : next j:  next i
 
 
-'if lpeek($30)<>0 then position 2,1 : print hex$(lpeek($30),8) : lpoke $30,0
+if lpeek($30)<>0 orelse lpeek($3c)<>0 then 
+   
+   if lpeek($30)<>0 then let a=peek($31)
+   if lpeek($3c)<>0 then let a=peek($3d) 
+
+
+  if a=$7A then let skip=round(notes(60)*skipv):lpoke base+4+08,addr(geige)+16+$C000_0000:  dpoke base+4+26,skip 
+  if a=$78 then let skip=round(notes(62)*skipv):lpoke base+4+08,addr(geige)+16+$C000_0000:  dpoke base+4+26,skip 
+  if a=$63 then let skip=round(notes(64)*skipv):lpoke base+4+08,addr(geige)+16+$C000_0000:  dpoke base+4+26,skip 
+  if a=$76 then let skip=round(notes(65)*skipv):lpoke base+4+08,addr(geige)+16+$C000_0000:  dpoke base+4+26,skip 
+  if a=$62 then let skip=round(notes(67)*skipv):lpoke base+4+08,addr(geige)+16+$C000_0000:  dpoke base+4+26,skip 
+  if a=$6e then let skip=round(notes(69)*skipv):lpoke base+4+08,addr(geige)+16+$C000_0000:  dpoke base+4+26,skip 
+  if a=$6d then let skip=round(notes(71)*skipv):lpoke base+4+08,addr(geige)+16+$C000_0000:  dpoke base+4+26,skip  
+  if a=$2c then let skip=round(notes(72)*skipv):lpoke base+4+08,addr(geige)+16+$C000_0000:  dpoke base+4+26,skip 
+  
+
+
+position 2,27 : print hex$(lpeek($3c),8) : lpoke $30,0 : lpoke $3c,0: 
+a=0
+
+endif
+
 'if lpeek($34)<>0 then position 2,2 : print hex$(lpeek($34),8) : lpoke $34,0
 'if lpeek($38)<>0 then position 2,3 : print hex$(lpeek($38),8) : lpoke $38,0
-'if lpeek($3c)<>0 then position 2,4 : print hex$(lpeek($3c),8) : lpoke $3c,0
-'position 2,6: print hex$(lpeek(base),8)
+if lpeek($3c)<>0 then position 2,4 : print hex$(lpeek($3c),8) : lpoke $3c,0
+position 2,15: print hex$(lpeek(base+8),8)
 loop
 
 'channel+0  long current spl pointer
@@ -66,13 +88,18 @@ end sub
 
 asm shared
 percus 		file "h/percus.h2"
+abss		file "h/abs.h2"
+default		file "h/default.h2"
+dimx		file "h/dimx.h2"
+echo		file "h/echo.h2"
+
 bass1 		file "s/bass1.s2"
 beben 		file "s/beben.s2"
 booster		file "s/booster.s2"
 charly	        file "s/charly.s2"
 'd12
 'dreieck
-'geige
+geige		file "s/geige.s2"
 'geige2
 'glocke
 'groehl

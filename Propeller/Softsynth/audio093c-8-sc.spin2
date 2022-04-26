@@ -84,13 +84,13 @@ base:=@channel1[0]
 repeat iii from 0 to 7
   long[base+64*iii]:=0
   long[base+64*iii+4]:=0
-  long[base+64*iii+12]:=0
-  long[base+64*iii+16]:=2 
-  word[base+64*iii+20]:=0
-  word[base+64*iii+22]:=8192
-  word[base+64*iii+24]:=400+2*iii
-  word[base+64*iii+26]:=2
-  long [base+64*iii+8]:=@null | $C0000000
+  long[base+64*iii+4+12]:=0
+  long[base+64*iii+4+16]:=2 
+  word[base+64*iii+4+20]:=0
+  word[base+64*iii+4+22]:=8192
+  word[base+64*iii+4+24]:=400+2*iii
+  word[base+64*iii+4+26]:=2
+  long [base+64*iii+4+8]:=@null | $C0000000
   
 cog:=coginit(16,@audio,@mailboxaddr)
 waitms(100)
@@ -213,7 +213,17 @@ p405        getword oldls,sample0,#0          ' extract old sample value
             mov     qq,pointer0               ' compute place in the memory from where the sample will be loaded
             add     qq,sstart0            
 
-
+	    mov     qqq,afreq0
+	    mul     qqq,adspeed
+	    add     adcptr,qqq wc
+     if_c   mov adcptr,##$FFFFFFFF
+	    mov advalue,#0
+	    getbyte qqq,adcptr,#3
+	    add  qqq,adpointer ' todo : rd only if the pointer changed
+	  if_nc  rdbyte advalue,qqq
+	    shl advalue,#6
+	    
+	    
 
             cmps    mailbox,#$1FF wcz            ' the mailbox has to point somewhere not at the start of HUB RAM
     if_le   rdword  spl,qq                     ' if not, use HUB RAM for samples
@@ -230,8 +240,14 @@ p405        getword oldls,sample0,#0          ' extract old sample value
     if_z    shr     pointer0,#1    
 	    setbyte pointer0,pointer00,#0       
     
+            
 
-p406        scas    spl,avol0                 ' apply volume
+
+
+
+p406        scas    spl,advalue
+            mov spl, 0-0
+            scas    spl,avol0                 ' apply volume
             mov     spl,0-0
  
             scas    spl,apan0                 ' apply pan
@@ -251,13 +267,14 @@ p406        scas    spl,avol0                 ' apply volume
             
             bitl    sstart0, #30 wcz          ' if bit #30 of start pointer is set, the current pointer needs resetting  
     if_z    mov     pointer0, #0  
-    if_z    wrlong  sstart0, ptra[2]          ' reset bit #30 in hub
+    if_z    mov     adcptr,#0                 ' start adsr too
+    if_z    wrlong  sstart0, ptra[3]          ' reset bit #30 in hub
             bitl    sstart0, #29 wcz	      ' if bit #29 is set, synchronize stereo at channels 1 and 2
     if_z    add     time1,##2048
     if_z    mov     time2,time1
     if_z    wrlong  sstart0,ptra[2]
             
-p403        setq #1                          ' write new pointer and sample value to the hub
+p403        setq #2                          ' write new pointer and sample value to the hub
             wrlong  pointer0,ptra
             sub     ptra, channeladd         ' reset the pointer to channel parameters
                       
@@ -407,8 +424,9 @@ rsnext      long 0
 
 ' channel parameter block
 
-pointer0    long 0     
+pointer0    long 0      
 sample0     long 0
+adcptr	    long 0
 sstart0     long 0     ' start pointer and type at bit 31
 lstart0     long 0
 lend0       long 0
@@ -416,9 +434,9 @@ volpan0     long 0
 freqskip0   long 0
 command0    long 0
 
-reg8        long 0
-reg9        long 0
-reg10	    long 0
+adpointer   long 0
+adspeed     long 0
+'adcptr	    long 0
 reg11	    long 0
 reg12	    long 0
 reg13	    long 0
@@ -480,6 +498,8 @@ pointer00 long 0
 adsrptr long 0
 adsrspeed long 0
 
+qqq long 0
+advalue long 0
 '-----------------------------------------------------------------------------------------
 '------ PASM driver ends here ------------------------------------------------------------
 '----------------------------------------------------------------------------------------- 
