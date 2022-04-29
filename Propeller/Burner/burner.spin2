@@ -1,0 +1,147 @@
+' Flash burner for the P2 retromachine v.0.01 -20220429
+' Flashes:
+
+'- ST mono type font   at $800000
+'- PC DOS type font    at $801000
+'- Atari 8x8 type font at $802000
+
+'To do in next versions: Amiga type font at $803000
+'		        Parallax type font at $804000 - can it be done at 8x16?
+
+'- Atari 8bit type palette at $810000
+'- 3-3-2 palette at           $810400
+
+'To do in the next version: VGA palette at $810800
+			   8c16h palette at $810C000
+'- mouse pointer sprite     at $811000
+'- text cursor sprite       at $811400
+'- moving ball sprites      at $814000 - 16 kB
+
+
+'- 64 2k slots for samples     $860000-87FFFF
+'- 32 2k slots for envelopes   $888000-88FFFF
+'- Atari Softsynth type wave samples name list - 1k at $8900000
+
+
+CON
+
+  CLK_FREQ = 285_000_000        ' system freq as a constant
+  _clkfreq = CLK_FREQ
+
+  BR_TERM = 230_400             ' terminal baud rate
+
+  FLASH_ADR = $180000
+
+  MAXCHK = 255
+
+
+OBJ
+
+  com : "jm_serial.spin2"
+  spi : "jm_p2_flash.spin2"
+
+
+VAR
+
+  long buffer,b2
+  long flashaddr,f2
+  long map[16*64]
+  byte mapnames[16*16]
+
+PUB main() | i
+  pinl(56)
+  pinl(57)
+  com.start(BR_TERM)
+  spi.start(2000)
+  waitms(2000) ' 2 second pause; allow user to open serial debug terminal
+
+
+repeat i from 0 to $7F
+  com.dec (i)
+  com.tx (" ")
+  flashaddr:=$800000+$1000*i
+  com.hex (flashaddr)
+  com.tx (" ")
+  spi.erase(flashaddr,$20,1)
+  waitms(10)
+
+
+flashaddr:=$F00000
+buffer:=@audio1
+f2:=flashaddr
+b2:=buffer
+repeat 256
+  spi.wr_block (f2,256,b2)
+  waitms(10)
+  buffer+=256
+  flashaddr+=256
+  f2:=flashaddr
+  b2:=buffer
+
+flashaddr:=$F10000
+buffer:=@audio2
+f2:=flashaddr
+b2:=buffer
+repeat 256
+  spi.wr_block (f2,256,b2)
+  waitms(10)
+  buffer+=256
+  flashaddr+=256
+  f2:=flashaddr
+  b2:=buffer
+
+
+flashaddr:=$F20000
+buffer:=@audio3
+f2:=flashaddr
+b2:=buffer
+repeat 256
+  spi.wr_block (f2,256,b2)
+  waitms(10)
+  buffer+=256
+  flashaddr+=256
+  f2:=flashaddr
+  b2:=buffer
+
+flashaddr:=$F30000
+buffer:=@audio4
+f2:=flashaddr
+b2:=buffer
+repeat 256
+  spi.wr_block (f2,256,b2)
+  waitms(10)
+  buffer+=256
+  flashaddr+=256
+  f2:=flashaddr
+  b2:=buffer
+
+flashaddr:=$F40000
+buffer:=@audio5
+f2:=flashaddr
+b2:=buffer
+repeat 256
+  spi.wr_block (f2,256,b2)
+  waitms(10)
+  buffer+=256
+  flashaddr+=256
+  f2:=flashaddr
+  b2:=buffer
+
+
+dat
+
+
+audio1
+       long 31060
+       file "gotowy.pcm"      '31060
+audio2 long 50950
+       file "przeszkoda.pcm"  '50950
+
+audio3 long 29548
+       file "pilot.pcm"       '29548
+
+audio4 long 22270
+       file "bateria.pcm"     '22270
+
+audio5 long 44100
+       file "operator.pcm"    '44100
