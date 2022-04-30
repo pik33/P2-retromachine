@@ -24,7 +24,7 @@ long serialfront,serialtail
 
 long kbdbuf[32]
 long mousebuf[128]
-long midibuf[32]
+long midibuf[128]
 byte serialbuf[32]
 long serialstack[64]
 
@@ -37,6 +37,16 @@ pub start() :cog
 debug(udec(1))
 cog:=cogspin(16,serialcog(),@serialstack)
 return cog
+
+pub readmidi:midi |result
+
+if midifront<>miditail
+  result:=midibuf[miditail]
+  miditail++
+  miditail:= miditail // 128
+else
+  result:=0  
+return result
 
 pub serialcog()| rr, mrr, srr, b, mb, midireport, kbmreport
 
@@ -65,9 +75,9 @@ long[$3C]:=0
 repeat
 
 '  repeat 
-  rr:=rxcheck(rxpin)
+'''  rr:=rxcheck(rxpin)
   mrr:=rxcheck(midiin)
-  srr:=rxcheck(srxpin)
+'''  srr:=rxcheck(srxpin)
 '  if rr<>-1 
 '    debug(udec(rr))
 '  until rr>=0 || mrr>=0  || srr>=0
@@ -83,12 +93,12 @@ repeat
 '$E0-$EF - 3 bytes pitch bend, $2000 - center
 '$F0-$FF - 1 byte
   
-  if srr>=0
+'''  if srr>=0
   
-    if serialfront<>((serialtail-1) //32)
-      serialbuf[serialfront]:=srr
-      serialfront+=1
-      serialfront:=serialfront // 32
+'''    if serialfront<>((serialtail-1) //32)
+ ''''     serialbuf[serialfront]:=srr
+'''      serialfront+=1
+'''      serialfront:=serialfront // 32
     
   if ((mrr>=$80) && (mrr<=$BF)) || ((mrr>=$E0) && (mrr<=$EF)) 
     mb:=2
@@ -110,70 +120,70 @@ repeat
   
   if mb==0
     
-    if midifront<>((miditail-1) //32)
+    if midifront<>((miditail-1) //128)
       midibuf[midifront]:=midireport
       midifront+=1
-      midifront:=midifront // 32
+      midifront:=midifront // 128
     mb:=(-1)
 
 'Keyboard and mouse
 
-  if (rr>=$80) && (rr<>$FF) && (b==(-1))
-    b:=3
-    kbmreport:=rr<<24
-    long[$40]:=rr 
-  elseif (b>0) && (rr>=0)
+''  if (rr>=$80) && (rr<>$FF) && (b==(-1))
+''    b:=3
+''    kbmreport:=rr<<24
+''    long[$40]:=rr 
+''  elseif (b>0) && (rr>=0)
 
-    b--
-    kbmreport+=rr<<(b<<3)  
-    long[$40]:=rr
-  elseif (rr==$FF)
-    long[$40]:=rr
-    b:=0   
+''    b--
+''    kbmreport+=rr<<(b<<3)  
+''    long[$40]:=rr
+''  elseif (rr==$FF)
+''    long[$40]:=rr
+''    b:=0  ' 
 
-  if b==0  
+''  if b==0  
  
-    if (kbmreport +>= $80000000) && (kbmreport +< $87000000)  'mouse
-      if mousefront<>((mousetail-1) //128)
-        mousebuf[mousefront]:=kbmreport
-        mousefront+=1
-        mousefront:=mousefront // 128
-    b:=(-1)
+''    if (kbmreport +>= $80000000) && (kbmreport +< $87000000)  'mouse
+''      if mousefront<>((mousetail-1) //128)
+''        mousebuf[mousefront]:=kbmreport
+''        mousefront+=1
+''        mousefront:=mousefront // 128
+''    b:=(-1)
 
-    if (kbmreport +>= $87000000) && (kbmreport +< $8a000000)  'keyboard
-      if kbdfront<>((kbdtail-1) //32)
-        kbdbuf[kbdfront]:=kbmreport
-        kbdfront+=1
-        kbdfront:=kbdfront // 32
-    b:=(-1)
+''    if (kbmreport +>= $87000000) && (kbmreport +< $8a000000)  'keyboard
+''      if kbdfront<>((kbdtail-1) //32)
+''        kbdbuf[kbdfront]:=kbmreport
+''        kbdfront+=1
+''        kbdfront:=kbdfront // 32
+''    b:=(-1)
 
 
-  if long[$30]==0
-    if kbdfront<>kbdtail
-      long[$30]:=kbdbuf[kbdtail]
-      kbdtail++
-      kbdtail:= kbdtail // 32
+''  if long[$30]==0
+''    if kbdfront<>kbdtail
+''      long[$30]:=kbdbuf[kbdtail]
+''      kbdtail++
+''      kbdtail:= kbdtail // 32
       
-  if long[$34]==0
-    if mousefront<>mousetail
-      long[$34]:=mousebuf[mousetail]
-      mousetail++
-      mousetail:= mousetail // 128
+''  if long[$34]==0
+''    if mousefront<>mousetail
+''      long[$34]:=mousebuf[mousetail]
+''      mousetail++
+''      mousetail:= mousetail // 128
 
       
-  if long[$38]==0
-    if midifront<>miditail
-      long[$38]:=midibuf[miditail]
-      miditail++
-      miditail:= miditail // 32
+'  if long[$38]==0
+'    if midifront<>miditail
+'      long[$38]:=midibuf[miditail]
+'      miditail++
+'      miditail:= miditail // 128
       
-  if long[$3c]==0
-    if serialfront<>serialtail
-      byte[$3c]:=255
-      byte[$3D]:=serialbuf[serialtail]
-      serialtail++
-      serialtail:= serialtail // 32
-      
+''  if long[$3c]==0
+''    if serialfront<>serialtail
+''      byte[$3c]:=255
+''      byte[$3D]:=serialbuf[serialtail]
+''      serialtail++
+''      serialtail:= serialtail // 32
+'      
 
 ''---------------------- Serial functions from jm_serial.spin2, modified
 

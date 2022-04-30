@@ -56,8 +56,8 @@ audio       	org     0
 loop        	mov  	cn,#31              
             	mov  	ls,#0
             	mov  	rs,#0
-            
-p401        	setq    #10                       	' read parameters
+                        
+p401        	setq    #11                       	' read parameters
             	rdlong  pointer0,ptra
             	add     pointer0,freqskip0          	' compute the pointer to the next sample       
             	getword pointer00,pointer0,#1
@@ -65,21 +65,25 @@ p401        	setq    #10                       	' read parameters
            	cmp     pointer00,lend0 wcz
     if_ge   	sub     pointer00,lend0	            
         
-            	mov     qq,pointer00           		' compute place in the memory from where the sample will be loaded
+     
+                    	
+             	mov     qq,pointer00           		' compute place in the memory from where the sample will be loaded
             	add     qq,sstart0         
             	rdlong  spl,qq      
-            	
 
 	    	add     adcptr,adspeed wc
     if_c    	mov     adcptr,affffffff
     if_c    	mov     advalue,#0
+ 
+  
 	   	getbyte qq,adcptr,#3
 	    	add     qq,adpointer 
     if_nc   	rdbyte  advalue,qq
 	    	shl     advalue,#6
-	    	
-	    	
-
+ 
+      	cmp	adcptr,suspoint  wcz
+      if_ge	sub     adcptr,adspeed
+ 
             	shr     pointer00,#1
  	    	setword pointer0,pointer00,#1       
  
@@ -92,12 +96,14 @@ p401        	setq    #10                       	' read parameters
             	sub     spl,ls0
             	add     rs,spl
             	add     ls,ls0
-   
+ 
                	bitl    sstart0, #30 wcz          	' if bit #30 of start pointer is set, the current pointer needs resetting  
     if_z    	mov     pointer0, #0  
     if_z    	mov     adcptr,#0                	' start envelope too
+    if_z	wrlong  sstart0,ptra[4] 
+                
             
-        	setq 	#4                          	' write new pointer and sample value to the hub
+        	setq 	#3                          	' write new pointer and sample value to the hub
             	wrlong  pointer0,ptra
 
            	add 	ptra,#64
@@ -109,7 +115,7 @@ p401        	setq    #10                       	' read parameters
   		waitse1
 
             	wypin   ls,#left       		      	' output the sample     
-            	wypin   rs,#right            
+            	wypin   rs,#right         
 	        sub 	ptra,aptra
                 jmp     #loop            
 
@@ -122,7 +128,7 @@ cn          long 0
 pointer00   long 0
 ls          long 0    
 rs          long 0
-advalue long 0
+advalue     long 0
 
 ' channel parameter block
 
@@ -137,19 +143,12 @@ pan0        long 0
 freqskip0   long 0
 adpointer   long 0
 adspeed     long 0
+suspoint    long 0
+dummy       long 0
 
 ' constants
 
 dac         	long 	%10111_00000000_01_00011_0     'pwm dac
-affffffff   	long 	$FFFFFFFF   
+affffffff   	long 	$FFFF_FFFF   
+a7fffffff   	long 	$7FFF_FFFF   
 aptra	    	long 	4*512
-
-
-spl1 long 0
-spl2 long 0
-aa1 long 0
-aa2 long 0
-a16384 long 16384
-
-t1 long 0
-t2 long 0

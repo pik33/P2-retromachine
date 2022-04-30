@@ -12,9 +12,10 @@ startpsram
 startvideo
 startaudio
 
-dim test as ushort(15)
-for i=0 to 7  : test(i)=$7FFF : next i
-for i=8 to 15 : test(i)=$8001 : next i
+dim midi as ulong
+declare midibytes alias midi as ubyte(3)
+
+
 dim notes(127) as single 
 dim oct(7)
 const c212=1.05946309435929526456
@@ -39,89 +40,51 @@ lpoke 64*i+base+00,0
 lpoke 64*i+base+04,0
 lpoke 64*i+base+08,0
 lpoke 64*i+base+12,0
-lpoke 64*i+base+16,addr(sinus)+16+$C000_0000
+lpoke 64*i+base+16,addr(geige)+16+$4000_0000
 lpoke 64*i+base+20,2048
 lpoke 64*i+base+24,0
 lpoke 64*i+base+28,8192
-lpoke 64*i+base+32,$100
+lpoke 64*i+base+32,$100000
 lpoke 64*i+base+36, addr(percus)+16
-lpoke 64*i+base+40,52209
+lpoke 64*i+base+40,522090
+lpoke 64*i+base+44,$FFFFFFFF
 next i
 
+
+
 dim channelassign(31)
+dim channelnotes(31)
 for i=0 to 31: channelassign(i)=0 : next i
 let kbdpressed=1
 do
 
-if lpeek($38)<>0 then
-  if peek($3b)=$90 then
-  ' find a channel
-  let min=$7FFFFFFF: let minc=0
-  for i=0 to 7
-    if channelassign(i)<min then min=channelassign(i): minc=i
-  next i
-  
-  let skip=round(notes(peek($39))*2*skipv):lpoke base+64*minc+4+08,addr(sinus)+16+$C000_0000:  dpoke base+64*minc+4+26,skip :dpoke base+64*minc+4+20,peek($38)*64
-  channelassign(minc)=kbdpressed: kbdpressed+=1
-   print kbdpressed ,minc,channelassign(0)
-  endif
- lpoke $38,0
-endif
-
-if lpeek($30)<>0 orelse lpeek($3c)<>0 then 
-   
-   if lpeek($30)<>0 then position 2,22 : print hex$(lpeek($30),8) 
-   if lpeek($30)<>0 andalso peek($33)=$88 then let a=peek($31) else let a=0
-   if lpeek($3c)<>0 then let a=peek($3d) 
-
-  if a<>0 then
+' waitms(300): let midi=$90003A10
+let midi=rm.readmidi(): position 2,17: if midi<>0 then print " ", hex$(midi,8),
+let b3=midibytes(3): let b0=midibytes(0): let b1=midibytes(1) : let b2=midibytes(2)
+if b3=$90 then
   let min=$7FFFFFFF: let minc=0
   for i=0 to 31
-    if channelassign(i)<min then min=channelassign(i): minc=i
+    if channelassign(i)<min then min=channelassign(i): minc=i 
   next i
-
-
-
-  if a=$7A then let skip=round(notes(60)*skipv):lpoke base+64*minc+16,addr(geige)+16+$C000_0000:  lpoke base+64*minc+32,skip : lpoke base+64*minc+24,8192
-  if a=$78 then let skip=round(notes(62)*skipv):lpoke base+64*minc+16,addr(geige)+16+$C000_0000:  lpoke base+64*minc+32,skip : lpoke base+64*minc+24,8192
-  if a=$63 then let skip=round(notes(64)*skipv):lpoke base+64*minc+16,addr(geige)+16+$C000_0000:  lpoke base+64*minc+32,skip : lpoke base+64*minc+24,8192
-  if a=$76 then let skip=round(notes(65)*skipv):lpoke base+64*minc+16,addr(geige)+16+$C000_0000:  lpoke base+64*minc+32,skip : lpoke base+64*minc+24,8192
-  if a=$62 then let skip=round(notes(67)*skipv):lpoke base+64*minc+16,addr(geige)+16+$C000_0000:  lpoke base+64*minc+32,skip : lpoke base+64*minc+24,8192
-  if a=$6e then let skip=round(notes(69)*skipv):lpoke base+64*minc+16,addr(geige)+16+$C000_0000:  lpoke base+64*minc+32,skip : lpoke base+64*minc+24,8192
-  if a=$6d then let skip=round(notes(71)*skipv):lpoke base+64*minc+16,addr(geige)+16+$C000_0000:  lpoke base+64*minc+32,skip : lpoke base+64*minc+24,8192 
-  if a=$2c then let skip=round(notes(72)*skipv):lpoke base+64*minc+16,addr(geige)+16+$C000_0000:  lpoke base+64*minc+32,skip : lpoke base+64*minc+24,8192
- 
-
-    channelassign(minc)=kbdpressed: kbdpressed+=1
-    print a, kbdpressed ,minc,channelassign(0)
-  endif
-   
-position 2,27 : print hex$(lpeek($3c),8) : lpoke $30,0 : lpoke $3c,0: 
-a=0
-
+  channelnotes(minc)=b1
+  let skip=round(notes(b1)*skipv) : lpoke base+64*minc+32,skip :lpoke base+64*minc+24,b0*64 : lpoke base+64*minc+44,$e0000000 : lpoke 64*minc+base+40,52209
+  lpoke base+64*minc+16,addr(geige)+16+$4000_0000
+  waitms(1)
+  channelassign(minc)=kbdpressed: kbdpressed+=1
+  b3=0
 endif
-
-
-'if lpeek($34)<>0 then position 2,2 : print hex$(lpeek($34),8) : lpoke $34,0
-if lpeek($38)<>0 then position 2,13 : print hex$(lpeek($38),8) : lpoke $38,0
-'if lpeek($3c)<>0 then position 2,4 : print hex$(lpeek($3c),8) : lpoke $3c,0
-position 2,15: print hex$(lpeek(base+8),8), decuns$(lpeek($70),8)
+if b3=$80 orelse (b3=$90 andalso b0=0) then
+  for i=0 to 31
+    if channelnotes(i)=b1 then lpoke base+64*i+44,$FFFFFFFF
+  next i  
+  b3=0
+ 
+  
+endif
+print hex$(lpeek(base+64*minc+12),8)
 loop
 
-'channel+0  long current spl pointer
-'channel+4  long sample
-'channel+8  long sample start 
-'channel+12 long loop start
-'channel+16 long loop end
-'channel+20 word volume
-'channel+22 word pan
-'channel+24 word synthfreq
-'channel+26 word skip
-'channel+28 long reserved
 
-
-sub play(note,wave,adsr)
-end sub
 
 
 
