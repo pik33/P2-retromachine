@@ -2,12 +2,8 @@ const _clkfreq = 336956522
 
 dim v as class using "hg007e.spin2"
 dim rm as class using "retrocog.spin2"
-'dim tracker as class using "trackerplayer.spin2"
 dim audio as class using "audio-as003.spin2"
-'dim sid as class using "sidcog8.spin2"
 dim psram as class using "psram4.spin2"
-'dim spc as class using "spccog.spin2"
-'dim a6502 as class using "a6502-1.spin2"
 #include "dir.bi"
 
 dim audiocog,videocog as integer
@@ -49,11 +45,6 @@ end function
 'end function
 
 #define startmachine rm.start
-#define plot v.plot1
-
-'sub putpixel(x,y,c)
-'v030.putpixel8(x,y,c)
-'end sub
 
 function peek(addr) as ubyte
 dim r as ubyte
@@ -62,8 +53,6 @@ rdbyte r,addr
 end asm
 return r
 end function
-
-
 
 function dpeek(addr) as ushort
 dim r as ushort
@@ -120,7 +109,6 @@ return res
 end function
 
 function addr(byref v as const any) as ulong
-
 return(cast(ulong,@v))
 end function
 

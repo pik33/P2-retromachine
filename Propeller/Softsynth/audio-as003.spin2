@@ -65,24 +65,27 @@ p401        	setq    #11                       	' read parameters
            	cmp     pointer00,lend0 wcz
     if_ge   	sub     pointer00,lend0	            
         
-     
-                    	
              	mov     qq,pointer00           		' compute place in the memory from where the sample will be loaded
             	add     qq,sstart0         
-            	rdlong  spl,qq      
-
-	    	add     adcptr,adspeed wc
+            	rdlong  spl,qq     
+  
+           	cmp     suspoint,#0 wcz
+     if_z       jmp #p403 
+ 		cmp	adcptr, suspoint  wcz
+     if_ge	jmp #p402
+      
+p403	    	add     adcptr,adspeed wc
     if_c    	mov     adcptr,affffffff
     if_c    	mov     advalue,#0
  
   
-	   	getbyte qq,adcptr,#3
+p402	   	getbyte qq,adcptr,#3
 	    	add     qq,adpointer 
     if_nc   	rdbyte  advalue,qq
 	    	shl     advalue,#6
  
-      	cmp	adcptr,suspoint  wcz
-      if_ge	sub     adcptr,adspeed
+
+
  
             	shr     pointer00,#1
  	    	setword pointer0,pointer00,#1       
@@ -111,9 +114,12 @@ p401        	setq    #11                       	' read parameters
 
 	   	bitnot  ls,#15                		' convert to unsigned. 
 	   	bitnot  rs,#15		  
+ getct t2
+ sub t2,t1
+ wrlong t2,#$40
 
   		waitse1
-
+ getct t1
             	wypin   ls,#left       		      	' output the sample     
             	wypin   rs,#right         
 	        sub 	ptra,aptra
@@ -152,3 +158,6 @@ dac         	long 	%10111_00000000_01_00011_0     'pwm dac
 affffffff   	long 	$FFFF_FFFF   
 a7fffffff   	long 	$7FFF_FFFF   
 aptra	    	long 	4*512
+
+t1 long 0
+t2 long 0

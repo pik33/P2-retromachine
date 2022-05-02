@@ -67,10 +67,10 @@ midifront:=0
 miditail:=0
 serialfront:=0
 serialtail:=0
-long[$30]:=0
-long[$34]:=0
-long[$38]:=0
-long[$3C]:=0
+'long[$30]:=0
+'long[$34]:=0
+'long[$38]:=0
+'long[$3C]:=0
 
 repeat
 
