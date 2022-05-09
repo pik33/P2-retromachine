@@ -1,0 +1,221 @@
+' A retromachine cog
+' The purpose: to read/send and process data from RPi and Midi Shield
+' v. 0.01 pik33@o2.pl
+'
+con
+
+
+rxpin=32
+txpin=33
+midiin=29
+midiout=30
+srxpin=63
+stxpin=62
+baudrate=1920000
+mbaudrate=31250
+sbaudrate=2000000
+
+var
+
+long kbdfront,kbdtail
+long mousefront,mousetail
+long midifront,miditail
+long serialfront,serialtail
+
+long kbdbuf[32]
+long mousebuf[128]
+long midibuf[128]
+byte serialbuf[32]
+long serialstack[64]
+
+pub dummy()
+
+repeat
+'this is the object and not a program
+
+pub start() :cog
+debug(udec(1))
+cog:=cogspin(16,serialcog(),@serialstack)
+return cog
+
+pub readmidi:midi |result
+
+if midifront<>miditail
+  result:=midibuf[miditail]
+  miditail++
+  miditail:= miditail // 128
+else
+  result:=0  
+return result
+
+pub serialcog()| rr, mrr, srr, b, mb, midireport, kbmreport
+
+'start serial and midi
+
+serial_start(rxpin, txpin, baudrate)
+serial_start(midiin,midiout,mbaudrate)
+serial_start(srxpin,stxpin,sbaudrate)
+
+mb:=(-1)
+b:=(-1)
+
+mousefront:=0
+mousetail:=0
+kbdfront:=0
+kbdtail:=0
+midifront:=0
+miditail:=0
+serialfront:=0
+serialtail:=0
+'long[$30]:=0
+'long[$34]:=0
+'long[$38]:=0
+'long[$3C]:=0
+
+repeat
+
+'  repeat 
+'''  rr:=rxcheck(rxpin)
+  mrr:=rxcheck(midiin)
+'''  srr:=rxcheck(srxpin)
+'  if rr<>-1 
+'    debug(udec(rr))
+'  until rr>=0 || mrr>=0  || srr>=0
+
+  
+' midi. Must be >= $80 for a command
+'$80-$8F - 3 bytes note off. note, velocity
+'$90-$9F - 3 bytes note on, note, velocity
+'$A0-$AF - 3 bytes poly aftertouch. note, value
+'$B0-$BF - 3 bytes control change, controller-value, 
+'$C0-$CF - 2 bytes program change
+'$D0-$DF - 2 bytes mono aftertouch
+'$E0-$EF - 3 bytes pitch bend, $2000 - center
+'$F0-$FF - 1 byte
+  
+'''  if srr>=0
+  
+'''    if serialfront<>((serialtail-1) //32)
+ ''''     serialbuf[serialfront]:=srr
+'''      serialfront+=1
+'''      serialfront:=serialfront // 32
+    
+  if ((mrr>=$80) && (mrr<=$BF)) || ((mrr>=$E0) && (mrr<=$EF)) 
+    mb:=2
+    midireport:=mrr<<24
+
+  if (mrr>=$C0) && (mrr<=$DF)
+    mb:=1
+    midireport:=mrr<<24
+  
+  if (mrr>=$F0) 'TODO: do something with SYSEX, now a workaround for Novation Impulse
+    mb:=4
+    midireport:=mrr<<24  
+  
+  if (mrr<$80) && (mb>0) && (mrr>=0)
+    
+    mb--
+    if mb<3
+      midireport+=mrr<<(mb<<3)
+  
+  if mb==0
+    
+    if midifront<>((miditail-1) //128)
+      midibuf[midifront]:=midireport
+      midifront+=1
+      midifront:=midifront // 128
+    mb:=(-1)
+
+'Keyboard and mouse
+
+''  if (rr>=$80) && (rr<>$FF) && (b==(-1))
+''    b:=3
+''    kbmreport:=rr<<24
+''    long[$40]:=rr 
+''  elseif (b>0) && (rr>=0)
+
+''    b--
+''    kbmreport+=rr<<(b<<3)  
+''    long[$40]:=rr
+''  elseif (rr==$FF)
+''    long[$40]:=rr
+''    b:=0  ' 
+
+''  if b==0  
+ 
+''    if (kbmreport +>= $80000000) && (kbmreport +< $87000000)  'mouse
+''      if mousefront<>((mousetail-1) //128)
+''        mousebuf[mousefront]:=kbmreport
+''        mousefront+=1
+''        mousefront:=mousefront // 128
+''    b:=(-1)
+
+''    if (kbmreport +>= $87000000) && (kbmreport +< $8a000000)  'keyboard
+''      if kbdfront<>((kbdtail-1) //32)
+''        kbdbuf[kbdfront]:=kbmreport
+''        kbdfront+=1
+''        kbdfront:=kbdfront // 32
+''    b:=(-1)
+
+
+''  if long[$30]==0
+''    if kbdfront<>kbdtail
+''      long[$30]:=kbdbuf[kbdtail]
+''      kbdtail++
+''      kbdtail:= kbdtail // 32
+      
+''  if long[$34]==0
+''    if mousefront<>mousetail
+''      long[$34]:=mousebuf[mousetail]
+''      mousetail++
+''      mousetail:= mousetail // 128
+
+      
+'  if long[$38]==0
+'    if midifront<>miditail
+'      long[$38]:=midibuf[miditail]
+'      miditail++
+'      miditail:= miditail // 128
+      
+''  if long[$3c]==0
+''    if serialfront<>serialtail
+''      byte[$3c]:=255
+''      byte[$3D]:=serialbuf[serialtail]
+''      serialtail++
+''      serialtail:= serialtail // 32
+'      
+
+''---------------------- Serial functions from jm_serial.spin2, modified
+
+pub serial_start(rxpin, txpin, baud) | bitmode
+
+bitmode := muldiv64(clkfreq, $1_0000, baud) & $FFFFFC00       ' set bit timing
+bitmode |= 7                                                  ' set bits (8)
+pinstart(rxpin,P_HIGH_15K|P_ASYNC_RX,bitmode,0)
+pinstart(txpin,P_ASYNC_TX|P_OE,bitmode,0)
+pinhigh(rxpin)
+
+pub rxcheck(pin) : rxbyte | check
+
+'' Check for serial input
+'' -- returns -1 if nothing available
+
+  rxbyte := -1
+  check := pinr(pin)
+  if (check)
+    rxbyte := rdpin(pin) >> 24
+
+pub tx(pin,b)
+
+'' Emit byte
+
+  wypin(pin, b)
+  txflush(pin)
+
+pub txflush(pin) | check
+
+'' Wait until last byte has finished
+
+  repeat
+    check := pinr(pin)
+  while (check == 0)

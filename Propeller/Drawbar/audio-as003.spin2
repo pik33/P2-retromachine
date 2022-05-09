@@ -1,0 +1,163 @@
+' An Atari Softsynth inspired sample based synthesizer/audio driver for a P2
+' v. 0.02 beta - 20220427
+' MIT license
+' Piotr Kardasz pik33@o2.pl with the help from P2 forum community :) 
+' 32 channel version
+'-------------------------------------------------------------------------------------
+
+'Channel registers:
+'long #0:  the sample phase accumulator
+'long #1:  the left current sample generated
+'long #2:  the right sample
+'long #3:  envelope phase accumulator
+'long #4:  the sample pointer, bit #30 resets envelope and sample PAs
+'long #6:  sample length in bytes
+'long #7:  volume 0..16384
+'long #8:  pan 0..16384, 16384: full left, 8192: center, 0: full right
+'long #9:  frequency, 1 Hz=815.7667
+'long #10: the envelope definition pointer, 256 bytes
+'long #11: the envelope speed, 52209= 1s (104418 = 0.5 s, 26105=2s, etc.)
+'------------------------------------------------------------------------------------
+'sample rate=82264.7759 at 336_956_522 Hz CPU clock = clock/4096
+
+
+con
+
+left= 8
+right=9
+
+var
+
+long channel1[32*16]
+
+'------------------- Start the driver --------------------------------------------
+
+pub start() :cog,base 
+
+base:=@channel1[0]
+cog:=coginit(16,@audio,base)
+waitms(100)
+return cog,base
+
+'------------------ PASM driver code --------------------------------------------
+
+dat
+
+audio       	org     0
+            	wrpin   dac,#left           
+            	wxpin   ##4096,#left    	 
+            	wrpin   dac,#right
+            	wxpin   ##4096,#right    
+            	dirh    #left addpins 1
+            	setse1  #%001<<6 + left      		' Set the event - DAC empty
+       
+'----------------- The main loop -------------------------------------------------
+
+loop        	mov  	cn,#31              
+            	mov  	ls,#0
+            	mov  	rs,#0
+                        
+p401        	setq    #11                       	' read parameters
+            	rdlong  pointer0,ptra
+            	add     pointer0,freqskip0          	' compute the pointer to the next sample       
+            	getword pointer00,pointer0,#1
+            	shl     pointer00,#1        
+           	cmp     pointer00,lend0 wcz
+    if_ge   	sub     pointer00,lend0	            
+        
+             	mov     qq,pointer00           		' compute place in the memory from where the sample will be loaded
+            	add     qq,sstart0         
+            	rdlong  spl,qq     
+  
+           	cmp     suspoint,#0 wcz
+     if_z       jmp #p403 
+ 		cmp	adcptr, suspoint  wcz
+     if_ge	jmp #p402
+      
+p403	    	add     adcptr,adspeed wc
+    if_c    	mov     adcptr,affffffff
+    if_c    	mov     advalue,#0
+ 
+  
+p402	   	getbyte qq,adcptr,#3
+	    	add     qq,adpointer 
+    if_nc   	rdbyte  advalue,qq
+	    	shl     advalue,#6
+ 
+
+
+ 
+            	shr     pointer00,#1
+ 	    	setword pointer0,pointer00,#1       
+ 
+        	scas    advalue,vol0
+            	scas    spl,0-0                  	' apply volume
+            	mov     spl,0-0
+ 
+            	scas    spl,pan0                 	' apply pan
+            	mov     ls0,0-0
+            	sub     spl,ls0
+            	add     rs,spl
+            	add     ls,ls0
+ 
+               	bitl    sstart0, #30 wcz          	' if bit #30 of start pointer is set, the current pointer needs resetting  
+    if_z    	mov     pointer0, #0  
+    if_z    	mov     adcptr,#0                	' start envelope too
+    if_z	wrlong  sstart0,ptra[4] 
+                
+            
+        	setq 	#3                          	' write new pointer and sample value to the hub
+            	wrlong  pointer0,ptra
+
+           	add 	ptra,#64
+            	djnf    cn,#p401 
+
+	   	bitnot  ls,#15                		' convert to unsigned. 
+	   	bitnot  rs,#15		  
+ getct t2
+ sub t2,t1
+ wrlong t2,#$40
+
+  		waitse1
+ getct t1
+            	wypin   ls,#left       		      	' output the sample     
+            	wypin   rs,#right         
+	        sub 	ptra,aptra
+                jmp     #loop            
+
+
+' temporary variables 
+
+qq          long 0
+spl         long 0
+cn          long 0
+pointer00   long 0
+ls          long 0    
+rs          long 0
+advalue     long 0
+
+' channel parameter block
+
+pointer0    long 0      
+ls0         long 0
+rs0         long 0
+adcptr	    long 0
+sstart0     long 0     ' start pointer and type at bit 31
+lend0       long 0
+vol0        long 0
+pan0        long 0
+freqskip0   long 0
+adpointer   long 0
+adspeed     long 0
+suspoint    long 0
+dummy       long 0
+
+' constants
+
+dac         	long 	%10111_00000000_01_00011_0     'pwm dac
+affffffff   	long 	$FFFF_FFFF   
+a7fffffff   	long 	$7FFF_FFFF   
+aptra	    	long 	4*512
+
+t1 long 0
+t2 long 0
