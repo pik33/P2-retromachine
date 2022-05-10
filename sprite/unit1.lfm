@@ -1,34 +1,44 @@
 object Form1: TForm1
   Left = 1002
-  Height = 812
+  Height = 905
   Top = 363
-  Width = 1106
+  Width = 1233
   Caption = 'Form1'
-  ClientHeight = 812
-  ClientWidth = 1106
-  LCLVersion = '2.0.6.0'
+  ClientHeight = 905
+  ClientWidth = 1233
+  DesignTimePPI = 107
+  LCLVersion = '2.2.0.4'
   object Image1: TImage
-    Left = 48
-    Height = 584
-    Top = 40
-    Width = 880
+    Left = 54
+    Height = 651
+    Top = 45
+    Width = 981
   end
   object BitBtn1: TBitBtn
-    Left = 146
-    Height = 30
-    Top = 682
-    Width = 75
+    Left = 163
+    Height = 33
+    Top = 760
+    Width = 84
     Caption = 'BitBtn1'
     OnClick = BitBtn1Click
     TabOrder = 0
   end
   object Button1: TButton
-    Left = 271
-    Height = 25
-    Top = 687
-    Width = 75
+    Left = 302
+    Height = 28
+    Top = 766
+    Width = 84
     Caption = 'Button1'
     OnClick = Button1Click
     TabOrder = 1
+  end
+  object Button2: TButton
+    Left = 432
+    Height = 28
+    Top = 765
+    Width = 84
+    Caption = 'Button2'
+    OnClick = Button2Click
+    TabOrder = 2
   end
 end

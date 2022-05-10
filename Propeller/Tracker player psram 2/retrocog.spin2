@@ -24,7 +24,7 @@ long serialfront,serialtail
 
 long kbdbuf[32]
 long mousebuf[128]
-long midibuf[32]
+long midibuf[128]
 byte serialbuf[32]
 long serialstack[64]
 
@@ -37,6 +37,27 @@ pub start() :cog
 debug(udec(1))
 cog:=cogspin(16,serialcog(),@serialstack)
 return cog
+
+pub readmidi:midi |result
+
+if midifront<>miditail
+  result:=midibuf[miditail]
+  miditail++
+  miditail:= miditail // 128
+else
+  result:=0  
+return result
+
+pub readmouse:mouse |result
+
+if mousefront<>mousetail
+  result:=mousebuf[mousetail]
+  mousetail++
+  mousetail:= mousetail // 128
+else
+  result:=0  
+return result
+
 
 pub serialcog()| rr, mrr, srr, b, mb, midireport, kbmreport
 
@@ -110,10 +131,10 @@ repeat
   
   if mb==0
     
-    if midifront<>((miditail-1) //32)
+    if midifront<>((miditail-1) //128)
       midibuf[midifront]:=midireport
       midifront+=1
-      midifront:=midifront // 32
+      midifront:=midifront // 128
     mb:=(-1)
 
 'Keyboard and mouse
@@ -154,18 +175,18 @@ repeat
       kbdtail++
       kbdtail:= kbdtail // 32
       
-  if long[$34]==0
-    if mousefront<>mousetail
-      long[$34]:=mousebuf[mousetail]
-      mousetail++
-      mousetail:= mousetail // 128
+' if long[$34]==0
+'    if mousefront<>mousetail
+'      long[$34]:=mousebuf[mousetail]
+'      mousetail++
+'      mousetail:= mousetail // 128
 
       
-  if long[$38]==0
-    if midifront<>miditail
-      long[$38]:=midibuf[miditail]
-      miditail++
-      miditail:= miditail // 32
+'  if long[$38]==0
+'    if midifront<>miditail
+'      long[$38]:=midibuf[miditail]
+'      miditail++
+'      miditail:= miditail // 32
       
   if long[$3c]==0
     if serialfront<>serialtail
