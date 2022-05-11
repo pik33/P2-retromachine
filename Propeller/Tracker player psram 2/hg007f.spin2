@@ -147,7 +147,6 @@ long mailbox_ptr       'PSRAM mailbox pointer. If zero, no PSRAM
 long sprite_ptr
 
 
-
 '---------- Variables. Todo: check if all of these are still needed in the current version of the driver
 
 long cog               'driver cog#
@@ -1321,72 +1320,73 @@ preload2        ret 'todo
                 setnib  cmd, #%1011, #7                    ' attach the command - read burst from the external memory
                 setq    #2				   ' write 3 longs to the mailbox
                 poll1       rdlong  cmd, mailbox                ' poll mailbox for result
-            tjs     cmd, #poll1                 ' retry until valid 
-         wrlong  cmd,mailbox			   ' read the PSRAM
-          cmp preloadlineaddr, a1024 wcz
+            	tjs     cmd, #poll1                 ' retry until valid 
+         	wrlong  cmd,mailbox			   ' read the PSRAM
+          	cmp preloadlineaddr, a1024 wcz
           
-         if_ge incmod  dlinum,#3
-              ret
+         	if_ge incmod  dlinum,#3
+              	ret
  
 '' -------------- Draw sprites
 
-sprite          mov      spritenum,#15			   ' 16 sprites. Todo: this should be a parameter
+sprite          mov     spritenum,#15			' 16 sprites. Todo: this should be a parameter
 
-p802            mov     t2,linenum
-                mov     t5,spritenum			   ' prepare a pointer to load sprite data
-                mul     t5,#3          
+p802            mov     t5,spritenum		   	' prepare a pointer to load sprite data
+                mul     t5,#3          			' one sprite data set needs 3 longs
                 alts    t5,#sprite1xy
-                getword sprite_y,0-0,#1		           ' get a sprite y
+                getword sprite_y,0-0,#1		        ' get a sprite y
                 alts    t5,#sprite1xy
-                getword sprite_x,0-0,#0                    ' and x
+                getword sprite_x,0-0,#0                 ' and x
                 alts    t5,#sprite1wh
-                getword sprite_h,0-0,#1		           ' get a sprite y
+                getword sprite_h,0-0,#1		       	' get a sprite height
+                sub     sprite_h,#1
                 alts    t5,#sprite1wh
-                getword sprite_w,0-0,#0                    ' and x
-           
-           
-          '      debug(udec(sprite_y))
-		subs    t2,sprite_y wcz                    ' check if the sprite has to be displayed
+                getword sprite_w,0-0,#0                 ' and width
+
+  		mov     t2,linenum			' display line # to check if sprite has to be displayed
+  		subs    t2,sprite_y wcz                 ' check if the sprite has to be displayed
+      if_c      jmp     #p801				' if not, go out
+                cmp     t2,sprite_h wcz		    	' we have now the sprite line #, check, if it is not >= sprite height
+      if_gt     jmp     #p801				' if yes, go out
+                mov     t3,spriteline			' compute the line buffer addres where to put the sprite line
+                shl     t3,#10			       	' =1024*spriteline where spriteline=0..3		' 
+                add     t3,buf1d			' line buffer addr
+                add     t3,sprite_x   			' add xpos - now we have the address to where wmlong the sprite
+
+                mul 	t2,sprite_w			' compute the offset to the sprite line data
+                alts    t5,#sprite1pointer		' get the pointer to the sprite (3 longs per sprite data)
+                add     t2,0-0				' then add the offset
+
+		mov 	t7,a1023			' mask last part of the sprite if it gets out of the line
+		sub 	t7,sprite_x  			' compute how many bytes to mask
+ 	'	and     t7,#511				' up to 512 pixels pre sprite, avoid overwriting HW regs with [t7]
+		fges t7,#0
+		fle t7,##512
+		mov 	t9,#0				' compute how many pixels to mask in the last long
+		sub 	t9,t7
+		and 	t9,#3
+
+		mul     t9,#8				' compute the mask
+		mov     t8,affffffff
+		shr     t8,t9
 		
-      if_c      jmp     #p801				   ' if not, go out
-                cmp     t2,sprite_h wcz			   ' we have now the sprite line #, check, if not >=63 (64 lines for sprite)
-      if_gt     jmp     #p801
-                mov     t3,spriteline			   ' compute the line buffer addres where to put the sprite line
-                shl     t3,#10
-                add     t3,buf1d
-                add     t3,sprite_x   
-
-                alts    t5,#sprite1pointer
-                mov     t4,0-0
-                mov t6,sprite_w
-                add t6,#1
-
-                mul     t2,t6
-                add     t4,t2
-		mov 	t7,a1024
-		sub 	t7,sprite_x  ' todo: mask the last long of the sprite
-'mov t8,t7
-'and t8,#3
-'mul t8,#8
-'mov t9,affffffff
-
-
-		shr 	t7,#2
-
+		shr 	t7,#2				' get the max longs to move if the sprite is at the edge 
 		mov 	t6,sprite_w
+		sub     t6,#1				' longs to move for the full sprite width, -1 (setq adds 1)
 		shr 	t6,#2
-		fle	t6,t7
+		fle	t6,t7				' if the sprite is on the edge, t7 is the limit 
 
-                setq2   t6
-                rdlong  384,t4
-                
+                setq   	t6
+                rdlong  368,t2				' read sprite data to the cog
  
+		altd 	t7,#368				' mask the last long if needed
+                and 	0-0,t8
                 
-                setq2   t6
-                wmlong  384,t3
+                setq   t6				' write the sprite data to the line buffer
+                wmlong  368,t3
                 
-p801            djnf spritenum,#p802
-                incmod spriteline,#3
+p801            djnf spritenum,#p802			' get the next sprite
+                incmod spriteline,#3			' prepare to fill the next line
                 ret
                 
  
@@ -1515,7 +1515,10 @@ sprite_h long 64
 t5 long 0
 t6 long 0
 t7 long 0
-
+t8 long 0
+t9 long 0
 preloadaddr long 0
 preloadlineaddr long 0
 a1024 long 1024
+a1023 long 1023
+ fit 368

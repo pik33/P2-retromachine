@@ -46,12 +46,54 @@
 
 ' ------------------------ Constant and addresses -------------------------------------------------------------
 
-const HEAPSIZE = 8192
+const HEAPSIZE = 16384
 const version$="Prop2play v.0.29"
 const statusline$=" Propeller2 multiformat player v. 0.29 --- 2022.05.10 --- pik33@o2.pl --- use a serial terminal or a RPi KBM interface to control --- arrows up,down move - pgup/pgdn or w/s move 10 positions - enter selects - tab switches panels - +,- controls volume - 1..4 switch channels on/off - 5,6 stereo separation - 7,8,9 sample rate - a,d SID speed - x,z SID subtune - R rescans current directory ------"
 const hubset338=%1_111011__11_1111_0111__1111_1011 '338_666_667 =30*44100 
 const hubset336=%1_101101__11_0000_0110__1111_1011 '336_956_522 =paula*95
 const scope_ptr=$75A00
+
+const  dirpanelx1=  5,  dirpanely1=60,  dirpanelx2=357,  dirpanely2=235
+const filepanelx1=363, filepanely1=60, filepanelx2=719, filepanely2=403
+
+/'
+v.frame(4,408,524,555,15)							' clear the panel
+v.box(5,409,523,427,188)							' clear the panel
+v.box(5,428,523,554,177)							' clear the panel
+v.outtextxycf(12,410,"Osciloscope",0)
+
+v.frame(528,408,720,555,15)							' clear the panel
+v.box(529,409,719,427,26)							' clear the panel
+v.box(529,428,719,554,16)							' clear the panel
+v.outtextxycf(536,410,"Visualization",0)
+
+v.frame(724,408,1019,555,15)							' clear the panel
+v.box(725,409,1018,427,170)							' clear the panel
+v.box(725,428,1018,554,162)
+v.outtextxycf(732,410,"Channels",0)
+
+v.frame(724,40,1019,404,15)							' clear the panel
+v.box(725,41,1018,59,154)
+v.box(725,60,1018,403,147)
+v.outtextxycf(732,43,"File info",0)
+
+v.frame(362,40,720,404,15)							' clear the panel
+v.box(363,41,719,59,40)							' clear the panel
+v.box(363,60,719,403,34)							' clear the panel
+v.outtextxycf(370,43,"Files",0)
+
+
+v.frame(4,240,358,324,15)							' clear the panel
+v.box(5,241,357,259,232)							' clear the panel
+v.box(5,260,357,323,225)							' clear the panel
+v.outtextxycf(12,243,"Now playing",0)
+
+v.frame(4,328,358,404,15)							' clear the panel
+v.box(5,329,357,347,122)							' clear the panel
+v.box(5,348,357,403,114)							' clear the panel
+v.outtextxycf(12,331,"Status",0)
+'/
+
 declare a6502buf alias $64000 as ubyte($10FFF) '64000 doesnt work, why?
 declare mainstack alias $75000 as ubyte(2559)
 declare filebuf alias $76400 as ubyte(16383)
@@ -148,16 +190,16 @@ v.spr3ptr=@balls3
 v.spr4ptr=@balls4
 v.spr16ptr=@mouse
 
-v.spr1h=31
-v.spr1w=31
-v.spr2h=31
-v.spr2w=31
-v.spr3h=31
-v.spr3w=31
-v.spr4h=31
-v.spr4w=31
-v.spr16h=31
-v.spr16w=31
+v.spr1h=32
+v.spr1w=32
+v.spr2h=32
+v.spr2w=32
+v.spr3h=32
+v.spr3w=32
+v.spr4h=32
+v.spr4w=32
+v.spr16h=32
+v.spr16w=32
 v.spr16x=512
 v.spr16y=288
 
@@ -168,13 +210,15 @@ do
     let mouse1=rm.readmouse()
     if mouse2(3)=$81 then mousex=mouse2(2)+128*mouse2(1)
     if mouse2(3)=$82 then mousey=mouse2(2)+128*mouse2(1)
-    if mousex<1023 then v.spr16x=mousex else v.spr16x=1022
-    if mousey<575  then v.spr16y=mousey else v.spr16y=574
+    if mousex<1022 then v.spr16x=mousex else v.spr16x=1022
+    if mousey<574  then v.spr16y=mousey else v.spr16y=574
     if mouse2(3)=$85 then mouseclick=1
     if mouse2(3)=$86 then mouseclick=2
+    if mouse2(3)=$83 andalso mouse2(2)=1   then mousewheel=-1 
+    if mouse2(3)=$83 andalso mouse2(2)=$7F then mousewheel=1 
+    
   loop until mouse1=0  
-  waitvbl  
-											 ' synchronize with vblanks
+  waitvbl  							  	                        ' synchronize with vblanks
   if modplaying=0 then framenum+=1 : scrollstatus((framenum) mod (8*sl))                        ' if not playing module let main loop scroll the status line
   if dmpplaying or modplaying or sidplaying then displaysamples
   if modplaying=1 then scrollinfo
@@ -194,6 +238,57 @@ do
   if waveplaying=1 then time2=(wavepos)/3528
   if (dmpplaying=1) or (sidplaying=1) then time2=sidtime/200
   position 2*15,19: v.write(v.inttostr2(time2/180000,2)): v.write(":"):v.write(v.inttostr2((time2 mod 180000)/3000,2)):v.write(":"):v.write(v.inttostr2((time2 mod 3000)/50,2)):v.write(":"):v.write(v.inttostr2((time2 mod 50),2))
+
+'' ----------------------------- Mouse reaction
+
+  if mousex>dirpanelx1 andalso mousex<dirpanelx2 andalso mousey>dirpanely1 andalso mousey<dirpanely2 andalso mouseclick>0 then ' clicked on dir panel
+
+    if panel=1 then highlight(panel,filenum1,0)
+    panel=0
+    olddirnum1=dirnum1											' remember the current position
+    let delta=dirnum2-dirnum1
+    dirnum1=(mousey-63) /16										' highlighting point
+    dirnum2=delta+(mousey-63) /16									        ' file point
+    if dirnum2>=dirnum3 then dirnum2=dirnum3-1            						' dirnum2 has to be less than all directoriess count
+    if dirnum1>=dirnum3 then dirnum1=dirnum3-1 ': goto 199 						' dirnum1 has to be less than all directories count. If it is, nothing more to do, go to the end of this part     
+    highlight(0,olddirnum1,0) : highlight(0,dirnum1,1)                ' only highlight changed, change the highlighted entry and go away
+    if mouseclick=2 then ansibuf(3)=13: mouseclick=0: goto 412
+    mouseclick=0
+  endif  
+
+
+  if mousex>filepanelx1 andalso mousex<filepanelx2 andalso mousey>filepanely1 andalso mousey<filepanely2 andalso mouseclick>0 then ' clicked on file panel
+
+    if panel=0 then highlight(panel,dirnum1,0)
+    panel=1
+    oldfilenum1=filenum1
+       let delta=filenum2-filenum1
+										' remember the current position
+    filenum1=(mousey-63) /16										' highlighting point
+    filenum2=delta+(mousey-63) /16									        ' file point
+    if filenum2>=filenum3 then filenum2=filenum3-1            						' dirnum2 has to be less than all directoriess count
+    if filenum1>=filenum3 then filenum1=filenum3-1 ': goto 199 						' dirnum1 has to be less than all directories count. If it is, nothing more to do, go to the end of this part     
+    highlight(1,oldfilenum1,0) : highlight(1,filenum1,1)                ' only highlight changed, change the highlighted entry and go away
+    if mouseclick=2 then ansibuf(3)=13: mouseclick=0: goto 412
+    mouseclick=0
+  endif  
+
+  if mousex>dirpanelx1 andalso mousex<dirpanelx2 andalso mousey>dirpanely1 andalso mousey<dirpanely2 andalso mousewheel>0 then ' clicked on dir panel
+    if panel=1 then 
+      highlight(panel,filenum1,0)
+      panel=0
+      highlight(0,dirnum1,1)
+    endif
+  endif  
+
+  
+  if mousex>filepanelx1 andalso mousex<filepanelx2 andalso mousey>filepanely1 andalso mousey<filepanely2 andalso mousewheel>0 then ' clicked on dir panel
+    if panel=0 then 
+      highlight(panel,dirnum1,0)
+      panel=1
+      highlight(1,filenum1,1) 
+    endif
+  endif  
 
 '' ----------------------------- Get data from the keyboard
  
@@ -332,26 +427,27 @@ do
 
 '' -------------------- Enter and also file panel active - open and play the file
   
-  if (ansibuf(3)=13 orelse ansibuf(3)=141) andalso panel=1 then
-    open currentdir$+"filelist.txt" for input as #7						' open a file list
+412 if (ansibuf(3)=13 orelse ansibuf(3)=141) andalso panel=1 then
+    close #7: open currentdir$+"filelist.txt" for input as #7					' open a file list
     if filenum2>0 then get #7,1+39*(filenum2-1),displayname(0),39 				' find the file name
-    input #7,filename$ 				
+    input #7,filename$ 			
     filename$=rtrim$(filename$)									' clean trailing spaces
     close #7
     let ext$=lcase$(right$(filename$,3))
-    if ext$="mod" or ext$="dmp" or ext$="sid" or ext$="spc" or ext$="wav" or ext$="lac" then                  ' if the file is playable, stop playing the previous one
+    if ext$="mod" or ext$="dmp" or ext$="sid" or ext$="spc" or ext$="wav" or ext$="lac" then    ' if the file is playable, stop playing the previous one
       if a6502cog>0 then cpustop(a6502cog) : a6502cog=-1
-      if modcog>0 then cpustop(modcog)	: modcog=-1 :modplaying=0								
-      if scog>0 then cpustop(scog): scog=-1 : dmpplaying=0 : sidplaying=0
+      if modcog>0 then cpustop(modcog)	: modcog=-1  							
+      if scog>0 then cpustop(scog): scog=-1  
       if scog2>0 then cpustop(scog2): scog2=-1   
       if audiocog>0 then stopaudio : audiocog=-1        
-      waveplaying=0: modplaying=0 : spcplaying=0 : sidplaying=0: dmpplaying=0                   ' clear playing indicator variables
+      waveplaying=0: modplaying=0 : spcplaying=0 : sidplaying=0: dmpplaying=0 : spcplaying=0    ' clear playing indicator variables
       v.spr1y=600: v.spr2y=600: v.spr3y=600: v.spr4y=600					' hide sprites
       close #8											' close an audio file channel
       v.box(529,428,719,554,16)									' clear the info panels
       v.box(725,428,1018,554,162)
       v.box(725,60,1018,403,147)
-      waitms(1)											'
+      waitms(10)
+      											'
     endif  
     
     if ext$="lac" then 
@@ -370,7 +466,7 @@ do
       do
         get #8,pos,filebuf(0),16384,r : pos+=r 	
         psram.write(addr(filebuf(0)),mb,16384)	
-        position 4,24: print pos-1; " bytes loaded     "				        ' get 4KB and update file position
+        v.setwritecolors(122,114) : position 4,24: print pos-1; " bytes loaded     "				        ' get 4KB and update file position
         if mb<scope_ptr-16384 then for i=0 to r-1 : poke mb+i,filebuf(i) : next i               ' we have 68k 6502/spc/mod buffer to keep the mod header
         mb+=16384				                                               
       loop until r<>16384 									' do until eof 
@@ -434,7 +530,7 @@ do
     do
       get #8,pos,filebuf(0),16384,r : pos+=r	
       psram.write(addr(filebuf(0)),psramptr,16384)	
-      position 4,24: print pos-1; " bytes loaded     "					         ' get 128 bytes and update file position
+      v.setwritecolors(122,114) : position 4,24: print pos-1; " bytes loaded     "					         ' get 128 bytes and update file position
       psramptr+=16384 					                                         ' move the buffer to the RAM and update RAM position. Todo: this can be done all at once
     loop until r<>16384 '                          					         ' do until eof 
     close #8
@@ -470,13 +566,13 @@ do
     endif  
 
   if ext$="spc" then  										' this is a spc file. 
-    hubset(hubset336)										 
+    hubset(hubset336)	
     filename3$=currentdir$+filename$								' get a filename with the path
     close #8: open filename3$ for input as #8: pos=1
     do
       get #8,pos,a6502buf(pos-1),2048,r : pos+=r	
-      position 4,24: print pos-1; " bytes loaded     "					        ' get 128 bytes and update file position
-    loop until r<>2048 '                          					      ' do until eof 
+      v.setwritecolors(122,114) : position 4,24: print pos-1; " bytes loaded     "					        ' get 128 bytes and update file position
+    loop until r<>2048 '                          					        ' do until eof 
     close #8
     spcplaying=1   	
     v.setwritecolors($ea,$e1)									' yellow
@@ -500,9 +596,9 @@ do
     ansibuf(3)=0
   endif
    
-  if (ansibuf(3)=66 andalso ansibuf(2)=91 andalso ansibuf(1)=27) orelse (ansibuf(3)=$D0)  then filemove=1                                  ' arrow down  
+  if (ansibuf(3)=66 andalso ansibuf(2)=91 andalso ansibuf(1)=27) orelse (ansibuf(3)=$D0) orelse mousewheel=1 then filemove=1 :mousewheel=0                                 ' arrow down  
   if (ansibuf(3)=54 andalso ansibuf(2)=91 andalso ansibuf(1)=27) orelse (ansibuf(3)=205) orelse (ansibuf(3)=asc("s")) then filemove=10     ' pg down or s - moves 10 positions down 
-  if (ansibuf(3)=65 andalso ansibuf(2)=91 andalso ansibuf(1)=27) orelse (ansibuf(3)=$D1)  then filemove=(-1)                               ' arrow up 
+  if (ansibuf(3)=65 andalso ansibuf(2)=91 andalso ansibuf(1)=27) orelse (ansibuf(3)=$D1) orelse mousewheel=-1 then filemove=(-1) :mousewheel=0                              ' arrow up 
   if (ansibuf(3)=53 andalso ansibuf(2)=91 andalso ansibuf(1)=27) orelse (ansibuf(3)=203) orelse (ansibuf(3)=asc("w"))  then filemove=(-10) ' pg up or w - moves 10 positions up 
 
 '' ---------------------------------- If the "cursor" needs to be moved, do it
@@ -597,7 +693,7 @@ do
 230  ansibuf(3)=0: ansibuf(2)=0 : ansibuf(1)=0  :filemove=0   
   endif
   if playnext=1 then playnext=0: ansibuf(3)=13
- 
+  mouseclick=0: mousewheel=0
 loop		
 
 '' ------------------------------------------------ END OF THE MAIN LOOP started at 81 ---------------------------------------------------------------------------
