@@ -2,13 +2,14 @@
 <CONFIG>
   <ProjectSession>
     <PathDelim Value="\"/>
-    <Version Value="12"/>
+    <Version Value="9"/>
     <BuildModes Active="Default"/>
     <Units Count="5">
       <Unit0>
         <Filename Value="Project1.pas"/>
         <IsPartOfProject Value="True"/>
         <IsVisibleTab Value="True"/>
+        <TopLine Value="56"/>
         <CursorPos X="25" Y="74"/>
         <UsageCount Value="45"/>
         <Loaded Value="True"/>
@@ -63,9 +64,5 @@
         <Caret Line="67" Column="43" TopLine="58"/>
       </Position4>
     </JumpHistory>
-    <RunParams>
-      <FormatVersion Value="2"/>
-      <Modes ActiveMode="default"/>
-    </RunParams>
   </ProjectSession>
 </CONFIG>

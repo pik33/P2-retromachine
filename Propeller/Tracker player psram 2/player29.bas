@@ -69,7 +69,7 @@ v.outtextxycf(536,410,"Visualization",0)
 
 v.frame(724,408,1019,555,15)							' clear the panel
 v.box(725,409,1018,427,170)							' clear the panel
-v.box(725,428,1018,554,162)
+v.box(725,428,1018,554,160)
 v.outtextxycf(732,410,"Channels",0)
 
 v.frame(724,40,1019,404,15)							' clear the panel
@@ -225,6 +225,7 @@ do
   scope												' display scope
   bars												' display bars
 
+  position 0,0: print decuns$(mousex,4), decuns$(mousey,4)
 '' --------------------------------  Getting the .wav file data in the main loop as no other cogs can acces the file system ------------
 
   if waveplaying=1 then
@@ -359,6 +360,11 @@ do
    
 '' --------------------------- Keys 1..4 - channels on/off, 5,6 - stereo separation, +,- volume
    
+  if mousex>54 andalso mousex<72 andalso mousey>350 andalso mousey<365 andalso mousewheel=-1 then ansibuf(3)=54: mousewheel=0
+  if mousex>54 andalso mousex<72 andalso mousey>350 andalso mousey<365 andalso mousewheel=1 then ansibuf(3)=53 : mousewheel=0
+  if mousex>128 andalso mousex<152 andalso mousey>350 andalso mousey<365 andalso mousewheel=-1 then ansibuf(3)=asc("+"): mousewheel=0
+  if mousex>128 andalso mousex<152 andalso mousey>350 andalso mousey<365 andalso mousewheel=1 then ansibuf(3)=asc("-")  : mousewheel=0
+   
   if ansibuf(3)=49 then channelvol(0)=1-channelvol(0) : ansibuf(3)=0									' 1 - channel 1	
   if ansibuf(3)=50 then channelvol(1)=1-channelvol(1) : ansibuf(3)=0									' 2 - channel 2
   if ansibuf(3)=51 then channelvol(2)=1-channelvol(2) : ansibuf(3)=0									' 3 - channel 3
@@ -444,7 +450,7 @@ do
       v.spr1y=600: v.spr2y=600: v.spr3y=600: v.spr4y=600					' hide sprites
       close #8											' close an audio file channel
       v.box(529,428,719,554,16)									' clear the info panels
-      v.box(725,428,1018,554,162)
+      v.box(725,428,1018,554,160)
       v.box(725,60,1018,403,147)
       waitms(10)
       											'
@@ -531,7 +537,7 @@ do
       get #8,pos,filebuf(0),16384,r : pos+=r	
       psram.write(addr(filebuf(0)),psramptr,16384)	
       v.setwritecolors(122,114) : position 4,24: print pos-1; " bytes loaded     "					         ' get 128 bytes and update file position
-      psramptr+=16384 					                                         ' move the buffer to the RAM and update RAM position. Todo: this can be done all at once
+      psramptr+=r 					                                         ' move the buffer to the RAM and update RAM position. Todo: this can be done all at once
     loop until r<>16384 '                          					         ' do until eof 
     close #8
     sidlen=psramptr
@@ -1179,7 +1185,7 @@ v.outtextxycf(536,410,"Visualization",0)
 
 v.frame(724,408,1019,555,15)							' clear the panel
 v.box(725,409,1018,427,170)							' clear the panel
-v.box(725,428,1018,554,162)
+v.box(725,428,1018,554,160)
 v.outtextxycf(732,410,"Channels",0)
 
 v.frame(724,40,1019,404,15)							' clear the panel
@@ -1292,28 +1298,28 @@ end sub
 
 sub displaysamples 
 
-v.setwritecolors(170,162)
+v.setwritecolors(170,160)
 
 if modplaying then
-position 246,29:v.write(v.inttostr2(tracker.currperiod(0)+tracker.deltaperiod(0),3))
-position 246,30:v.write(v.inttostr2(tracker.currperiod(1)+tracker.deltaperiod(1),3))
-position 246,31:v.write(v.inttostr2(tracker.currperiod(2)+tracker.deltaperiod(2),3))
-position 246,32:v.write(v.inttostr2(tracker.currperiod(3)+tracker.deltaperiod(3),3))
+v.setwritecolors(43,160) : position 246,29:v.write(v.inttostr2(tracker.currperiod(0)+tracker.deltaperiod(0),3))
+v.setwritecolors(138,160) : position 246,30:v.write(v.inttostr2(tracker.currperiod(1)+tracker.deltaperiod(1),3))
+v.setwritecolors(186,160) :position 246,31:v.write(v.inttostr2(tracker.currperiod(2)+tracker.deltaperiod(2),3))
+v.setwritecolors(234,160) :position 246,32:v.write(v.inttostr2(tracker.currperiod(3)+tracker.deltaperiod(3),3))
 
-if tracker.currsamplenr(0)<=samples then position 184,29: v.write(sn$(tracker.currsamplenr(0))) 
-if tracker.currsamplenr(1)<=samples then position 184,30: v.write(sn$(tracker.currsamplenr(1)))
-if tracker.currsamplenr(2)<=samples then position 184,31: v.write(sn$(tracker.currsamplenr(2)))
-if tracker.currsamplenr(3)<=samples then position 184,32: v.write(sn$(tracker.currsamplenr(3)))
+if tracker.currsamplenr(0)<=samples then v.setwritecolors(43,160): position 184,29: v.write(sn$(tracker.currsamplenr(0))) 
+if tracker.currsamplenr(1)<=samples then v.setwritecolors(138,160) :position 184,30: v.write(sn$(tracker.currsamplenr(1)))
+if tracker.currsamplenr(2)<=samples then v.setwritecolors(186,160) :position 184,31: v.write(sn$(tracker.currsamplenr(2)))
+if tracker.currsamplenr(3)<=samples then v.setwritecolors(234,160) :position 184,32: v.write(sn$(tracker.currsamplenr(3)))
 endif
 
 if (dmpplaying=1) or (sidplaying=1) then
-position 244,29:v.write(v.inttostr2(sidregs(0)/8718,4))
-position 244,30:v.write(v.inttostr2(sidregs(9)/8718,4))
-position 244,31:v.write(v.inttostr2(sidregs(18)/8718,4))
+v.setwritecolors(43,160) : position 244,29:v.write(v.inttostr2(sidregs(0)/8718,4))
+v.setwritecolors(138,160) :position 244,30:v.write(v.inttostr2(sidregs(9)/8718,4))
+v.setwritecolors(186,160) :position 244,31:v.write(v.inttostr2(sidregs(18)/8718,4))
 
-if sidregs(2)<=8  then position 184,29 : v.write(sidnames(sidregs(2)))
-if sidregs(11)<=8 then position 184,30 : v.write(sidnames(sidregs(11)))
-if sidregs(20)<=8 then position 184,31 : v.write(sidnames(sidregs(20)))
+if sidregs(2)<=8  then v.setwritecolors(43,160) : position 184,29 : v.write(sidnames(sidregs(2)))
+if sidregs(11)<=8 then v.setwritecolors(138,160) : position 184,30 : v.write(sidnames(sidregs(11)))
+if sidregs(20)<=8 then v.setwritecolors(186,160) :position 184,31 : v.write(sidnames(sidregs(20)))
 endif
 
 
